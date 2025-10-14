@@ -1,6 +1,6 @@
 {
   "name": "claude-code-chat",
-  "displayName": "Claude Code Chat",
+  "displayName": "Chat for Claude Code",
   "description": "Beautiful Claude Code Chat Interface for VS Code",
   "version": "1.0.7",
   "publisher": "AndrePimenta",
@@ -56,7 +56,7 @@
         "command": "claude-code-chat.openChat",
         "title": "Open Claude Code Chat",
         "category": "Claude Code Chat",
-        "icon": "icon.png"
+        "icon": "icon-bubble.png"
       }
     ],
     "keybindings": [
@@ -133,7 +133,7 @@
           "type": "webview",
           "name": "Claude Code Chat",
           "when": "true",
-          "icon": "icon.png",
+          "icon": "icon-bubble.png",
           "contextualTitle": "Claude Code Chat"
         }
       ]
@@ -143,7 +143,7 @@
         {
           "id": "claude-code-chat",
           "title": "Claude Code Chat",
-          "icon": "icon.png"
+          "icon": "icon-bubble.png"
         }
       ]
     },

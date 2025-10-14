@@ -174,7 +174,7 @@ class ClaudeChatProvider {
 		);
 
 		// Set icon for the webview tab using URI path
-		const iconPath = vscode.Uri.joinPath(this._extensionUri, 'icon.png');
+		const iconPath = vscode.Uri.joinPath(this._extensionUri, 'icon-bubble.png');
 		this._panel.iconPath = iconPath;
 
 		this._panel.webview.html = this._getHtmlForWebview();
