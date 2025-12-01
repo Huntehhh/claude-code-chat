@@ -1150,14 +1150,21 @@ const styles = `
         margin: 12px 0;
     }
 
-    .diff-summary {
+    .diff-summary-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
         margin-top: 8px;
-        padding: 8px 12px;
+        padding: 6px 12px;
         border-top: 1px solid var(--vscode-panel-border);
+        background-color: var(--vscode-editor-background);
+    }
+
+    .diff-summary {
         color: var(--vscode-descriptionForeground);
         font-size: 11px;
         font-weight: 500;
-        background-color: var(--vscode-editor-background);
     }
 
     .diff-preview {
@@ -1169,6 +1176,14 @@ const styles = `
     }
 
     /* File path display styles */
+    .diff-file-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
     .diff-file-path {
         padding: 8px 12px;
         border: 1px solid var(--vscode-panel-border);
@@ -1176,6 +1191,7 @@ const styles = `
         font-size: 12px;
         cursor: pointer;
         transition: all 0.2s ease;
+        flex: 1;
     }
 
     .diff-file-path:hover {
@@ -1184,6 +1200,35 @@ const styles = `
     }
 
     .diff-file-path:active {
+        transform: translateY(1px);
+    }
+
+    .diff-open-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: transparent;
+        border: 1px solid var(--vscode-button-secondaryBorder, var(--vscode-panel-border));
+        color: var(--vscode-foreground);
+        padding: 4px 10px;
+        border-radius: 3px;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .diff-open-btn svg {
+        flex-shrink: 0;
+    }
+
+    .diff-open-btn:hover {
+        background: var(--vscode-button-secondaryHoverBackground, rgba(255, 255, 255, 0.1));
+        border-color: var(--vscode-focusBorder);
+        opacity: 1;
+    }
+
+    .diff-open-btn:active {
         transform: translateY(1px);
     }
 

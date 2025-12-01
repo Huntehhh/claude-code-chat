@@ -297,6 +297,9 @@ class ClaudeChatProvider {
 			case 'openFile':
 				this._openFileInEditor(message.filePath);
 				return;
+			case 'openDiff':
+				this._openDiffEditor(message.oldContent, message.newContent, message.filePath);
+				return;
 			case 'createImageFile':
 				this._createImageFile(message.imageData, message.imageType);
 				return;
@@ -2337,6 +2340,74 @@ class ClaudeChatProvider {
 		} catch (error) {
 			vscode.window.showErrorMessage(`Failed to open file: ${filePath}`);
 			console.error('Error opening file:', error);
+		}
+	}
+
+	private async _openDiffEditor(oldContent: string, newContent: string, filePath: string) {
+		try {
+			const storageUri = this._context.storageUri;
+			if (!storageUri) {
+				vscode.window.showErrorMessage('No storage location available');
+				return;
+			}
+
+			const baseName = path.basename(filePath);
+			const ext = path.extname(filePath);
+			const nameWithoutExt = baseName.slice(0, -ext.length) || baseName;
+			const timestamp = Date.now();
+
+			// Create temp files in extension's storage directory
+			const tempDirUri = vscode.Uri.joinPath(storageUri, 'diff-temp');
+
+			// Ensure temp directory exists
+			try {
+				await vscode.workspace.fs.createDirectory(tempDirUri);
+			} catch {
+				// Directory might already exist, ignore error
+			}
+
+			const oldUri = vscode.Uri.joinPath(tempDirUri, `${nameWithoutExt}.old.${timestamp}${ext}`);
+			const newUri = vscode.Uri.joinPath(tempDirUri, `${nameWithoutExt}.new.${timestamp}${ext}`);
+
+			// Write content to temp files using VS Code filesystem API
+			await vscode.workspace.fs.writeFile(oldUri, Buffer.from(oldContent, 'utf8'));
+			await vscode.workspace.fs.writeFile(newUri, Buffer.from(newContent, 'utf8'));
+
+			// Ensure side-by-side diff mode is enabled
+			const diffConfig = vscode.workspace.getConfiguration('diffEditor');
+			const wasInlineMode = diffConfig.get('renderSideBySide') === false;
+			if (wasInlineMode) {
+				await diffConfig.update('renderSideBySide', true, vscode.ConfigurationTarget.Global);
+			}
+
+			// Open diff editor
+			await vscode.commands.executeCommand('vscode.diff', oldUri, newUri, `${baseName} (Changes)`);
+
+			// Track which files need to be cleaned up
+			const filesToCleanup = new Set([oldUri.toString(), newUri.toString()]);
+
+			// Listen for document close events to clean up temp files
+			const closeListener = vscode.workspace.onDidCloseTextDocument(async (doc) => {
+				if (filesToCleanup.has(doc.uri.toString())) {
+					filesToCleanup.delete(doc.uri.toString());
+					try {
+						await vscode.workspace.fs.delete(doc.uri, { useTrash: false });
+					} catch {
+						// File might already be deleted, ignore
+					}
+
+					// Dispose listener when both files are cleaned up
+					if (filesToCleanup.size === 0) {
+						closeListener.dispose();
+					}
+				}
+			});
+
+			// Also add to disposables to clean up on extension deactivate
+			this._disposables.push(closeListener);
+		} catch (error) {
+			vscode.window.showErrorMessage(`Failed to open diff editor: ${error}`);
+			console.error('Error opening diff editor:', error);
 		}
 	}
 

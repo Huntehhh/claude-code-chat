@@ -16,6 +16,23 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		let planModeEnabled = false;
 		let thinkingModeEnabled = false;
 
+		// Storage for diff data to enable "Open Diff" functionality
+		const diffDataStore = {};
+
+		function openDiffEditor(diffId) {
+			const data = diffDataStore[diffId];
+			if (!data) {
+				console.error('Diff data not found for id:', diffId);
+				return;
+			}
+			vscode.postMessage({
+				type: 'openDiff',
+				oldContent: data.oldString,
+				newContent: data.newString,
+				filePath: data.filePath
+			});
+		}
+
 		function shouldAutoScroll(messagesDiv) {
 			const threshold = 100; // pixels from bottom
 			const scrollTop = messagesDiv.scrollTop;
@@ -509,9 +526,23 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			const newLines = newString.split('\\n');
 			const diff = computeLineDiff(oldLines, newLines);
 
+			// Generate unique ID for this diff
+			const diffId = 'diff_' + Math.random().toString(36).substr(2, 9);
+
+			// Store diff data for "Open Diff" functionality
+			diffDataStore[diffId] = {
+				oldString: oldString,
+				newString: newString,
+				filePath: filePath
+			};
+
 			let html = '';
 			const formattedPath = formatFilePath(filePath);
-			html += '<div class="diff-file-path" onclick="openFileInEditor(\\\'' + escapeHtml(filePath) + '\\\')">' + formattedPath + '</div>\\n';
+
+			// Header with file path
+			html += '<div class="diff-file-header">';
+			html += '<div class="diff-file-path" onclick="openFileInEditor(\\\'' + escapeHtml(filePath) + '\\\')">' + formattedPath + '</div>';
+			html += '</div>\\n';
 
 			// Calculate line range
 			let firstLine = startLine;
@@ -534,7 +565,6 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			let oldLineNum = startLine;
 			let newLineNum = startLine;
 			const maxLines = 6;
-			const diffId = 'diff_' + Math.random().toString(36).substr(2, 9);
 			let lineIndex = 0;
 
 			// First pass: build all line HTML
@@ -598,7 +628,12 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			}
 
 			if (summary) {
-				html += '<div class="diff-summary">Summary: ' + summary + '</div>';
+				html += '<div class="diff-summary-row">';
+				html += '<span class="diff-summary">Summary: ' + summary + '</span>';
+				html += '<button class="diff-open-btn" onclick="openDiffEditor(\\\'' + diffId + '\\\')" title="Open side-by-side diff in VS Code">';
+				html += '<svg width="14" height="14" viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="14" rx="1" fill="none" stroke="currentColor" stroke-opacity="0.5"/><rect x="9" y="1" width="6" height="14" rx="1" fill="none" stroke="currentColor" stroke-opacity="0.5"/><line x1="2.5" y1="4" x2="5.5" y2="4" stroke="#f85149" stroke-width="1.5"/><line x1="2.5" y1="7" x2="5.5" y2="7" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/><line x1="2.5" y1="10" x2="5.5" y2="10" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/><line x1="10.5" y1="4" x2="13.5" y2="4" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/><line x1="10.5" y1="7" x2="13.5" y2="7" stroke="#3fb950" stroke-width="1.5"/><line x1="10.5" y1="10" x2="13.5" y2="10" stroke="#3fb950" stroke-width="1.5"/></svg>';
+				html += 'Open Diff</button>';
+				html += '</div>';
 			}
 
 			return html;
