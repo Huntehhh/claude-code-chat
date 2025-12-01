@@ -649,15 +649,8 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				return formatToolInputUI(input);
 			}
 
-			// Simple preview - detailed diff will be shown in tool result
-			const formattedPath = formatFilePath(input.file_path);
-			const oldLines = input.old_string.split('\\n').length;
-			const newLines = input.new_string.split('\\n').length;
-			const delta = newLines - oldLines;
-			const deltaStr = delta > 0 ? '+' + delta : delta < 0 ? delta.toString() : '±0';
-
-			return '<div class="diff-file-path" onclick="openFileInEditor(\\\'' + escapeHtml(input.file_path) + '\\\')">' + formattedPath + '</div>\\n' +
-				   '<div class="diff-preview">Editing ' + oldLines + ' line' + (oldLines !== 1 ? 's' : '') + ' (' + deltaStr + ' lines)</div>';
+			// Show full diff (line numbers will be approximate until result comes back)
+			return generateUnifiedDiffHTML(input.old_string, input.new_string, input.file_path, 1);
 		}
 
 		function formatMultiEditToolDiff(input) {
@@ -670,10 +663,47 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				return formatToolInputUI(input);
 			}
 
-			// Simple preview - detailed diff will be shown in tool result
+			// Show full diffs for each edit
 			const formattedPath = formatFilePath(input.file_path);
-			return '<div class="diff-file-path" onclick="openFileInEditor(\\\'' + escapeHtml(input.file_path) + '\\\')">' + formattedPath + '</div>\\n' +
-				   '<div class="diff-preview">Making ' + input.edits.length + ' edit' + (input.edits.length !== 1 ? 's' : '') + '</div>';
+			let html = '<div class="diff-file-header">';
+			html += '<div class="diff-file-path" onclick="openFileInEditor(\\\'' + escapeHtml(input.file_path) + '\\\')">' + formattedPath + '</div>';
+			html += '</div>\\n';
+
+			input.edits.forEach((edit, index) => {
+				if (edit.old_string && edit.new_string) {
+					if (index > 0) {
+						html += '<div class="diff-edit-separator"></div>';
+					}
+					const oldLines = edit.old_string.split('\\n');
+					const newLines = edit.new_string.split('\\n');
+					const diff = computeLineDiff(oldLines, newLines);
+
+					html += '<div class="diff-container">';
+					html += '<div class="diff-header">Edit ' + (index + 1) + '</div>';
+
+					let addedCount = 0;
+					let removedCount = 0;
+					for (const change of diff) {
+						let prefix, cssClass;
+						if (change.type === 'context') {
+							prefix = ' ';
+							cssClass = 'context';
+						} else if (change.type === 'added') {
+							prefix = '+';
+							cssClass = 'added';
+							addedCount++;
+						} else {
+							prefix = '-';
+							cssClass = 'removed';
+							removedCount++;
+						}
+						html += '<div class="diff-line ' + cssClass + '">' + prefix + '    ' + escapeHtml(change.content) + '</div>';
+					}
+					html += '</div>';
+				}
+			});
+
+			return html;
 		}
 
 		function formatWriteToolDiff(input) {
@@ -686,11 +716,8 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				return formatToolInputUI(input);
 			}
 
-			// Simple preview - detailed diff will be shown in tool result
-			const formattedPath = formatFilePath(input.file_path);
-			const lines = input.content.split('\\n').length;
-			return '<div class="diff-file-path" onclick="openFileInEditor(\\\'' + escapeHtml(input.file_path) + '\\\')">' + formattedPath + '</div>\\n' +
-				   '<div class="diff-preview">Writing ' + lines + ' line' + (lines !== 1 ? 's' : '') + '</div>';
+			// Show full content as added lines (new file)
+			return generateUnifiedDiffHTML('', input.content, input.file_path, 1);
 		}
 
 		function escapeHtml(text) {
