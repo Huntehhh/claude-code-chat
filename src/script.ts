@@ -342,9 +342,14 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			// Add content
 			const contentDiv = document.createElement('div');
 			contentDiv.className = 'message-content';
-			
+
 			// Check if it's a tool result and truncate appropriately
 			let content = data.content;
+
+			// Clean up error messages by removing XML-like tags
+			if (data.isError && content) {
+				content = content.replace(/<tool_use_error>/g, '').replace(/<\\/tool_use_error>/g, '').trim();
+			}
 			if (content.length > 200 && !data.isError) {
 				const truncateAt = 197;
 				const truncated = content.substring(0, truncateAt);
