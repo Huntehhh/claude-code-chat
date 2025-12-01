@@ -6,6 +6,17 @@ import getHtml from './ui';
 
 const exec = util.promisify(cp.exec);
 
+// Storage for diff content (used by DiffContentProvider)
+const diffContentStore = new Map<string, string>();
+
+// Custom TextDocumentContentProvider for read-only diff views
+class DiffContentProvider implements vscode.TextDocumentContentProvider {
+	provideTextDocumentContent(uri: vscode.Uri): string {
+		const content = diffContentStore.get(uri.path);
+		return content || '';
+	}
+}
+
 export function activate(context: vscode.ExtensionContext) {
 	console.log('Claude Code Chat extension is being activated!');
 	const provider = new ClaudeChatProvider(context.extensionUri, context);
@@ -22,6 +33,10 @@ export function activate(context: vscode.ExtensionContext) {
 	// Register webview view provider for sidebar chat (using shared provider instance)
 	const webviewProvider = new ClaudeChatWebviewProvider(context.extensionUri, context, provider);
 	vscode.window.registerWebviewViewProvider('claude-code-chat.chat', webviewProvider);
+
+	// Register custom content provider for read-only diff views
+	const diffProvider = new DiffContentProvider();
+	context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('claude-diff', diffProvider));
 
 	// Listen for configuration changes
 	const configChangeDisposable = vscode.workspace.onDidChangeConfiguration(event => {
@@ -299,6 +314,9 @@ class ClaudeChatProvider {
 				return;
 			case 'openDiff':
 				this._openDiffEditor(message.oldContent, message.newContent, message.filePath);
+				return;
+			case 'openDiffByIndex':
+				this._openDiffByMessageIndex(message.messageIndex);
 				return;
 			case 'createImageFile':
 				this._createImageFile(message.imageData, message.imageType);
@@ -657,7 +675,7 @@ class ClaudeChatProvider {
 		});
 	}
 
-	private _processJsonStreamData(jsonData: any) {
+	private async _processJsonStreamData(jsonData: any) {
 		switch (jsonData.type) {
 			case 'system':
 				if (jsonData.subtype === 'init') {
@@ -717,6 +735,7 @@ class ClaudeChatProvider {
 							// Show tool execution with better formatting
 							const toolInfo = `🔧 Executing: ${content.name}`;
 							let toolInput = '';
+							let fileContentBefore: string | undefined;
 
 							if (content.input) {
 								// Special formatting for TodoWrite to make it more readable
@@ -731,6 +750,44 @@ class ClaudeChatProvider {
 									// Send raw input to UI for formatting
 									toolInput = '';
 								}
+
+								// For Edit/MultiEdit/Write, read current file content (before state)
+								if ((content.name === 'Edit' || content.name === 'MultiEdit' || content.name === 'Write') && content.input.file_path) {
+									try {
+										const fileUri = vscode.Uri.file(content.input.file_path);
+										const fileData = await vscode.workspace.fs.readFile(fileUri);
+										fileContentBefore = Buffer.from(fileData).toString('utf8');
+									} catch {
+										// File might not exist yet (for Write), that's ok
+										fileContentBefore = '';
+									}
+								}
+							}
+
+							// Compute startLine(s) while we have the file content
+							let startLine: number | undefined;
+							let startLines: number[] | undefined;
+							if (fileContentBefore !== undefined) {
+								if (content.name === 'Edit' && content.input.old_string) {
+									const position = fileContentBefore.indexOf(content.input.old_string);
+									if (position !== -1) {
+										const textBefore = fileContentBefore.substring(0, position);
+										startLine = (textBefore.match(/\n/g) || []).length + 1;
+									} else {
+										startLine = 1;
+									}
+								} else if (content.name === 'MultiEdit' && content.input.edits) {
+									startLines = content.input.edits.map((edit: any) => {
+										if (edit.old_string) {
+											const position = fileContentBefore!.indexOf(edit.old_string);
+											if (position !== -1) {
+												const textBefore = fileContentBefore!.substring(0, position);
+												return (textBefore.match(/\n/g) || []).length + 1;
+											}
+										}
+										return 1;
+									});
+								}
 							}
 
 							// Show tool use and save to conversation
@@ -740,7 +797,10 @@ class ClaudeChatProvider {
 									toolInfo: toolInfo,
 									toolInput: toolInput,
 									rawInput: content.input,
-									toolName: content.name
+									toolName: content.name,
+									fileContentBefore: fileContentBefore,
+									startLine: startLine,
+									startLines: startLines
 								}
 							});
 						}
@@ -762,11 +822,25 @@ class ClaudeChatProvider {
 
 							const isError = content.is_error || false;
 
-							// Find the last tool use to get the tool name and input
+							// Find the last tool use to get the tool name, input, and computed startLine
 							const lastToolUse = this._currentConversation[this._currentConversation.length - 1]
 
 							const toolName = lastToolUse?.data?.toolName;
 							const rawInput = lastToolUse?.data?.rawInput;
+							const startLine = lastToolUse?.data?.startLine;
+							const startLines = lastToolUse?.data?.startLines;
+
+							// For Edit/MultiEdit/Write, read current file content (after state)
+							let fileContentAfter: string | undefined;
+							if ((toolName === 'Edit' || toolName === 'MultiEdit' || toolName === 'Write') && rawInput?.file_path && !isError) {
+								try {
+									const fileUri = vscode.Uri.file(rawInput.file_path);
+									const fileData = await vscode.workspace.fs.readFile(fileUri);
+									fileContentAfter = Buffer.from(fileData).toString('utf8');
+								} catch {
+									// File read failed, that's ok
+								}
+							}
 
 							// Don't send tool result for Read and TodoWrite tools unless there's an error
 							if ((toolName === 'Read' || toolName === 'TodoWrite') && !isError) {
@@ -791,7 +865,10 @@ class ClaudeChatProvider {
 										isError: isError,
 										toolUseId: content.tool_use_id,
 										toolName: toolName,
-										rawInput: rawInput
+										rawInput: rawInput,
+										fileContentAfter: fileContentAfter,
+										startLine: startLine,
+										startLines: startLines
 									}
 								});
 							}
@@ -1818,14 +1895,30 @@ class ClaudeChatProvider {
 			this._conversationStartTime = new Date().toISOString();
 		}
 
+		// The message index will be the current length (0-indexed position after push)
+		const messageIndex = this._currentConversation.length;
+
+		// For tool messages that support diff, include the message index
+		const messageToSend = (message.type === 'toolUse' || message.type === 'toolResult')
+			? { ...message, data: { ...message.data, messageIndex } }
+			: message;
+
 		// Send to UI using the helper method
-		this._postMessage(message);
+		this._postMessage(messageToSend);
+
+		// Strip fileContentBefore/fileContentAfter from saved data to reduce storage
+		// Keep startLine/startLines which are small and needed for accurate line numbers on reload
+		let dataToSave = message.data;
+		if (message.type === 'toolUse' || message.type === 'toolResult') {
+			const { fileContentBefore, fileContentAfter, ...rest } = message.data || {};
+			dataToSave = rest; // startLine and startLines are preserved in rest
+		}
 
 		// Save to conversation
 		this._currentConversation.push({
 			timestamp: new Date().toISOString(),
 			messageType: message.type,
-			data: message.data
+			data: dataToSave
 		});
 
 		// Persist conversation
@@ -2099,9 +2192,14 @@ class ClaudeChatProvider {
 							}
 						}
 
+						// For tool messages, include the message index so Open Diff buttons work
+						const messageData = (message.messageType === 'toolUse' || message.messageType === 'toolResult')
+							? { ...message.data, messageIndex: i }
+							: message.data;
+
 						this._postMessage({
 							type: message.messageType,
-							data: message.data
+							data: messageData
 						});
 						if (message.messageType === 'userInput') {
 							try {
@@ -2343,35 +2441,77 @@ class ClaudeChatProvider {
 		}
 	}
 
-	private async _openDiffEditor(oldContent: string, newContent: string, filePath: string) {
+	private async _openDiffByMessageIndex(messageIndex: number) {
 		try {
-			const storageUri = this._context.storageUri;
-			if (!storageUri) {
-				vscode.window.showErrorMessage('No storage location available');
+			const message = this._currentConversation[messageIndex];
+			if (!message) {
+				console.error('Message not found at index:', messageIndex);
 				return;
 			}
 
-			const baseName = path.basename(filePath);
-			const ext = path.extname(filePath);
-			const nameWithoutExt = baseName.slice(0, -ext.length) || baseName;
-			const timestamp = Date.now();
+			const data = message.data;
+			const toolName = data.toolName;
+			const rawInput = data.rawInput;
+			let filePath = rawInput?.file_path || '';
+			let oldContent = '';
+			let newContent = '';
 
-			// Create temp files in extension's storage directory
-			const tempDirUri = vscode.Uri.joinPath(storageUri, 'diff-temp');
-
-			// Ensure temp directory exists
-			try {
-				await vscode.workspace.fs.createDirectory(tempDirUri);
-			} catch {
-				// Directory might already exist, ignore error
+			if (!filePath) {
+				console.error('No file path found for message at index:', messageIndex);
+				return;
 			}
 
-			const oldUri = vscode.Uri.joinPath(tempDirUri, `${nameWithoutExt}.old.${timestamp}${ext}`);
-			const newUri = vscode.Uri.joinPath(tempDirUri, `${nameWithoutExt}.new.${timestamp}${ext}`);
+			// Read current file from disk - this is the "before" state since edit hasn't been applied yet
+			try {
+				const fileUri = vscode.Uri.file(filePath);
+				const fileData = await vscode.workspace.fs.readFile(fileUri);
+				oldContent = Buffer.from(fileData).toString('utf8');
+			} catch {
+				// File might not exist yet (for Write creating new file)
+				oldContent = '';
+			}
 
-			// Write content to temp files using VS Code filesystem API
-			await vscode.workspace.fs.writeFile(oldUri, Buffer.from(oldContent, 'utf8'));
-			await vscode.workspace.fs.writeFile(newUri, Buffer.from(newContent, 'utf8'));
+			// Compute "after" state by applying the edit to current file
+			if (toolName === 'Edit' && rawInput?.old_string && rawInput?.new_string) {
+				newContent = oldContent.replace(rawInput.old_string, rawInput.new_string);
+			} else if (toolName === 'MultiEdit' && rawInput?.edits) {
+				newContent = oldContent;
+				for (const edit of rawInput.edits) {
+					if (edit.old_string && edit.new_string) {
+						newContent = newContent.replace(edit.old_string, edit.new_string);
+					}
+				}
+			} else if (toolName === 'Write' && rawInput?.content) {
+				newContent = rawInput.content;
+			}
+
+			if (oldContent !== newContent) {
+				await this._openDiffEditor(oldContent, newContent, filePath);
+			} else {
+				vscode.window.showInformationMessage('No changes to show - the edit may have already been applied.');
+			}
+		} catch (error) {
+			console.error('Error opening diff by message index:', error);
+		}
+	}
+
+	private async _openDiffEditor(oldContent: string, newContent: string, filePath: string) {
+		try {
+			// oldContent and newContent are now full file contents passed from the webview
+			const baseName = path.basename(filePath);
+			const timestamp = Date.now();
+
+			// Create unique paths for the virtual documents
+			const oldPath = `/${timestamp}/old/${baseName}`;
+			const newPath = `/${timestamp}/new/${baseName}`;
+
+			// Store content in the global store for the content provider
+			diffContentStore.set(oldPath, oldContent);
+			diffContentStore.set(newPath, newContent);
+
+			// Create URIs with our custom scheme
+			const oldUri = vscode.Uri.parse(`claude-diff:${oldPath}`);
+			const newUri = vscode.Uri.parse(`claude-diff:${newPath}`);
 
 			// Ensure side-by-side diff mode is enabled
 			const diffConfig = vscode.workspace.getConfiguration('diffEditor');
@@ -2383,27 +2523,20 @@ class ClaudeChatProvider {
 			// Open diff editor
 			await vscode.commands.executeCommand('vscode.diff', oldUri, newUri, `${baseName} (Changes)`);
 
-			// Track which files need to be cleaned up
-			const filesToCleanup = new Set([oldUri.toString(), newUri.toString()]);
-
-			// Listen for document close events to clean up temp files
-			const closeListener = vscode.workspace.onDidCloseTextDocument(async (doc) => {
-				if (filesToCleanup.has(doc.uri.toString())) {
-					filesToCleanup.delete(doc.uri.toString());
-					try {
-						await vscode.workspace.fs.delete(doc.uri, { useTrash: false });
-					} catch {
-						// File might already be deleted, ignore
-					}
-
-					// Dispose listener when both files are cleaned up
-					if (filesToCleanup.size === 0) {
-						closeListener.dispose();
-					}
+			// Clean up stored content when documents are closed
+			const closeListener = vscode.workspace.onDidCloseTextDocument((doc) => {
+				if (doc.uri.toString() === oldUri.toString()) {
+					diffContentStore.delete(oldPath);
+				}
+				if (doc.uri.toString() === newUri.toString()) {
+					diffContentStore.delete(newPath);
+				}
+				// Dispose listener when both are cleaned up
+				if (!diffContentStore.has(oldPath) && !diffContentStore.has(newPath)) {
+					closeListener.dispose();
 				}
 			});
 
-			// Also add to disposables to clean up on extension deactivate
 			this._disposables.push(closeListener);
 		} catch (error) {
 			vscode.window.showErrorMessage(`Failed to open diff editor: ${error}`);

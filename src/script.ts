@@ -15,22 +15,19 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		let selectedFileIndex = -1;
 		let planModeEnabled = false;
 		let thinkingModeEnabled = false;
+		let lastPendingEditIndex = -1; // Track the last Edit/MultiEdit/Write toolUse without result
+		let lastPendingEditData = null; // Store diff data for the pending edit { filePath, oldContent, newContent }
 
-		// Storage for diff data to enable "Open Diff" functionality
-		const diffDataStore = {};
-
-		function openDiffEditor(diffId) {
-			const data = diffDataStore[diffId];
-			if (!data) {
-				console.error('Diff data not found for id:', diffId);
-				return;
+		// Open diff using stored data (no file read needed)
+		function openDiffEditor() {
+			if (lastPendingEditData) {
+				vscode.postMessage({
+					type: 'openDiff',
+					filePath: lastPendingEditData.filePath,
+					oldContent: lastPendingEditData.oldContent,
+					newContent: lastPendingEditData.newContent
+				});
 			}
-			vscode.postMessage({
-				type: 'openDiff',
-				oldContent: data.oldString,
-				newContent: data.newString,
-				filePath: data.filePath
-			});
 		}
 
 		function shouldAutoScroll(messagesDiv) {
@@ -179,12 +176,52 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				} else {
 					// Format raw input with expandable content for long values
 					// Use diff format for Edit, MultiEdit, and Write tools, regular format for others
-					if (data.toolName === 'Edit') {
-						contentDiv.innerHTML = formatEditToolDiff(data.rawInput);
-					} else if (data.toolName === 'MultiEdit') {
-						contentDiv.innerHTML = formatMultiEditToolDiff(data.rawInput);
-					} else if (data.toolName === 'Write') {
-						contentDiv.innerHTML = formatWriteToolDiff(data.rawInput);
+					if (data.toolName === 'Edit' || data.toolName === 'MultiEdit' || data.toolName === 'Write') {
+						// Only show Open Diff button if we have fileContentBefore (live session, not reload)
+						const showButton = data.fileContentBefore !== undefined && data.messageIndex >= 0;
+
+						// Hide any existing pending edit button before showing new one
+						if (showButton && lastPendingEditIndex >= 0) {
+							const prevContent = document.querySelector('[data-edit-message-index="' + lastPendingEditIndex + '"]');
+							if (prevContent) {
+								const btn = prevContent.querySelector('.diff-open-btn');
+								if (btn) btn.style.display = 'none';
+							}
+							lastPendingEditData = null;
+						}
+
+						if (showButton) {
+							lastPendingEditIndex = data.messageIndex;
+							contentDiv.setAttribute('data-edit-message-index', data.messageIndex);
+
+							// Compute and store diff data for when button is clicked
+							const oldContent = data.fileContentBefore || '';
+							let newContent = oldContent;
+							if (data.toolName === 'Edit' && data.rawInput.old_string && data.rawInput.new_string) {
+								newContent = oldContent.replace(data.rawInput.old_string, data.rawInput.new_string);
+							} else if (data.toolName === 'MultiEdit' && data.rawInput.edits) {
+								for (const edit of data.rawInput.edits) {
+									if (edit.old_string && edit.new_string) {
+										newContent = newContent.replace(edit.old_string, edit.new_string);
+									}
+								}
+							} else if (data.toolName === 'Write' && data.rawInput.content) {
+								newContent = data.rawInput.content;
+							}
+							lastPendingEditData = {
+								filePath: data.rawInput.file_path,
+								oldContent: oldContent,
+								newContent: newContent
+							};
+						}
+
+						if (data.toolName === 'Edit') {
+							contentDiv.innerHTML = formatEditToolDiff(data.rawInput, data.fileContentBefore, showButton, data.startLine);
+						} else if (data.toolName === 'MultiEdit') {
+							contentDiv.innerHTML = formatMultiEditToolDiff(data.rawInput, data.fileContentBefore, showButton, data.startLines);
+						} else {
+							contentDiv.innerHTML = formatWriteToolDiff(data.rawInput, data.fileContentBefore, showButton);
+						}
 					} else {
 						contentDiv.innerHTML = formatToolInputUI(data.rawInput);
 					}
@@ -243,94 +280,42 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			const messagesDiv = document.getElementById('messages');
 			const shouldScroll = shouldAutoScroll(messagesDiv);
 
-			// Show detailed diff for Edit, MultiEdit, and Write tools
-			if (!data.isError && data.rawInput) {
-				if (data.toolName === 'Edit' && data.rawInput.file_path && data.rawInput.old_string && data.rawInput.new_string) {
-					const parsed = parseToolResult(data.content);
-					const diffHTML = generateUnifiedDiffHTML(
-						data.rawInput.old_string,
-						data.rawInput.new_string,
-						data.rawInput.file_path,
-						parsed.startLine
-					);
-
-					const messageDiv = document.createElement('div');
-					messageDiv.className = 'message tool-result';
-					messageDiv.innerHTML = diffHTML;
-					messagesDiv.appendChild(messageDiv);
-
-					scrollToBottomIfNeeded(messagesDiv, shouldScroll);
-					return;
-				} else if (data.toolName === 'MultiEdit' && data.rawInput.file_path && data.rawInput.edits) {
-					const parsed = parseToolResult(data.content);
-					let html = '';
-					const formattedPath = formatFilePath(data.rawInput.file_path);
-					html += '<div class="diff-file-path" onclick="openFileInEditor(\\\'' + escapeHtml(data.rawInput.file_path) + '\\\')">' + formattedPath + '</div>\\n';
-					html += '<div class="diff-container">';
-					html += '<div class="diff-header">' + data.rawInput.edits.length + ' edit' + (data.rawInput.edits.length > 1 ? 's' : '') + '</div>';
-
-					for (let i = 0; i < data.rawInput.edits.length; i++) {
-						const edit = data.rawInput.edits[i];
-						if (i > 0) html += '<div class="diff-edit-separator"></div>';
-						html += '<div class="edit-number">Edit #' + (i + 1) + '</div>';
-						const editDiff = generateUnifiedDiffHTML(edit.old_string, edit.new_string, data.rawInput.file_path, parsed.startLine);
-						html += editDiff;
+			// When result comes in for Edit/MultiEdit/Write, hide the Open Diff button on the request
+			// since the edit has now been applied (no longer pending)
+			if (lastPendingEditIndex >= 0) {
+				// Find and hide the button on the corresponding toolUse
+				const toolUseContent = document.querySelector('[data-edit-message-index="' + lastPendingEditIndex + '"]');
+				if (toolUseContent) {
+					const btn = toolUseContent.querySelector('.diff-open-btn');
+					if (btn) {
+						btn.style.display = 'none';
 					}
-
-					html += '</div>';
-
-					const messageDiv = document.createElement('div');
-					messageDiv.className = 'message tool-result';
-					messageDiv.innerHTML = html;
-					messagesDiv.appendChild(messageDiv);
-
-					scrollToBottomIfNeeded(messagesDiv, shouldScroll);
-					return;
-				} else if (data.toolName === 'Write' && data.rawInput.file_path && data.rawInput.content) {
-					const parsed = parseToolResult(data.content);
-					const newLines = data.rawInput.content.split('\\n');
-					let html = '';
-					const formattedPath = formatFilePath(data.rawInput.file_path);
-					html += '<div class="diff-file-path" onclick="openFileInEditor(\\\'' + escapeHtml(data.rawInput.file_path) + '\\\')">' + formattedPath + '</div>\\n';
-					html += '<div class="diff-container">';
-					html += '<div class="diff-header">New file: Lines 1-' + newLines.length + '</div>';
-
-					for (let i = 0; i < newLines.length; i++) {
-						const lineNumStr = (i + 1).toString().padStart(3);
-						html += '<div class="diff-line added">+' + lineNumStr + '  ' + escapeHtml(newLines[i]) + '</div>';
-					}
-
-					html += '</div>';
-					html += '<div class="diff-summary">Summary: +' + newLines.length + ' line' + (newLines.length > 1 ? 's' : '') + ' added</div>';
-
-					const messageDiv = document.createElement('div');
-					messageDiv.className = 'message tool-result';
-					messageDiv.innerHTML = html;
-					messagesDiv.appendChild(messageDiv);
-
-					scrollToBottomIfNeeded(messagesDiv, shouldScroll);
-					return;
 				}
+				lastPendingEditIndex = -1;
+				lastPendingEditData = null;
 			}
 
-			// For Read and TodoWrite tools with hidden flag, just hide loading state and show completion message
-			if (data.hidden && (data.toolName === 'Read' || data.toolName === 'TodoWrite') && !data.isError) {
-				return
-				// Show completion message
-				const toolName = data.toolName;
+			// For Read and TodoWrite tools, just hide loading state (no result message needed)
+			if ((data.toolName === 'Read' || data.toolName === 'TodoWrite') && !data.isError) {
+				return;
+			}
+
+			// For Edit/MultiEdit/Write, show simple completion message (diff is already shown on request)
+			if ((data.toolName === 'Edit' || data.toolName === 'MultiEdit' || data.toolName === 'Write') && !data.isError) {
 				let completionText;
-				if (toolName === 'Read') {
-					completionText = '✅ Read completed';
-				} else if (toolName === 'TodoWrite') {
-					completionText = '✅ Update Todos completed';
+				if (data.toolName === 'Edit') {
+					completionText = '✅ Edit completed';
+				} else if (data.toolName === 'MultiEdit') {
+					completionText = '✅ MultiEdit completed';
 				} else {
-					completionText = '✅ ' + toolName + ' completed';
+					completionText = '✅ Write completed';
 				}
 				addMessage(completionText, 'system');
-				return; // Don't show the result message
+				scrollToBottomIfNeeded(messagesDiv, shouldScroll);
+				return;
 			}
 			
-			if(data.isError && data.content === "File has not been read yet. Read it first before writing to it."){
+			if(data.isError && data.content?.includes("File has not been read yet. Read it first before writing to it.")){
 				return addMessage("File has not been read yet. Let me read it first before writing to it.", 'system');
 			}
 
@@ -521,20 +506,14 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 
 		// Generate unified diff HTML with line numbers
-		function generateUnifiedDiffHTML(oldString, newString, filePath, startLine = 1) {
+		// showButton controls whether to show the "Open Diff" button
+		function generateUnifiedDiffHTML(oldString, newString, filePath, startLine = 1, showButton = false) {
 			const oldLines = oldString.split('\\n');
 			const newLines = newString.split('\\n');
 			const diff = computeLineDiff(oldLines, newLines);
 
-			// Generate unique ID for this diff
+			// Generate unique ID for this diff (used for truncation)
 			const diffId = 'diff_' + Math.random().toString(36).substr(2, 9);
-
-			// Store diff data for "Open Diff" functionality
-			diffDataStore[diffId] = {
-				oldString: oldString,
-				newString: newString,
-				filePath: filePath
-			};
 
 			let html = '';
 			const formattedPath = formatFilePath(filePath);
@@ -630,16 +609,18 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			if (summary) {
 				html += '<div class="diff-summary-row">';
 				html += '<span class="diff-summary">Summary: ' + summary + '</span>';
-				html += '<button class="diff-open-btn" onclick="openDiffEditor(\\\'' + diffId + '\\\')" title="Open side-by-side diff in VS Code">';
-				html += '<svg width="14" height="14" viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="14" rx="1" fill="none" stroke="currentColor" stroke-opacity="0.5"/><rect x="9" y="1" width="6" height="14" rx="1" fill="none" stroke="currentColor" stroke-opacity="0.5"/><line x1="2.5" y1="4" x2="5.5" y2="4" stroke="#f85149" stroke-width="1.5"/><line x1="2.5" y1="7" x2="5.5" y2="7" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/><line x1="2.5" y1="10" x2="5.5" y2="10" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/><line x1="10.5" y1="4" x2="13.5" y2="4" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/><line x1="10.5" y1="7" x2="13.5" y2="7" stroke="#3fb950" stroke-width="1.5"/><line x1="10.5" y1="10" x2="13.5" y2="10" stroke="#3fb950" stroke-width="1.5"/></svg>';
-				html += 'Open Diff</button>';
+				if (showButton) {
+					html += '<button class="diff-open-btn" onclick="openDiffEditor()" title="Open side-by-side diff in VS Code">';
+					html += '<svg width="14" height="14" viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="14" rx="1" fill="none" stroke="currentColor" stroke-opacity="0.5"/><rect x="9" y="1" width="6" height="14" rx="1" fill="none" stroke="currentColor" stroke-opacity="0.5"/><line x1="2.5" y1="4" x2="5.5" y2="4" stroke="#f85149" stroke-width="1.5"/><line x1="2.5" y1="7" x2="5.5" y2="7" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/><line x1="2.5" y1="10" x2="5.5" y2="10" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/><line x1="10.5" y1="4" x2="13.5" y2="4" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/><line x1="10.5" y1="7" x2="13.5" y2="7" stroke="#3fb950" stroke-width="1.5"/><line x1="10.5" y1="10" x2="13.5" y2="10" stroke="#3fb950" stroke-width="1.5"/></svg>';
+					html += 'Open Diff</button>';
+				}
 				html += '</div>';
 			}
 
 			return html;
 		}
 
-		function formatEditToolDiff(input) {
+		function formatEditToolDiff(input, fileContentBefore, showButton = false, providedStartLine = null) {
 			if (!input || typeof input !== 'object') {
 				return formatToolInputUI(input);
 			}
@@ -649,11 +630,21 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				return formatToolInputUI(input);
 			}
 
-			// Show full diff (line numbers will be approximate until result comes back)
-			return generateUnifiedDiffHTML(input.old_string, input.new_string, input.file_path, 1);
+			// Use provided startLine if available (from saved data), otherwise compute from fileContentBefore
+			let startLine = providedStartLine || 1;
+			if (!providedStartLine && fileContentBefore) {
+				const position = fileContentBefore.indexOf(input.old_string);
+				if (position !== -1) {
+					// Count newlines before the match to get line number
+					const textBefore = fileContentBefore.substring(0, position);
+					startLine = (textBefore.match(/\\n/g) || []).length + 1;
+				}
+			}
+
+			return generateUnifiedDiffHTML(input.old_string, input.new_string, input.file_path, startLine, showButton);
 		}
 
-		function formatMultiEditToolDiff(input) {
+		function formatMultiEditToolDiff(input, fileContentBefore, showButton = false, providedStartLines = null) {
 			if (!input || typeof input !== 'object') {
 				return formatToolInputUI(input);
 			}
@@ -674,39 +665,60 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 					if (index > 0) {
 						html += '<div class="diff-edit-separator"></div>';
 					}
+
+					// Use provided startLine if available, otherwise compute from fileContentBefore
+					let startLine = (providedStartLines && providedStartLines[index]) || 1;
+					if (!providedStartLines && fileContentBefore) {
+						const position = fileContentBefore.indexOf(edit.old_string);
+						if (position !== -1) {
+							const textBefore = fileContentBefore.substring(0, position);
+							startLine = (textBefore.match(/\\n/g) || []).length + 1;
+						}
+					}
+
 					const oldLines = edit.old_string.split('\\n');
 					const newLines = edit.new_string.split('\\n');
 					const diff = computeLineDiff(oldLines, newLines);
 
 					html += '<div class="diff-container">';
-					html += '<div class="diff-header">Edit ' + (index + 1) + '</div>';
+					html += '<div class="diff-header">Edit ' + (index + 1) + ' (Line ' + startLine + ')</div>';
 
-					let addedCount = 0;
-					let removedCount = 0;
+					let lineNum = startLine;
 					for (const change of diff) {
 						let prefix, cssClass;
 						if (change.type === 'context') {
 							prefix = ' ';
 							cssClass = 'context';
+							lineNum++;
 						} else if (change.type === 'added') {
 							prefix = '+';
 							cssClass = 'added';
-							addedCount++;
+							lineNum++;
 						} else {
 							prefix = '-';
 							cssClass = 'removed';
-							removedCount++;
 						}
-						html += '<div class="diff-line ' + cssClass + '">' + prefix + '    ' + escapeHtml(change.content) + '</div>';
+						const lineNumStr = (change.type === 'removed' ? '' : lineNum - 1).toString().padStart(3);
+						html += '<div class="diff-line ' + cssClass + '">' + prefix + lineNumStr + '  ' + escapeHtml(change.content) + '</div>';
 					}
 					html += '</div>';
 				}
 			});
 
+			// Add summary row with Open Diff button
+			html += '<div class="diff-summary-row">';
+			html += '<span class="diff-summary">Summary: ' + input.edits.length + ' edit' + (input.edits.length > 1 ? 's' : '') + '</span>';
+			if (showButton) {
+				html += '<button class="diff-open-btn" onclick="openDiffEditor()" title="Open side-by-side diff in VS Code">';
+				html += '<svg width="14" height="14" viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="14" rx="1" fill="none" stroke="currentColor" stroke-opacity="0.5"/><rect x="9" y="1" width="6" height="14" rx="1" fill="none" stroke="currentColor" stroke-opacity="0.5"/><line x1="2.5" y1="4" x2="5.5" y2="4" stroke="#f85149" stroke-width="1.5"/><line x1="2.5" y1="7" x2="5.5" y2="7" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/><line x1="2.5" y1="10" x2="5.5" y2="10" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/><line x1="10.5" y1="4" x2="13.5" y2="4" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/><line x1="10.5" y1="7" x2="13.5" y2="7" stroke="#3fb950" stroke-width="1.5"/><line x1="10.5" y1="10" x2="13.5" y2="10" stroke="#3fb950" stroke-width="1.5"/></svg>';
+				html += 'Open Diff</button>';
+			}
+			html += '</div>';
+
 			return html;
 		}
 
-		function formatWriteToolDiff(input) {
+		function formatWriteToolDiff(input, fileContentBefore, showButton = false) {
 			if (!input || typeof input !== 'object') {
 				return formatToolInputUI(input);
 			}
@@ -716,8 +728,11 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				return formatToolInputUI(input);
 			}
 
-			// Show full content as added lines (new file)
-			return generateUnifiedDiffHTML('', input.content, input.file_path, 1);
+			// fileContentBefore may be empty string if new file, or existing content if overwriting
+			const fullFileBefore = fileContentBefore || '';
+
+			// Show full content as added lines (new file or replacement)
+			return generateUnifiedDiffHTML(fullFileBefore, input.content, input.file_path, 1, showButton);
 		}
 
 		function escapeHtml(text) {
