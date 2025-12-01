@@ -1097,20 +1097,6 @@ const styles = `
         color: var(--vscode-gitDecoration-addedResourceForeground, rgba(76, 175, 80, 0.9));
     }
 
-    .diff-line.removed::before {
-        content: '';
-        color: rgba(244, 67, 54, 0.8);
-        font-weight: 600;
-        margin-right: 8px;
-    }
-
-    .diff-line.added::before {
-        content: '';
-        color: rgba(76, 175, 80, 0.8);
-        font-weight: 600;
-        margin-right: 8px;
-    }
-
     .diff-expand-container {
         padding: 8px 12px;
         text-align: center;
