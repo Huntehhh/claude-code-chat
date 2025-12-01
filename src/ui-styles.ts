@@ -1076,20 +1076,25 @@ const styles = `
 
     .diff-line {
         padding: 2px 12px;
-        white-space: pre-wrap;
-        word-break: break-word;
+        white-space: pre;
+        font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Courier New', monospace;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .diff-line.context {
+        color: var(--vscode-editor-foreground);
+        opacity: 0.8;
     }
 
     .diff-line.removed {
         background-color: rgba(244, 67, 54, 0.1);
-        border-left: 3px solid rgba(244, 67, 54, 0.6);
-        color: var(--vscode-foreground);
+        color: var(--vscode-gitDecoration-deletedResourceForeground, rgba(244, 67, 54, 0.9));
     }
 
     .diff-line.added {
         background-color: rgba(76, 175, 80, 0.1);
-        border-left: 3px solid rgba(76, 175, 80, 0.6);
-        color: var(--vscode-foreground);
+        color: var(--vscode-gitDecoration-addedResourceForeground, rgba(76, 175, 80, 0.9));
     }
 
     .diff-line.removed::before {
@@ -1157,6 +1162,24 @@ const styles = `
         height: 1px;
         background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
         margin: 12px 0;
+    }
+
+    .diff-summary {
+        margin-top: 8px;
+        padding: 8px 12px;
+        border-top: 1px solid var(--vscode-panel-border);
+        color: var(--vscode-descriptionForeground);
+        font-size: 11px;
+        font-weight: 500;
+        background-color: var(--vscode-editor-background);
+    }
+
+    .diff-preview {
+        padding: 4px 12px;
+        color: var(--vscode-descriptionForeground);
+        font-size: 12px;
+        font-style: italic;
+        opacity: 0.9;
     }
 
     /* File path display styles */

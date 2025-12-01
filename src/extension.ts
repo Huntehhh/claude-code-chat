@@ -759,13 +759,14 @@ class ClaudeChatProvider {
 
 							const isError = content.is_error || false;
 
-							// Find the last tool use to get the tool name
+							// Find the last tool use to get the tool name and input
 							const lastToolUse = this._currentConversation[this._currentConversation.length - 1]
 
 							const toolName = lastToolUse?.data?.toolName;
+							const rawInput = lastToolUse?.data?.rawInput;
 
-							// Don't send tool result for Read and Edit tools unless there's an error
-							if ((toolName === 'Read' || toolName === 'Edit' || toolName === 'TodoWrite' || toolName === 'MultiEdit') && !isError) {
+							// Don't send tool result for Read and TodoWrite tools unless there's an error
+							if ((toolName === 'Read' || toolName === 'TodoWrite') && !isError) {
 								// Still send to UI to hide loading state, but mark it as hidden
 								this._sendAndSaveMessage({
 									type: 'toolResult',
@@ -774,6 +775,7 @@ class ClaudeChatProvider {
 										isError: isError,
 										toolUseId: content.tool_use_id,
 										toolName: toolName,
+										rawInput: rawInput,
 										hidden: true
 									}
 								});
@@ -785,7 +787,8 @@ class ClaudeChatProvider {
 										content: resultContent,
 										isError: isError,
 										toolUseId: content.tool_use_id,
-										toolName: toolName
+										toolName: toolName,
+										rawInput: rawInput
 									}
 								});
 							}

@@ -225,17 +225,85 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		function addToolResultMessage(data) {
 			const messagesDiv = document.getElementById('messages');
 			const shouldScroll = shouldAutoScroll(messagesDiv);
-			
-			// For Read and Edit tools with hidden flag, just hide loading state and show completion message
-			if (data.hidden && (data.toolName === 'Read' || data.toolName === 'Edit' || data.toolName === 'TodoWrite' || data.toolName === 'MultiEdit') && !data.isError) {				
-				return	
+
+			// Show detailed diff for Edit, MultiEdit, and Write tools
+			if (!data.isError && data.rawInput) {
+				if (data.toolName === 'Edit' && data.rawInput.file_path && data.rawInput.old_string && data.rawInput.new_string) {
+					const parsed = parseToolResult(data.content);
+					const diffHTML = generateUnifiedDiffHTML(
+						data.rawInput.old_string,
+						data.rawInput.new_string,
+						data.rawInput.file_path,
+						parsed.startLine
+					);
+
+					const messageDiv = document.createElement('div');
+					messageDiv.className = 'message tool-result';
+					messageDiv.innerHTML = diffHTML;
+					messagesDiv.appendChild(messageDiv);
+
+					if (shouldScroll) scrollToBottom(messagesDiv);
+					return;
+				} else if (data.toolName === 'MultiEdit' && data.rawInput.file_path && data.rawInput.edits) {
+					const parsed = parseToolResult(data.content);
+					let html = '';
+					const formattedPath = formatFilePath(data.rawInput.file_path);
+					html += '<div class="diff-file-path" onclick="openFileInEditor(\\\'' + escapeHtml(data.rawInput.file_path) + '\\\')">' + formattedPath + '</div>\\n';
+					html += '<div class="diff-container">';
+					html += '<div class="diff-header">' + data.rawInput.edits.length + ' edit' + (data.rawInput.edits.length > 1 ? 's' : '') + '</div>';
+
+					for (let i = 0; i < data.rawInput.edits.length; i++) {
+						const edit = data.rawInput.edits[i];
+						if (i > 0) html += '<div class="diff-edit-separator"></div>';
+						html += '<div class="edit-number">Edit #' + (i + 1) + '</div>';
+						const editDiff = generateUnifiedDiffHTML(edit.old_string, edit.new_string, data.rawInput.file_path, parsed.startLine);
+						html += editDiff;
+					}
+
+					html += '</div>';
+
+					const messageDiv = document.createElement('div');
+					messageDiv.className = 'message tool-result';
+					messageDiv.innerHTML = html;
+					messagesDiv.appendChild(messageDiv);
+
+					if (shouldScroll) scrollToBottom(messagesDiv);
+					return;
+				} else if (data.toolName === 'Write' && data.rawInput.file_path && data.rawInput.content) {
+					const parsed = parseToolResult(data.content);
+					const newLines = data.rawInput.content.split('\\n');
+					let html = '';
+					const formattedPath = formatFilePath(data.rawInput.file_path);
+					html += '<div class="diff-file-path" onclick="openFileInEditor(\\\'' + escapeHtml(data.rawInput.file_path) + '\\\')">' + formattedPath + '</div>\\n';
+					html += '<div class="diff-container">';
+					html += '<div class="diff-header">New file: Lines 1-' + newLines.length + '</div>';
+
+					for (let i = 0; i < newLines.length; i++) {
+						const lineNumStr = (i + 1).toString().padStart(3);
+						html += '<div class="diff-line added">+' + lineNumStr + '  ' + escapeHtml(newLines[i]) + '</div>';
+					}
+
+					html += '</div>';
+					html += '<div class="diff-summary">Summary: +' + newLines.length + ' line' + (newLines.length > 1 ? 's' : '') + ' added</div>';
+
+					const messageDiv = document.createElement('div');
+					messageDiv.className = 'message tool-result';
+					messageDiv.innerHTML = html;
+					messagesDiv.appendChild(messageDiv);
+
+					if (shouldScroll) scrollToBottom(messagesDiv);
+					return;
+				}
+			}
+
+			// For Read and TodoWrite tools with hidden flag, just hide loading state and show completion message
+			if (data.hidden && (data.toolName === 'Read' || data.toolName === 'TodoWrite') && !data.isError) {
+				return
 				// Show completion message
 				const toolName = data.toolName;
 				let completionText;
 				if (toolName === 'Read') {
 					completionText = '✅ Read completed';
-				} else if (toolName === 'Edit') {
-					completionText = '✅ Edit completed';
 				} else if (toolName === 'TodoWrite') {
 					completionText = '✅ Update Todos completed';
 				} else {
@@ -369,6 +437,142 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			return result;
 		}
 
+		// Simple LCS-based diff algorithm
+		function computeLineDiff(oldLines, newLines) {
+			// Compute longest common subsequence
+			const m = oldLines.length;
+			const n = newLines.length;
+			const lcs = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+
+			for (let i = 1; i <= m; i++) {
+				for (let j = 1; j <= n; j++) {
+					if (oldLines[i - 1] === newLines[j - 1]) {
+						lcs[i][j] = lcs[i - 1][j - 1] + 1;
+					} else {
+						lcs[i][j] = Math.max(lcs[i - 1][j], lcs[i][j - 1]);
+					}
+				}
+			}
+
+			// Backtrack to build diff
+			const diff = [];
+			let i = m, j = n;
+
+			while (i > 0 || j > 0) {
+				if (i > 0 && j > 0 && oldLines[i - 1] === newLines[j - 1]) {
+					diff.unshift({type: 'context', oldLine: i - 1, newLine: j - 1, content: oldLines[i - 1]});
+					i--;
+					j--;
+				} else if (j > 0 && (i === 0 || lcs[i][j - 1] >= lcs[i - 1][j])) {
+					diff.unshift({type: 'added', newLine: j - 1, content: newLines[j - 1]});
+					j--;
+				} else if (i > 0) {
+					diff.unshift({type: 'removed', oldLine: i - 1, content: oldLines[i - 1]});
+					i--;
+				}
+			}
+
+			return diff;
+		}
+
+		// Parse tool result to extract line numbers
+		function parseToolResult(resultContent) {
+			if (!resultContent || typeof resultContent !== 'string') {
+				return {startLine: 1, lines: []};
+			}
+
+			const lines = resultContent.split('\\n');
+			const parsed = [];
+			let startLine = null;
+
+			for (const line of lines) {
+				const match = line.match(/^\\s*(\\d+)→(.*)$/);
+				if (match) {
+					const lineNum = parseInt(match[1]);
+					const content = match[2];
+					if (startLine === null) startLine = lineNum;
+					parsed.push({num: lineNum, content});
+				}
+			}
+
+			return {startLine: startLine || 1, lines: parsed};
+		}
+
+		// Generate unified diff HTML with line numbers
+		function generateUnifiedDiffHTML(oldString, newString, filePath, startLine = 1) {
+			const oldLines = oldString.split('\\n');
+			const newLines = newString.split('\\n');
+			const diff = computeLineDiff(oldLines, newLines);
+
+			let html = '';
+			const formattedPath = formatFilePath(filePath);
+			html += '<div class="diff-file-path" onclick="openFileInEditor(\\\'' + escapeHtml(filePath) + '\\\')">' + formattedPath + '</div>\\n';
+
+			// Calculate line range
+			let firstLine = startLine;
+			let lastLine = startLine;
+			let addedCount = 0;
+			let removedCount = 0;
+
+			// Calculate actual line numbers
+			for (const change of diff) {
+				if (change.type === 'added') addedCount++;
+				if (change.type === 'removed') removedCount++;
+			}
+
+			lastLine = startLine + newLines.length - 1;
+
+			html += '<div class="diff-container">';
+			html += '<div class="diff-header">Lines ' + firstLine + '-' + lastLine + '</div>';
+
+			// Build diff lines with proper line numbers
+			let oldLineNum = startLine;
+			let newLineNum = startLine;
+
+			for (const change of diff) {
+				let lineNum, prefix, cssClass;
+
+				if (change.type === 'context') {
+					lineNum = newLineNum;
+					prefix = ' ';
+					cssClass = 'context';
+					oldLineNum++;
+					newLineNum++;
+				} else if (change.type === 'added') {
+					lineNum = newLineNum;
+					prefix = '+';
+					cssClass = 'added';
+					newLineNum++;
+				} else {
+					lineNum = oldLineNum;
+					prefix = '-';
+					cssClass = 'removed';
+					oldLineNum++;
+				}
+
+				const lineNumStr = lineNum.toString().padStart(3);
+				html += '<div class="diff-line ' + cssClass + '">' + prefix + lineNumStr + '  ' + escapeHtml(change.content) + '</div>';
+			}
+
+			html += '</div>';
+
+			// Summary
+			let summary = '';
+			if (addedCount > 0 && removedCount > 0) {
+				summary = '+' + addedCount + ' line' + (addedCount > 1 ? 's' : '') + ' added, -' + removedCount + ' line' + (removedCount > 1 ? 's' : '') + ' removed';
+			} else if (addedCount > 0) {
+				summary = '+' + addedCount + ' line' + (addedCount > 1 ? 's' : '') + ' added';
+			} else if (removedCount > 0) {
+				summary = '-' + removedCount + ' line' + (removedCount > 1 ? 's' : '') + ' removed';
+			}
+
+			if (summary) {
+				html += '<div class="diff-summary">Summary: ' + summary + '</div>';
+			}
+
+			return html;
+		}
+
 		function formatEditToolDiff(input) {
 			if (!input || typeof input !== 'object') {
 				return formatToolInputUI(input);
@@ -379,63 +583,15 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				return formatToolInputUI(input);
 			}
 
-			// Format file path with better display
+			// Simple preview - detailed diff will be shown in tool result
 			const formattedPath = formatFilePath(input.file_path);
-			let result = '<div class="diff-file-path" onclick="openFileInEditor(\\\'' + escapeHtml(input.file_path) + '\\\')">' + formattedPath + '</div>\\n';
-			
-			// Create diff view
-			const oldLines = input.old_string.split('\\n');
-			const newLines = input.new_string.split('\\n');
-			const allLines = [...oldLines.map(line => ({type: 'removed', content: line})), 
-							 ...newLines.map(line => ({type: 'added', content: line}))];
-			
-			const maxLines = 6;
-			const shouldTruncate = allLines.length > maxLines;
-			const visibleLines = shouldTruncate ? allLines.slice(0, maxLines) : allLines;
-			const hiddenLines = shouldTruncate ? allLines.slice(maxLines) : [];
-			
-			result += '<div class="diff-container">';
-			result += '<div class="diff-header">Changes:</div>';
-			
-			// Create a unique ID for this diff
-			const diffId = 'diff_' + Math.random().toString(36).substr(2, 9);
-			
-			// Show visible lines
-			result += '<div id="' + diffId + '_visible">';
-			for (const line of visibleLines) {
-				const prefix = line.type === 'removed' ? '- ' : '+ ';
-				const cssClass = line.type === 'removed' ? 'removed' : 'added';
-				result += '<div class="diff-line ' + cssClass + '">' + prefix + escapeHtml(line.content) + '</div>';
-			}
-			result += '</div>';
-			
-			// Show hidden lines (initially hidden)
-			if (shouldTruncate) {
-				result += '<div id="' + diffId + '_hidden" style="display: none;">';
-				for (const line of hiddenLines) {
-					const prefix = line.type === 'removed' ? '- ' : '+ ';
-					const cssClass = line.type === 'removed' ? 'removed' : 'added';
-					result += '<div class="diff-line ' + cssClass + '">' + prefix + escapeHtml(line.content) + '</div>';
-				}
-				result += '</div>';
-				
-				// Add expand button
-				result += '<div class="diff-expand-container">';
-				result += '<button class="diff-expand-btn" onclick="toggleDiffExpansion(\\\'' + diffId + '\\\')">Show ' + hiddenLines.length + ' more lines</button>';
-				result += '</div>';
-			}
-			
-			result += '</div>';
-			
-			// Add other properties if they exist
-			for (const [key, value] of Object.entries(input)) {
-				if (key !== 'file_path' && key !== 'old_string' && key !== 'new_string') {
-					const valueStr = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
-					result += '\\n<strong>' + key + ':</strong> ' + valueStr;
-				}
-			}
-			
-			return result;
+			const oldLines = input.old_string.split('\\n').length;
+			const newLines = input.new_string.split('\\n').length;
+			const delta = newLines - oldLines;
+			const deltaStr = delta > 0 ? '+' + delta : delta < 0 ? delta.toString() : '±0';
+
+			return '<div class="diff-file-path" onclick="openFileInEditor(\\\'' + escapeHtml(input.file_path) + '\\\')">' + formattedPath + '</div>\\n' +
+				   '<div class="diff-preview">Editing ' + oldLines + ' line' + (oldLines !== 1 ? 's' : '') + ' (' + deltaStr + ' lines)</div>';
 		}
 
 		function formatMultiEditToolDiff(input) {
@@ -448,108 +604,10 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				return formatToolInputUI(input);
 			}
 
-			// Format file path with better display
+			// Simple preview - detailed diff will be shown in tool result
 			const formattedPath = formatFilePath(input.file_path);
-			let result = '<div class="diff-file-path" onclick="openFileInEditor(\\\'' + escapeHtml(input.file_path) + '\\\')">' + formattedPath + '</div>\\n';
-			
-			// Count total lines across all edits for truncation
-			let totalLines = 0;
-			for (const edit of input.edits) {
-				if (edit.old_string && edit.new_string) {
-					const oldLines = edit.old_string.split('\\n');
-					const newLines = edit.new_string.split('\\n');
-					totalLines += oldLines.length + newLines.length;
-				}
-			}
-
-			const maxLines = 6;
-			const shouldTruncate = totalLines > maxLines;
-			
-			result += '<div class="diff-container">';
-			result += '<div class="diff-header">Changes (' + input.edits.length + ' edit' + (input.edits.length > 1 ? 's' : '') + '):</div>';
-			
-			// Create a unique ID for this diff
-			const diffId = 'multiedit_' + Math.random().toString(36).substr(2, 9);
-			
-			let currentLineCount = 0;
-			let visibleEdits = [];
-			let hiddenEdits = [];
-			
-			// Determine which edits to show/hide based on line count
-			for (let i = 0; i < input.edits.length; i++) {
-				const edit = input.edits[i];
-				if (!edit.old_string || !edit.new_string) continue;
-				
-				const oldLines = edit.old_string.split('\\n');
-				const newLines = edit.new_string.split('\\n');
-				const editLines = oldLines.length + newLines.length;
-				
-				if (shouldTruncate && currentLineCount + editLines > maxLines && visibleEdits.length > 0) {
-					hiddenEdits.push(edit);
-				} else {
-					visibleEdits.push(edit);
-					currentLineCount += editLines;
-				}
-			}
-			
-			// Show visible edits
-			result += '<div id="' + diffId + '_visible">';
-			for (let i = 0; i < visibleEdits.length; i++) {
-				const edit = visibleEdits[i];
-				if (i > 0) result += '<div class="diff-edit-separator"></div>';
-				result += formatSingleEdit(edit, i + 1);
-			}
-			result += '</div>';
-			
-			// Show hidden edits (initially hidden)
-			if (hiddenEdits.length > 0) {
-				result += '<div id="' + diffId + '_hidden" style="display: none;">';
-				for (let i = 0; i < hiddenEdits.length; i++) {
-					const edit = hiddenEdits[i];
-					result += '<div class="diff-edit-separator"></div>';
-					result += formatSingleEdit(edit, visibleEdits.length + i + 1);
-				}
-				result += '</div>';
-				
-				// Add expand button
-				result += '<div class="diff-expand-container">';
-				result += '<button class="diff-expand-btn" onclick="toggleDiffExpansion(\\\'' + diffId + '\\\')">Show ' + hiddenEdits.length + ' more edit' + (hiddenEdits.length > 1 ? 's' : '') + '</button>';
-				result += '</div>';
-			}
-			
-			result += '</div>';
-			
-			// Add other properties if they exist
-			for (const [key, value] of Object.entries(input)) {
-				if (key !== 'file_path' && key !== 'edits') {
-					const valueStr = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
-					result += '\\n<strong>' + key + ':</strong> ' + valueStr;
-				}
-			}
-			
-			return result;
-		}
-
-		function formatSingleEdit(edit, editNumber) {
-			let result = '<div class="single-edit">';
-			result += '<div class="edit-number">Edit #' + editNumber + '</div>';
-			
-			// Create diff view for this single edit
-			const oldLines = edit.old_string.split('\\n');
-			const newLines = edit.new_string.split('\\n');
-			
-			// Show removed lines
-			for (const line of oldLines) {
-				result += '<div class="diff-line removed">- ' + escapeHtml(line) + '</div>';
-			}
-			
-			// Show added lines
-			for (const line of newLines) {
-				result += '<div class="diff-line added">+ ' + escapeHtml(line) + '</div>';
-			}
-			
-			result += '</div>';
-			return result;
+			return '<div class="diff-file-path" onclick="openFileInEditor(\\\'' + escapeHtml(input.file_path) + '\\\')">' + formattedPath + '</div>\\n' +
+				   '<div class="diff-preview">Making ' + input.edits.length + ' edit' + (input.edits.length !== 1 ? 's' : '') + '</div>';
 		}
 
 		function formatWriteToolDiff(input) {
@@ -562,56 +620,11 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				return formatToolInputUI(input);
 			}
 
-			// Format file path with better display
+			// Simple preview - detailed diff will be shown in tool result
 			const formattedPath = formatFilePath(input.file_path);
-			let result = '<div class="diff-file-path" onclick="openFileInEditor(\\\'' + escapeHtml(input.file_path) + '\\\')">' + formattedPath + '</div>\\n';
-			
-			// Create diff view showing all content as additions
-			const contentLines = input.content.split('\\n');
-			
-			const maxLines = 6;
-			const shouldTruncate = contentLines.length > maxLines;
-			const visibleLines = shouldTruncate ? contentLines.slice(0, maxLines) : contentLines;
-			const hiddenLines = shouldTruncate ? contentLines.slice(maxLines) : [];
-			
-			result += '<div class="diff-container">';
-			result += '<div class="diff-header">New file content:</div>';
-			
-			// Create a unique ID for this diff
-			const diffId = 'write_' + Math.random().toString(36).substr(2, 9);
-			
-			// Show visible lines (all as additions)
-			result += '<div id="' + diffId + '_visible">';
-			for (const line of visibleLines) {
-				result += '<div class="diff-line added">+ ' + escapeHtml(line) + '</div>';
-			}
-			result += '</div>';
-			
-			// Show hidden lines (initially hidden)
-			if (shouldTruncate) {
-				result += '<div id="' + diffId + '_hidden" style="display: none;">';
-				for (const line of hiddenLines) {
-					result += '<div class="diff-line added">+ ' + escapeHtml(line) + '</div>';
-				}
-				result += '</div>';
-				
-				// Add expand button
-				result += '<div class="diff-expand-container">';
-				result += '<button class="diff-expand-btn" onclick="toggleDiffExpansion(\\\'' + diffId + '\\\')">Show ' + hiddenLines.length + ' more lines</button>';
-				result += '</div>';
-			}
-			
-			result += '</div>';
-			
-			// Add other properties if they exist
-			for (const [key, value] of Object.entries(input)) {
-				if (key !== 'file_path' && key !== 'content') {
-					const valueStr = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
-					result += '\\n<strong>' + key + ':</strong> ' + valueStr;
-				}
-			}
-			
-			return result;
+			const lines = input.content.split('\\n').length;
+			return '<div class="diff-file-path" onclick="openFileInEditor(\\\'' + escapeHtml(input.file_path) + '\\\')">' + formattedPath + '</div>\\n' +
+				   '<div class="diff-preview">Writing ' + lines + ' line' + (lines !== 1 ? 's' : '') + '</div>';
 		}
 
 		function escapeHtml(text) {
