@@ -242,7 +242,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 					messageDiv.innerHTML = diffHTML;
 					messagesDiv.appendChild(messageDiv);
 
-					if (shouldScroll) scrollToBottom(messagesDiv);
+					scrollToBottomIfNeeded(messagesDiv, shouldScroll);
 					return;
 				} else if (data.toolName === 'MultiEdit' && data.rawInput.file_path && data.rawInput.edits) {
 					const parsed = parseToolResult(data.content);
@@ -267,7 +267,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 					messageDiv.innerHTML = html;
 					messagesDiv.appendChild(messageDiv);
 
-					if (shouldScroll) scrollToBottom(messagesDiv);
+					scrollToBottomIfNeeded(messagesDiv, shouldScroll);
 					return;
 				} else if (data.toolName === 'Write' && data.rawInput.file_path && data.rawInput.content) {
 					const parsed = parseToolResult(data.content);
@@ -291,7 +291,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 					messageDiv.innerHTML = html;
 					messagesDiv.appendChild(messageDiv);
 
-					if (shouldScroll) scrollToBottom(messagesDiv);
+					scrollToBottomIfNeeded(messagesDiv, shouldScroll);
 					return;
 				}
 			}
