@@ -533,7 +533,12 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			// Build diff lines with proper line numbers
 			let oldLineNum = startLine;
 			let newLineNum = startLine;
+			const maxLines = 6;
+			const diffId = 'diff_' + Math.random().toString(36).substr(2, 9);
+			let lineIndex = 0;
 
+			// First pass: build all line HTML
+			const allLinesHtml = [];
 			for (const change of diff) {
 				let lineNum, prefix, cssClass;
 
@@ -556,7 +561,28 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				}
 
 				const lineNumStr = lineNum.toString().padStart(3);
-				html += '<div class="diff-line ' + cssClass + '">' + prefix + lineNumStr + '  ' + escapeHtml(change.content) + '</div>';
+				allLinesHtml.push('<div class="diff-line ' + cssClass + '">' + prefix + lineNumStr + '  ' + escapeHtml(change.content) + '</div>');
+			}
+
+			// Show visible lines
+			const shouldTruncate = allLinesHtml.length > maxLines;
+			const visibleLines = shouldTruncate ? allLinesHtml.slice(0, maxLines) : allLinesHtml;
+			const hiddenLines = shouldTruncate ? allLinesHtml.slice(maxLines) : [];
+
+			html += '<div id="' + diffId + '_visible">';
+			html += visibleLines.join('');
+			html += '</div>';
+
+			// Show hidden lines (initially hidden)
+			if (shouldTruncate) {
+				html += '<div id="' + diffId + '_hidden" style="display: none;">';
+				html += hiddenLines.join('');
+				html += '</div>';
+
+				// Add expand button
+				html += '<div class="diff-expand-container">';
+				html += '<button class="diff-expand-btn" onclick="toggleDiffExpansion(\\'' + diffId + '\\')">Show ' + hiddenLines.length + ' more lines</button>';
+				html += '</div>';
 			}
 
 			html += '</div>';
