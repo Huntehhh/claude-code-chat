@@ -125,6 +125,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			}
 			
 			messagesDiv.appendChild(messageDiv);
+			moveProcessingIndicatorToLast();
 			scrollToBottomIfNeeded(messagesDiv, shouldScroll);
 		}
 
@@ -247,6 +248,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			}
 			
 			messagesDiv.appendChild(messageDiv);
+			moveProcessingIndicatorToLast();
 			scrollToBottomIfNeeded(messagesDiv, shouldScroll);
 		}
 
@@ -394,6 +396,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			}
 			
 			messagesDiv.appendChild(messageDiv);
+			moveProcessingIndicatorToLast();
 			scrollToBottomIfNeeded(messagesDiv, shouldScroll);
 		}
 
@@ -950,6 +953,31 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				requestTimer = null;
 			}
 			requestStartTime = null;
+		}
+
+		function showProcessingIndicator() {
+			// Remove any existing indicator first
+			hideProcessingIndicator();
+
+			// Create the indicator and append after all messages
+			const indicator = document.createElement('div');
+			indicator.className = 'processing-indicator';
+			indicator.innerHTML = '<div class="morph-dot"></div>';
+			messagesDiv.appendChild(indicator);
+		}
+
+		function hideProcessingIndicator() {
+			const indicator = document.querySelector('.processing-indicator');
+			if (indicator) {
+				indicator.remove();
+			}
+		}
+
+		function moveProcessingIndicatorToLast() {
+			// Only move if we're processing
+			if (isProcessing) {
+				showProcessingIndicator();
+			}
 		}
 
 		// Auto-resize textarea
@@ -2008,10 +2036,12 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 						startRequestTimer(message.data.requestStartTime);
 						showStopButton();
 						disableButtons();
+						showProcessingIndicator();
 					} else {
 						stopRequestTimer();
 						hideStopButton();
 						enableButtons();
+						hideProcessingIndicator();
 					}
 					updateStatusWithTotals();
 					break;

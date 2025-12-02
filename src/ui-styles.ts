@@ -1181,7 +1181,6 @@ const styles = `
         align-items: center;
         justify-content: space-between;
         gap: 8px;
-        margin-bottom: 8px;
     }
 
     .diff-file-path {
@@ -2927,6 +2926,59 @@ const styles = `
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+
+    /* Processing indicator - morphing orange dot */
+    .processing-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 12px 0;
+        margin-top: 8px;
+    }
+
+    .processing-indicator .morph-dot {
+        width: 8px;
+        height: 8px;
+        background: linear-gradient(135deg, #ff9500 0%, #ff6b00 100%);
+        box-shadow: 0 0 8px rgba(255, 149, 0, 0.5);
+        animation: morphShape 3s ease-in-out infinite;
+    }
+
+    @keyframes morphShape {
+        0%, 100% {
+            border-radius: 50%;
+            transform: scale(1) rotate(0deg);
+        }
+        15% {
+            border-radius: 50%;
+            transform: scale(1.3) rotate(0deg);
+        }
+        25% {
+            border-radius: 20%;
+            transform: scale(1) rotate(45deg);
+        }
+        40% {
+            border-radius: 20%;
+            transform: scale(1.2) rotate(90deg);
+        }
+        50% {
+            border-radius: 50% 50% 50% 0%;
+            transform: scale(1) rotate(135deg);
+        }
+        65% {
+            border-radius: 0%;
+            transform: scale(1.3) rotate(180deg);
+        }
+        75% {
+            border-radius: 50% 0% 50% 0%;
+            transform: scale(1) rotate(270deg);
+        }
+        85% {
+            border-radius: 30%;
+            transform: scale(1.2) rotate(315deg);
+        }
     }
 </style>`
 
