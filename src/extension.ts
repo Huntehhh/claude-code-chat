@@ -2637,6 +2637,12 @@ class ClaudeChatProvider {
 	}
 
 	private _executeSlashCommand(command: string): void {
+		// Handle /compact in chat instead of spawning a terminal
+		if (command === 'compact') {
+			this._sendMessageToClaude(`/${command}`);
+			return;
+		}
+
 		const config = vscode.workspace.getConfiguration('claudeCodeChat');
 		const wslEnabled = config.get<boolean>('wsl.enabled', false);
 		const wslDistro = config.get<string>('wsl.distro', 'Ubuntu');

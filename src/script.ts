@@ -1679,18 +1679,22 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		function executeSlashCommand(command) {
 			// Hide the modal
 			hideSlashCommandsModal();
-			
+
 			// Clear the input since user selected a command
 			messageInput.value = '';
-			
-			// Send command to VS Code to execute in terminal
+
+			// Send command to VS Code to execute
 			vscode.postMessage({
 				type: 'executeSlashCommand',
 				command: command
 			});
-			
-			// Show user feedback
-			addMessage('user', \`Executing /\${command} command in terminal. Check the terminal output and return when ready.\`, 'assistant');
+
+			// Show user feedback - /compact runs in chat, others in terminal
+			if (command === 'compact') {
+				// No message needed - compact runs in chat and shows its own status
+			} else {
+				addMessage('user', \`Executing /\${command} command in terminal. Check the terminal output and return when ready.\`, 'assistant');
+			}
 		}
 
 		function handleCustomCommandKeydown(event) {
