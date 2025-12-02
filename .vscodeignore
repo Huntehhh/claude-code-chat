@@ -12,3 +12,5 @@ vsc-extension-quickstart.md
 backup
 .claude
 claude-code-chat-permissions-mcp/**
+node_modules
+mcp-permissions.js

@@ -302,6 +302,12 @@ const styles = `
         border: 1px solid rgba(231, 76, 60, 0.3);
     }
 
+    .permission-decision.expired {
+        background-color: rgba(128, 128, 128, 0.15);
+        color: var(--vscode-descriptionForeground);
+        border: 1px solid rgba(128, 128, 128, 0.3);
+    }
+
     .permission-decided {
         opacity: 0.7;
         pointer-events: none;
@@ -319,6 +325,11 @@ const styles = `
     .permission-decided.denied {
         border-color: var(--vscode-inputValidation-errorBorder);
         background-color: var(--vscode-inputValidation-errorBackground);
+    }
+
+    .permission-decided.expired {
+        border-color: var(--vscode-panel-border);
+        background-color: rgba(128, 128, 128, 0.05);
     }
 
     /* Permissions Management */

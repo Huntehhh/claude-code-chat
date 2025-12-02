@@ -2265,6 +2265,12 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				case 'permissionRequest':
 					addPermissionRequestMessage(message.data);
 					break;
+				case 'updatePermissionStatus':
+					updatePermissionStatus(message.data.id, message.data.status);
+					break;
+				case 'expirePendingPermissions':
+					expireAllPendingPermissions();
+					break;
 				case 'mcpServers':
 					displayMCPServers(message.data);
 					break;
@@ -2289,9 +2295,12 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 
 			const messageDiv = document.createElement('div');
 			messageDiv.className = 'message permission-request';
-			
+			messageDiv.id = \`permission-\${data.id}\`;
+			messageDiv.dataset.status = data.status || 'pending';
+
 			const toolName = data.tool || 'Unknown Tool';
-			
+			const status = data.status || 'pending';
+
 			// Create always allow button text with command styling for Bash
 			let alwaysAllowText = \`Always allow \${toolName}\`;
 			let alwaysAllowTooltip = '';
@@ -2303,36 +2312,121 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				alwaysAllowText = \`Always allow <code>\${truncatedPattern}</code>\`;
 				alwaysAllowTooltip = displayPattern.length > 30 ? \`title="\${displayPattern}"\` : '';
 			}
-			
-			messageDiv.innerHTML = \`
-				<div class="permission-header">
-					<span class="icon">🔐</span>
-					<span>Permission Required</span>
-					<div class="permission-menu">
-						<button class="permission-menu-btn" onclick="togglePermissionMenu('\${data.id}')" title="More options">⋮</button>
-						<div class="permission-menu-dropdown" id="permissionMenu-\${data.id}" style="display: none;">
-							<button class="permission-menu-item" onclick="enableYoloMode('\${data.id}')">
-								<span class="menu-icon">⚡</span>
-								<div class="menu-content">
-									<span class="menu-title">Enable YOLO Mode</span>
-									<span class="menu-subtitle">Auto-allow all permissions</span>
-								</div>
-							</button>
+
+			// Show different content based on status
+			let contentHtml = '';
+			if (status === 'pending') {
+				contentHtml = \`
+					<div class="permission-header">
+						<span class="icon">🔐</span>
+						<span>Permission Required</span>
+						<div class="permission-menu">
+							<button class="permission-menu-btn" onclick="togglePermissionMenu('\${data.id}')" title="More options">⋮</button>
+							<div class="permission-menu-dropdown" id="permissionMenu-\${data.id}" style="display: none;">
+								<button class="permission-menu-item" onclick="enableYoloMode('\${data.id}')">
+									<span class="menu-icon">⚡</span>
+									<div class="menu-content">
+										<span class="menu-title">Enable YOLO Mode</span>
+										<span class="menu-subtitle">Auto-allow all permissions</span>
+									</div>
+								</button>
+							</div>
 						</div>
 					</div>
-				</div>
-				<div class="permission-content">
-					<p>Allow <strong>\${toolName}</strong> to execute the tool call above?</p>
-					<div class="permission-buttons">
-						<button class="btn deny" onclick="respondToPermission('\${data.id}', false)">Deny</button>
-						<button class="btn always-allow" onclick="respondToPermission('\${data.id}', true, true)" \${alwaysAllowTooltip}>\${alwaysAllowText}</button>
-						<button class="btn allow" onclick="respondToPermission('\${data.id}', true)">Allow</button>
+					<div class="permission-content">
+						<p>Allow <strong>\${toolName}</strong> to execute the tool call above?</p>
+						<div class="permission-buttons">
+							<button class="btn deny" onclick="respondToPermission('\${data.id}', false)">Deny</button>
+							<button class="btn always-allow" onclick="respondToPermission('\${data.id}', true, true)" \${alwaysAllowTooltip}>\${alwaysAllowText}</button>
+							<button class="btn allow" onclick="respondToPermission('\${data.id}', true)">Allow</button>
+						</div>
 					</div>
-				</div>
-			\`;
-			
+				\`;
+			} else if (status === 'approved') {
+				contentHtml = \`
+					<div class="permission-header">
+						<span class="icon">🔐</span>
+						<span>Permission Required</span>
+					</div>
+					<div class="permission-content">
+						<p>Allow <strong>\${toolName}</strong> to execute the tool call above?</p>
+						<div class="permission-decision allowed">✅ You allowed this</div>
+					</div>
+				\`;
+				messageDiv.classList.add('permission-decided', 'allowed');
+			} else if (status === 'denied') {
+				contentHtml = \`
+					<div class="permission-header">
+						<span class="icon">🔐</span>
+						<span>Permission Required</span>
+					</div>
+					<div class="permission-content">
+						<p>Allow <strong>\${toolName}</strong> to execute the tool call above?</p>
+						<div class="permission-decision denied">❌ You denied this</div>
+					</div>
+				\`;
+				messageDiv.classList.add('permission-decided', 'denied');
+			} else if (status === 'cancelled' || status === 'expired') {
+				contentHtml = \`
+					<div class="permission-header">
+						<span class="icon">🔐</span>
+						<span>Permission Required</span>
+					</div>
+					<div class="permission-content">
+						<p>Allow <strong>\${toolName}</strong> to execute the tool call above?</p>
+						<div class="permission-decision expired">⏱️ This request expired</div>
+					</div>
+				\`;
+				messageDiv.classList.add('permission-decided', 'expired');
+			}
+
+			messageDiv.innerHTML = contentHtml;
 			messagesDiv.appendChild(messageDiv);
 			scrollToBottomIfNeeded(messagesDiv, shouldScroll);
+		}
+
+		function updatePermissionStatus(id, status) {
+			const permissionMsg = document.getElementById(\`permission-\${id}\`);
+			if (!permissionMsg) return;
+
+			permissionMsg.dataset.status = status;
+			const permissionContent = permissionMsg.querySelector('.permission-content');
+			const buttons = permissionMsg.querySelector('.permission-buttons');
+			const menuDiv = permissionMsg.querySelector('.permission-menu');
+
+			// Hide buttons and menu if present
+			if (buttons) buttons.style.display = 'none';
+			if (menuDiv) menuDiv.style.display = 'none';
+
+			// Remove existing decision div if any
+			const existingDecision = permissionContent.querySelector('.permission-decision');
+			if (existingDecision) existingDecision.remove();
+
+			// Add new decision div
+			const decisionDiv = document.createElement('div');
+			if (status === 'approved') {
+				decisionDiv.className = 'permission-decision allowed';
+				decisionDiv.innerHTML = '✅ You allowed this';
+				permissionMsg.classList.add('permission-decided', 'allowed');
+			} else if (status === 'denied') {
+				decisionDiv.className = 'permission-decision denied';
+				decisionDiv.innerHTML = '❌ You denied this';
+				permissionMsg.classList.add('permission-decided', 'denied');
+			} else if (status === 'cancelled' || status === 'expired') {
+				decisionDiv.className = 'permission-decision expired';
+				decisionDiv.innerHTML = '⏱️ This request expired';
+				permissionMsg.classList.add('permission-decided', 'expired');
+			}
+			permissionContent.appendChild(decisionDiv);
+		}
+
+		function expireAllPendingPermissions() {
+			document.querySelectorAll('.permission-request').forEach(permissionMsg => {
+				if (permissionMsg.dataset.status === 'pending') {
+					const id = permissionMsg.id.replace('permission-', '');
+					updatePermissionStatus(id, 'expired');
+				}
+			});
 		}
 		
 		function respondToPermission(id, approved, alwaysAllow = false) {
