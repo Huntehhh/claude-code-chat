@@ -693,6 +693,36 @@ class ClaudeChatProvider {
 							mcpServers: jsonData.mcp_servers || []
 						}
 					});
+				} else if (jsonData.subtype === 'status') {
+					// Handle status changes (e.g., compacting)
+					if (jsonData.status === 'compacting') {
+						console.log('Conversation compacting started');
+						this._sendAndSaveMessage({
+							type: 'compacting',
+							data: { isCompacting: true }
+						});
+					} else if (jsonData.status === null) {
+						console.log('Status cleared');
+						this._sendAndSaveMessage({
+							type: 'compacting',
+							data: { isCompacting: false }
+						});
+					}
+				} else if (jsonData.subtype === 'compact_boundary') {
+					// Compact boundary - conversation was compacted, reset token counts
+					console.log('Compact boundary received', jsonData.compact_metadata);
+
+					// Reset tokens since the conversation is now summarized
+					this._totalTokensInput = 0;
+					this._totalTokensOutput = 0;
+
+					this._sendAndSaveMessage({
+						type: 'compactBoundary',
+						data: {
+							trigger: jsonData.compact_metadata?.trigger,
+							preTokens: jsonData.compact_metadata?.pre_tokens
+						}
+					});
 				}
 				break;
 

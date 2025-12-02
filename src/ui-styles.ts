@@ -2980,6 +2980,7 @@ const styles = `
             transform: scale(1.2) rotate(315deg);
         }
     }
+
 </style>`
 
 export default styles

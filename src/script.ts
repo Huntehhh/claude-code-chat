@@ -2192,7 +2192,23 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 					requestCount = 0;
 					updateStatusWithTotals();
 					break;
-					
+
+				case 'compacting':
+					if (message.data.isCompacting) {
+						addMessage('📦 Compacting conversation...', 'system');
+					}
+					break;
+
+				case 'compactBoundary':
+					// Reset token counts since conversation was compacted
+					totalTokensInput = 0;
+					totalTokensOutput = 0;
+					updateStatusWithTotals();
+
+					const preTokens = message.data.preTokens ? message.data.preTokens.toLocaleString() : 'unknown';
+					addMessage('✅ Compacted (' + preTokens + ' tokens → summary)', 'system');
+					break;
+
 				case 'loginRequired':
 					sendStats('Login required');
 					addMessage('🔐 Login Required\\n\\nYour Claude API key is invalid or expired.\\nA terminal has been opened - please run the login process there.\\n\\nAfter logging in, come back to this chat to continue.', 'error');
