@@ -140,6 +140,9 @@ class ClaudeChatProvider {
 		lastUserMessage: string
 	}> = [];
 	private _currentClaudeProcess: cp.ChildProcess | undefined;
+	private _abortController: AbortController | undefined;
+	private _isWslProcess: boolean = false;
+	private _wslDistro: string = 'Ubuntu';
 	private _selectedModel: string = 'default'; // Default model
 	private _isProcessing: boolean | undefined;
 	private _draftMessage: string = '';
@@ -536,12 +539,21 @@ class ClaudeChatProvider {
 
 		let claudeProcess: cp.ChildProcess;
 
+		// Create new AbortController for this request
+		this._abortController = new AbortController();
+
 		if (wslEnabled) {
 			// Use WSL with bash -ic for proper environment loading
 			console.log('Using WSL configuration:', { wslDistro, nodePath, claudePath });
 			const wslCommand = `"${nodePath}" --no-warnings --enable-source-maps "${claudePath}" ${args.join(' ')}`;
 
+			// Track WSL state for proper process termination
+			this._isWslProcess = true;
+			this._wslDistro = wslDistro;
+
 			claudeProcess = cp.spawn('wsl', ['-d', wslDistro, 'bash', '-ic', wslCommand], {
+				signal: this._abortController.signal,
+				detached: process.platform !== 'win32',
 				cwd: cwd,
 				stdio: ['pipe', 'pipe', 'pipe'],
 				env: {
@@ -551,10 +563,15 @@ class ClaudeChatProvider {
 				}
 			});
 		} else {
+			// Not using WSL
+			this._isWslProcess = false;
+
 			// Use native claude command
 			console.log('Using native Claude command');
 			claudeProcess = cp.spawn('claude', args, {
+				signal: this._abortController.signal,
 				shell: process.platform === 'win32',
+				detached: process.platform !== 'win32',
 				cwd: cwd,
 				stdio: ['pipe', 'pipe', 'pipe'],
 				env: {
@@ -979,9 +996,8 @@ class ClaudeChatProvider {
 	}
 
 
-	private _newSession() {
-
-		this._isProcessing = false
+	private async _newSession(): Promise<void> {
+		this._isProcessing = false;
 
 		// Update UI state
 		this._postMessage({
@@ -989,12 +1005,8 @@ class ClaudeChatProvider {
 			data: { isProcessing: false }
 		});
 
-		// Try graceful termination first
-		if (this._currentClaudeProcess) {
-			const processToKill = this._currentClaudeProcess;
-			this._currentClaudeProcess = undefined;
-			processToKill.kill('SIGTERM');
-		}
+		// Kill Claude process and all child processes
+		await this._killClaudeProcess();
 
 		// Clear current session
 		this._currentSessionId = undefined;
@@ -2094,10 +2106,88 @@ class ClaudeChatProvider {
 		}
 	}
 
-	private _stopClaudeProcess(): void {
+	private async _killProcessGroup(pid: number, signal: string = 'SIGTERM'): Promise<void> {
+		if (this._isWslProcess) {
+			// WSL: Kill processes inside WSL using pkill
+			// The Windows PID won't work inside WSL, so we kill by name
+			try {
+				// Kill all node/claude processes started by this session inside WSL
+				const killSignal = signal === 'SIGKILL' ? '-9' : '-15';
+				await exec(`wsl -d ${this._wslDistro} pkill ${killSignal} -f "claude"`);
+			} catch {
+				// Process may already be dead or pkill not available
+			}
+			// Also kill the Windows-side wsl process
+			try {
+				await exec(`taskkill /pid ${pid} /t /f`);
+			} catch {
+				// Process may already be dead
+			}
+		} else if (process.platform === 'win32') {
+			// Windows: Use taskkill with /T flag for tree kill
+			try {
+				await exec(`taskkill /pid ${pid} /t /f`);
+			} catch {
+				// Process may already be dead
+			}
+		} else {
+			// Unix: Kill process group with negative PID
+			try {
+				process.kill(-pid, signal as NodeJS.Signals);
+			} catch {
+				// Process may already be dead
+			}
+		}
+	}
+
+	private async _killClaudeProcess(): Promise<void> {
+		const processToKill = this._currentClaudeProcess;
+		const pid = processToKill?.pid;
+
+		// 1. Abort via controller (clean API)
+		this._abortController?.abort();
+		this._abortController = undefined;
+
+		// 2. Clear reference immediately
+		this._currentClaudeProcess = undefined;
+
+		if (!pid) {
+			return;
+		}
+
+		console.log(`Terminating Claude process group (PID: ${pid})...`);
+
+		// 3. Kill process group (handles children)
+		await this._killProcessGroup(pid, 'SIGTERM');
+
+		// 4. Wait for process to exit, with timeout
+		const exitPromise = new Promise<void>((resolve) => {
+			if (processToKill?.killed) {
+				resolve();
+				return;
+			}
+			processToKill?.once('exit', () => resolve());
+		});
+
+		const timeoutPromise = new Promise<void>((resolve) => {
+			setTimeout(() => resolve(), 2000);
+		});
+
+		await Promise.race([exitPromise, timeoutPromise]);
+
+		// 5. Force kill if still running
+		if (processToKill && !processToKill.killed) {
+			console.log(`Force killing Claude process group (PID: ${pid})...`);
+			await this._killProcessGroup(pid, 'SIGKILL');
+		}
+
+		console.log('Claude process group terminated');
+	}
+
+	private async _stopClaudeProcess(): Promise<void> {
 		console.log('Stop request received');
 
-		this._isProcessing = false
+		this._isProcessing = false;
 
 		// Update UI state
 		this._postMessage({
@@ -2105,37 +2195,17 @@ class ClaudeChatProvider {
 			data: { isProcessing: false }
 		});
 
-		if (this._currentClaudeProcess) {
-			console.log('Terminating Claude process...');
+		await this._killClaudeProcess();
 
-			// Try graceful termination first
-			this._currentClaudeProcess.kill('SIGTERM');
+		this._postMessage({
+			type: 'clearLoading'
+		});
 
-			// Force kill after 2 seconds if still running
-			setTimeout(() => {
-				if (this._currentClaudeProcess && !this._currentClaudeProcess.killed) {
-					console.log('Force killing Claude process...');
-					this._currentClaudeProcess.kill('SIGKILL');
-				}
-			}, 2000);
-
-			// Clear process reference
-			this._currentClaudeProcess = undefined;
-
-			this._postMessage({
-				type: 'clearLoading'
-			});
-
-			// Send stop confirmation message directly to UI and save
-			this._sendAndSaveMessage({
-				type: 'error',
-				data: '⏹️ Claude code was stopped.'
-			});
-
-			console.log('Claude process termination initiated');
-		} else {
-			console.log('No Claude process running to stop');
-		}
+		// Send stop confirmation message directly to UI and save
+		this._sendAndSaveMessage({
+			type: 'error',
+			data: '⏹️ Claude code was stopped.'
+		});
 	}
 
 	private _updateConversationIndex(filename: string, conversationData: ConversationData): void {
