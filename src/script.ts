@@ -2248,7 +2248,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 
 				case 'loginRequired':
 					sendStats('Login required');
-					addMessage('🔐 Login Required\\n\\nYour Claude API key is invalid or expired.\\nA terminal has been opened - please run the login process there.\\n\\nAfter logging in, come back to this chat to continue.', 'error');
+					addMessage('🔐 Login Required\\n\\nPlease login with your Claude plan (Pro/Max) or API key.\\nA terminal has been opened - follow the login process there.\\n\\nAfter logging in, come back to this chat to continue.', 'error');
 					updateStatus('Login Required', 'error');
 					break;
 					

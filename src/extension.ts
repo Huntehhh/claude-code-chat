@@ -1148,7 +1148,10 @@ class ClaudeChatProvider {
 		const claudePath = config.get<string>('wsl.claudePath', '/usr/local/bin/claude');
 
 		// Open terminal and run claude login
-		const terminal = vscode.window.createTerminal('Claude Login');
+		const terminal = vscode.window.createTerminal({
+			name: 'Claude Login',
+			location: { viewColumn: vscode.ViewColumn.One }
+		});
 		if (wslEnabled) {
 			terminal.sendText(`wsl -d ${wslDistro} ${nodePath} --no-warnings --enable-source-maps ${claudePath}`);
 		} else {
@@ -1158,14 +1161,14 @@ class ClaudeChatProvider {
 
 		// Show info message
 		vscode.window.showInformationMessage(
-			'Please login to Claude in the terminal, then come back to this chat to continue.',
+			'Please login with your Claude plan or API key in the terminal, then come back to this chat.',
 			'OK'
 		);
 
 		// Send message to UI about terminal
 		this._postMessage({
 			type: 'terminalOpened',
-			data: `Please login to Claude in the terminal, then come back to this chat to continue.`,
+			data: `Please login with your Claude plan or API key in the terminal, then come back to this chat.`,
 		});
 	}
 
@@ -2684,7 +2687,10 @@ class ClaudeChatProvider {
 		}
 
 		// Create terminal with the claude /model command
-		const terminal = vscode.window.createTerminal('Claude Model Selection');
+		const terminal = vscode.window.createTerminal({
+			name: 'Claude Model Selection',
+			location: { viewColumn: vscode.ViewColumn.One }
+		});
 		if (wslEnabled) {
 			terminal.sendText(`wsl -d ${wslDistro} ${nodePath} --no-warnings --enable-source-maps ${claudePath} ${args.join(' ')}`);
 		} else {
@@ -2708,7 +2714,7 @@ class ClaudeChatProvider {
 	private _openUsageTerminal(usageType: string): void {
 		const terminal = vscode.window.createTerminal({
 			name: 'Claude Usage',
-			location: vscode.TerminalLocation.Editor
+			location: { viewColumn: vscode.ViewColumn.One }
 		});
 
 		if (usageType === 'plan') {
@@ -2744,7 +2750,10 @@ class ClaudeChatProvider {
 		}
 
 		// Create terminal with the claude command
-		const terminal = vscode.window.createTerminal(`Claude /${command}`);
+		const terminal = vscode.window.createTerminal({
+			name: `Claude /${command}`,
+			location: { viewColumn: vscode.ViewColumn.One }
+		});
 		if (wslEnabled) {
 			terminal.sendText(`wsl -d ${wslDistro} ${nodePath} --no-warnings --enable-source-maps ${claudePath} ${args.join(' ')}`);
 		} else {

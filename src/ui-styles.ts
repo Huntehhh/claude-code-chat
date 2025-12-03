@@ -28,6 +28,12 @@ const styles = `
         letter-spacing: -0.3px;
     }
 
+    @media (max-width: 385px) {
+        .header h2 {
+            display: none;
+        }
+    }
+
     .controls {
         display: flex;
         gap: 6px;
