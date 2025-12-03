@@ -120,6 +120,8 @@ class ClaudeChatProvider {
 	private _totalTokensInput: number = 0;
 	private _totalTokensOutput: number = 0;
 	private _requestCount: number = 0;
+	private _subscriptionType: string | undefined;  // 'pro', 'max', or undefined for API users
+	private _accountInfoFetchedThisSession: boolean = false;  // Track if we fetched account info this session
 	private _currentSessionId: string | undefined;
 	private _backupRepoPath: string | undefined;
 	private _commits: Array<{ id: string, sha: string, message: string, timestamp: string }> = [];
@@ -167,6 +169,9 @@ class ClaudeChatProvider {
 
 		// Load saved model preference
 		this._selectedModel = this._context.workspaceState.get('claude.selectedModel', 'default');
+
+		// Load cached subscription type (will be refreshed on first message)
+		this._subscriptionType = this._context.globalState.get('claude.subscriptionType');
 
 		// Resume session from latest conversation
 		const latestConversation = this._getLatestConversation();
@@ -255,6 +260,16 @@ class ClaudeChatProvider {
 			model: this._selectedModel
 		});
 
+		// Send cached subscription type to webview (will be refreshed on first message)
+		if (this._subscriptionType) {
+			this._postMessage({
+				type: 'accountInfo',
+				data: {
+					subscriptionType: this._subscriptionType
+				}
+			});
+		}
+
 		// Send platform information to webview
 		this._sendPlatformInfo();
 
@@ -310,6 +325,9 @@ class ClaudeChatProvider {
 				return;
 			case 'openModelTerminal':
 				this._openModelTerminal();
+				return;
+			case 'viewUsage':
+				this._openUsageTerminal(message.usageType);
 				return;
 			case 'executeSlashCommand':
 				this._executeSlashCommand(message.command);
@@ -597,6 +615,19 @@ class ClaudeChatProvider {
 		// Send the message to Claude's stdin as JSON (stream-json input format)
 		// Don't end stdin yet - we need to keep it open for permission responses
 		if (claudeProcess.stdin) {
+			// First, send an initialize request to get account info (once per session)
+			if (!this._accountInfoFetchedThisSession) {
+				this._accountInfoFetchedThisSession = true;
+				const initRequest = {
+					type: 'control_request',
+					request_id: 'init-' + Date.now(),
+					request: {
+						subtype: 'initialize'
+					}
+				};
+				claudeProcess.stdin.write(JSON.stringify(initRequest) + '\n');
+			}
+
 			const userMessage = {
 				type: 'user',
 				session_id: this._currentSessionId || '',
@@ -630,6 +661,12 @@ class ClaudeChatProvider {
 								this._handleControlRequest(jsonData, claudeProcess).catch(err => {
 									console.error('Error handling control request:', err);
 								});
+								continue;
+							}
+
+							// Handle control_response messages (responses to our initialize request)
+							if (jsonData.type === 'control_response') {
+								this._handleControlResponse(jsonData);
 								continue;
 							}
 
@@ -1402,6 +1439,38 @@ class ClaudeChatProvider {
 
 		// Handle exact match patterns
 		return false;
+	}
+
+	/**
+	 * Handle control_response messages from Claude CLI via stdio
+	 * This is used to get account info from the initialize request
+	 */
+	private _handleControlResponse(controlResponse: any): void {
+		// Structure: controlResponse.response.response.account
+		// The outer response has subtype/request_id, inner response has the actual data
+		const innerResponse = controlResponse.response?.response;
+
+		// Check if this is an initialize response with account info
+		if (innerResponse?.account) {
+			const account = innerResponse.account;
+			this._subscriptionType = account.subscriptionType;
+
+			console.log('Account info received:', {
+				subscriptionType: account.subscriptionType,
+				email: account.email
+			});
+
+			// Save to globalState for persistence
+			this._context.globalState.update('claude.subscriptionType', this._subscriptionType);
+
+			// Send subscription type to UI
+			this._postMessage({
+				type: 'accountInfo',
+				data: {
+					subscriptionType: this._subscriptionType
+				}
+			});
+		}
 	}
 
 	/**
@@ -2634,6 +2703,23 @@ class ClaudeChatProvider {
 			type: 'terminalOpened',
 			data: 'Check the terminal to update your default model configuration. Come back to this chat here after making changes.'
 		});
+	}
+
+	private _openUsageTerminal(usageType: string): void {
+		const terminal = vscode.window.createTerminal({
+			name: 'Claude Usage',
+			location: vscode.TerminalLocation.Editor
+		});
+
+		if (usageType === 'plan') {
+			// Plan users get live usage view
+			terminal.sendText('npx -y ccusage blocks --live');
+		} else {
+			// API users get recent usage history
+			terminal.sendText('npx -y ccusage blocks --recent --order desc');
+		}
+
+		terminal.show();
 	}
 
 	private _executeSlashCommand(command: string): void {

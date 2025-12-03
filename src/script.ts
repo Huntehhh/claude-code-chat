@@ -890,6 +890,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		let isProcessing = false;
 		let requestStartTime = null;
 		let requestTimer = null;
+		let subscriptionType = null;  // 'pro', 'max', or null for API users
 
 		// Send usage statistics
 		function sendStats(eventName) {
@@ -909,6 +910,15 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			statusDiv.className = \`status \${state}\`;
 		}
 
+		function updateStatusHtml(html, state = 'ready') {
+			statusTextDiv.innerHTML = html;
+			statusDiv.className = \`status \${state}\`;
+		}
+
+		function viewUsage(usageType) {
+			vscode.postMessage({ type: 'viewUsage', usageType: usageType });
+		}
+
 		function updateStatusWithTotals() {
 			if (isProcessing) {
 				// While processing, show tokens and elapsed time
@@ -926,14 +936,29 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				updateStatus(statusText, 'processing');
 			} else {
 				// When ready, show full info
-				const costStr = totalCost > 0 ? \`$\${totalCost.toFixed(4)}\` : '$0.00';
+				// Show plan type for subscription users, cost for API users
+				let usageStr;
+				const usageIcon = \`<svg class="usage-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+					<rect x="1" y="8" width="3" height="6" rx="0.5" fill="currentColor" opacity="0.5"/>
+					<rect x="5.5" y="5" width="3" height="9" rx="0.5" fill="currentColor" opacity="0.7"/>
+					<rect x="10" y="2" width="3" height="12" rx="0.5" fill="currentColor"/>
+				</svg>\`;
+				if (subscriptionType) {
+					// Extract just the plan type (e.g., "Claude Max" -> "Max", "pro" -> "Pro")
+					let planName = subscriptionType.replace(/^claude\\s*/i, '').trim();
+					planName = planName.charAt(0).toUpperCase() + planName.slice(1);
+					usageStr = \`<a href="#" onclick="event.preventDefault(); viewUsage('plan');" class="usage-badge" title="View live usage">\${planName} Plan\${usageIcon}</a>\`;
+				} else {
+					const costStr = totalCost > 0 ? \`$\${totalCost.toFixed(4)}\` : '$0.00';
+					usageStr = \`<a href="#" onclick="event.preventDefault(); viewUsage('api');" class="usage-badge" title="View usage">\${costStr}\${usageIcon}</a>\`;
+				}
 				const totalTokens = totalTokensInput + totalTokensOutput;
-				const tokensStr = totalTokens > 0 ? 
+				const tokensStr = totalTokens > 0 ?
 					\`\${totalTokens.toLocaleString()} tokens\` : '0 tokens';
 				const requestStr = requestCount > 0 ? \`\${requestCount} requests\` : '';
-				
-				const statusText = \`Ready • \${costStr} • \${tokensStr}\${requestStr ? \` • \${requestStr}\` : ''}\`;
-				updateStatus(statusText, 'ready');
+
+				const statusText = \`Ready • \${tokensStr}\${requestStr ? \` • \${requestStr}\` : ''} • \${usageStr}\`;
+				updateStatusHtml(statusText, 'ready');
 			}
 		}
 
@@ -2165,16 +2190,24 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 					totalTokensInput = message.data.totalTokensInput || 0;
 					totalTokensOutput = message.data.totalTokensOutput || 0;
 					requestCount = message.data.requestCount || 0;
-					
+
 					// Update status bar with new totals
 					updateStatusWithTotals();
-					
-					// Show current request info if available
-					if (message.data.currentCost || message.data.currentDuration) {
+
+					// Show current request info if available (only for API users)
+					if (!subscriptionType && (message.data.currentCost || message.data.currentDuration)) {
 						const currentCostStr = message.data.currentCost ? \`$\${message.data.currentCost.toFixed(4)}\` : 'N/A';
 						const currentDurationStr = message.data.currentDuration ? \`\${message.data.currentDuration}ms\` : 'N/A';
 						addMessage(\`Request completed - Cost: \${currentCostStr}, Duration: \${currentDurationStr}\`, 'system');
 					}
+					break;
+
+				case 'accountInfo':
+					// Store subscription type to determine cost vs plan display
+					subscriptionType = message.data.subscriptionType || null;
+					console.log('Account info received:', subscriptionType);
+					// Update status bar to reflect plan type
+					updateStatusWithTotals();
 					break;
 					
 				case 'sessionResumed':
@@ -2919,9 +2952,19 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				const date = new Date(conv.startTime).toLocaleDateString();
 				const time = new Date(conv.startTime).toLocaleTimeString();
 
+				// Show plan type or cost based on subscription
+				let usageStr;
+				if (subscriptionType) {
+					let planName = subscriptionType.replace(/^claude\\s*/i, '').trim();
+					planName = planName.charAt(0).toUpperCase() + planName.slice(1);
+					usageStr = planName;
+				} else {
+					usageStr = \`$\${conv.totalCost.toFixed(3)}\`;
+				}
+
 				item.innerHTML = \`
 					<div class="conversation-title">\${conv.firstUserMessage.substring(0, 60)}\${conv.firstUserMessage.length > 60 ? '...' : ''}</div>
-					<div class="conversation-meta">\${date} at \${time} • \${conv.messageCount} messages • $\${conv.totalCost.toFixed(3)}</div>
+					<div class="conversation-meta">\${date} at \${time} • \${conv.messageCount} messages • \${usageStr}</div>
 					<div class="conversation-preview">Last: \${conv.lastUserMessage.substring(0, 80)}\${conv.lastUserMessage.length > 80 ? '...' : ''}</div>
 				\`;
 

@@ -2432,6 +2432,34 @@ const styles = `
         flex: 1;
     }
 
+    .status-text .usage-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: inherit;
+        text-decoration: none;
+        background: rgba(255, 255, 255, 0.08);
+        padding: 2px 8px 2px 8px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 0.15s, transform 0.1s;
+    }
+
+    .status-text .usage-badge:hover {
+        background: rgba(255, 255, 255, 0.15);
+        transform: translateY(-1px);
+    }
+
+    .status-text .usage-badge:active {
+        transform: translateY(0);
+    }
+
+    .status-text .usage-icon {
+        width: 12px;
+        height: 12px;
+        flex-shrink: 0;
+    }
+
     pre {
         white-space: pre-wrap;
         word-wrap: break-word;
