@@ -3026,6 +3026,218 @@ const styles = `
         }
     }
 
+    /* Install Modal Styles */
+    .install-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .install-modal-backdrop {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(2px);
+    }
+
+    .install-modal-content {
+        position: relative;
+        background: var(--vscode-editor-background);
+        border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+        border-radius: 12px;
+        width: 320px;
+        padding: 32px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        animation: installFadeIn 0.2s ease-out;
+    }
+
+    @keyframes installFadeIn {
+        from { opacity: 0; transform: scale(0.95) translateY(-8px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .install-close-btn {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 28px;
+        height: 28px;
+        background: none;
+        border: none;
+        color: var(--vscode-descriptionForeground);
+        cursor: pointer;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.6;
+        transition: all 0.15s;
+    }
+
+    .install-close-btn:hover {
+        background: var(--vscode-toolbar-hoverBackground);
+        opacity: 1;
+    }
+
+    .install-body {
+        text-align: center;
+    }
+
+    .install-main {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .install-icon-wrapper {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        background: var(--vscode-button-background);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .install-icon {
+        color: var(--vscode-button-foreground);
+    }
+
+    .install-text {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .install-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--vscode-foreground);
+    }
+
+    .install-desc {
+        margin: 0;
+        font-size: 13px;
+        color: var(--vscode-descriptionForeground);
+        line-height: 1.4;
+    }
+
+    .install-btn {
+        width: 100%;
+        padding: 12px 24px;
+        font-size: 14px;
+        font-weight: 500;
+        background: var(--vscode-button-background);
+        color: var(--vscode-button-foreground);
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .install-btn:hover {
+        background: var(--vscode-button-hoverBackground);
+        transform: translateY(-1px);
+    }
+
+    .install-btn:active {
+        transform: translateY(0);
+    }
+
+    .install-link {
+        font-size: 13px;
+        color: var(--vscode-textLink-foreground);
+        text-decoration: none;
+        opacity: 0.9;
+    }
+
+    .install-link:hover {
+        text-decoration: underline;
+        opacity: 1;
+    }
+
+    .install-progress {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        padding: 20px 0;
+    }
+
+    .install-spinner {
+        width: 32px;
+        height: 32px;
+        border: 2.5px solid var(--vscode-widget-border, var(--vscode-panel-border));
+        border-top-color: var(--vscode-button-background);
+        border-radius: 50%;
+        animation: installSpin 0.8s linear infinite;
+    }
+
+    @keyframes installSpin {
+        to { transform: rotate(360deg); }
+    }
+
+    .install-progress-text {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--vscode-foreground);
+    }
+
+    .install-progress-hint {
+        margin: 0;
+        font-size: 12px;
+        color: var(--vscode-descriptionForeground);
+    }
+
+    .install-success {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 20px 0;
+    }
+
+    .install-success-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: rgba(78, 201, 176, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .install-check {
+        width: 28px;
+        height: 28px;
+        color: var(--vscode-testing-iconPassed, #4ec9b0);
+    }
+
+    .install-success-text {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--vscode-foreground);
+    }
+
+    .install-success-hint {
+        margin: 0;
+        font-size: 13px;
+        color: var(--vscode-descriptionForeground);
+    }
+
 </style>`
 
 export default styles

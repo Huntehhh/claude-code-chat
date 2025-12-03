@@ -1602,6 +1602,51 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			document.getElementById('slashCommandsModal').style.display = 'none';
 		}
 
+		// Install modal functions
+		function showInstallModal() {
+			const modal = document.getElementById('installModal');
+			const main = document.getElementById('installMain');
+			const progress = document.getElementById('installProgress');
+			const success = document.getElementById('installSuccess');
+
+			if (modal) modal.style.display = 'flex';
+			if (main) main.style.display = 'flex';
+			if (progress) progress.style.display = 'none';
+			if (success) success.style.display = 'none';
+		}
+
+		function hideInstallModal() {
+			document.getElementById('installModal').style.display = 'none';
+		}
+
+		function startInstallation() {
+			// Hide main content, show progress
+			document.getElementById('installMain').style.display = 'none';
+			document.getElementById('installProgress').style.display = 'flex';
+
+			// Extension handles platform detection and command selection
+			vscode.postMessage({
+				type: 'runInstallCommand'
+			});
+		}
+
+		function handleInstallComplete(success, error) {
+			document.getElementById('installProgress').style.display = 'none';
+
+			const successEl = document.getElementById('installSuccess');
+			successEl.style.display = 'flex';
+
+			if (success) {
+				successEl.querySelector('.install-success-text').textContent = 'Installed';
+				successEl.querySelector('.install-success-hint').textContent = 'Send a message to get started';
+			} else {
+				// Show error state
+				successEl.querySelector('.install-check').style.display = 'none';
+				successEl.querySelector('.install-success-text').textContent = 'Installation failed';
+				successEl.querySelector('.install-success-hint').textContent = error || 'Try installing manually from claude.ai/download';
+			}
+		}
+
 		// Thinking intensity modal functions
 		function showThinkingIntensityModal() {
 			// Request current settings from VS Code first
@@ -2251,7 +2296,20 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 					addMessage('🔐 Login Required\\n\\nPlease login with your Claude plan (Pro/Max) or API key.\\nA terminal has been opened - follow the login process there.\\n\\nAfter logging in, come back to this chat to continue.', 'error');
 					updateStatus('Login Required', 'error');
 					break;
-					
+
+				case 'showInstallModal':
+					sendStats('Claude not installed');
+					showInstallModal();
+					updateStatus('Claude Code not installed', 'error');
+					break;
+
+				case 'installComplete':
+					handleInstallComplete(message.success, message.error);
+					if (message.success) {
+						updateStatus('Ready', 'success');
+					}
+					break;
+
 				case 'showRestoreOption':
 					showRestoreContainer(message.data);
 					break;

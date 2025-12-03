@@ -399,6 +399,57 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 		</div>
 	</div>
 
+	<!-- Install Claude Code modal -->
+	<div id="installModal" class="install-modal" style="display: none;">
+		<div class="install-modal-backdrop" onclick="hideInstallModal()"></div>
+		<div class="install-modal-content">
+			<button class="install-close-btn" onclick="hideInstallModal()">
+				<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+					<path d="M1.5 1.5L10.5 10.5M1.5 10.5L10.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+				</svg>
+			</button>
+
+			<div class="install-body" id="installBody">
+				<div class="install-main" id="installMain">
+					<div class="install-icon-wrapper">
+						<svg class="install-icon" width="40" height="40" viewBox="0 0 24 24" fill="none">
+							<path d="M21 15V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+							<path d="M12 3V15M12 15L7 10M12 15L17 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+						</svg>
+					</div>
+					<div class="install-text">
+						<h2 class="install-title">Install Claude Code</h2>
+						<p class="install-desc">The CLI is required to use this extension</p>
+					</div>
+
+					<button class="install-btn" id="installMainBtn" onclick="startInstallation()">
+						Install Now
+					</button>
+
+					<a href="https://docs.anthropic.com/en/docs/claude-code" target="_blank" class="install-link">
+						View documentation
+					</a>
+				</div>
+
+				<div class="install-progress" id="installProgress" style="display: none;">
+					<div class="install-spinner"></div>
+					<p class="install-progress-text">Installing Claude Code...</p>
+					<p class="install-progress-hint">This may take a minute</p>
+				</div>
+
+				<div class="install-success" id="installSuccess" style="display: none;">
+					<div class="install-success-icon">
+						<svg class="install-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+							<polyline points="20 6 9 17 4 12"></polyline>
+						</svg>
+					</div>
+					<p class="install-success-text">Installation Complete</p>
+					<p class="install-success-hint">Send a message to get started</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
 	<!-- Thinking intensity modal -->
 	<div id="thinkingIntensityModal" class="tools-modal" style="display: none;">
 		<div class="tools-modal-content" style="width: 450px;">

@@ -335,6 +335,9 @@ class ClaudeChatProvider {
 			case 'dismissWSLAlert':
 				this._dismissWSLAlert();
 				return;
+			case 'runInstallCommand':
+				this._runInstallCommand();
+				return;
 			case 'openFile':
 				this._openFileInEditor(message.filePath);
 				return;
@@ -756,9 +759,8 @@ class ClaudeChatProvider {
 
 			// Check if claude command is not installed
 			if (error.message.includes('ENOENT') || error.message.includes('command not found')) {
-				this._sendAndSaveMessage({
-					type: 'error',
-					data: 'Install claude code first: https://www.anthropic.com/claude-code'
+				this._postMessage({
+					type: 'showInstallModal'
 				});
 			} else {
 				this._sendAndSaveMessage({
@@ -2726,6 +2728,48 @@ class ClaudeChatProvider {
 		}
 
 		terminal.show();
+	}
+
+	private _runInstallCommand(): void {
+		const { exec } = require('child_process');
+
+		// Check if npm exists and node >= 18
+		exec('node --version', { shell: true }, (nodeErr: Error | null, nodeStdout: string) => {
+			let useNpm = false;
+
+			if (!nodeErr && nodeStdout) {
+				// Parse version (e.g., "v18.17.0" -> 18)
+				const match = nodeStdout.trim().match(/^v(\d+)/);
+				if (match && parseInt(match[1], 10) >= 18) {
+					useNpm = true;
+				}
+			}
+
+			let command: string;
+			if (useNpm) {
+				command = 'npm install -g @anthropic-ai/claude-code';
+			} else if (process.platform === 'win32') {
+				command = 'irm https://claude.ai/install.ps1 | iex';
+			} else {
+				command = 'curl -fsSL https://claude.ai/install.sh | sh';
+			}
+
+			// Run installation silently in the background
+			exec(command, { shell: true }, (error: Error | null, stdout: string, stderr: string) => {
+				if (error) {
+					this._postMessage({
+						type: 'installComplete',
+						success: false,
+						error: stderr || error.message
+					});
+				} else {
+					this._postMessage({
+						type: 'installComplete',
+						success: true
+					});
+				}
+			});
+		});
 	}
 
 	private _executeSlashCommand(command: string): void {
