@@ -463,11 +463,8 @@ class ClaudeChatProvider {
 		const configThink = vscode.workspace.getConfiguration('claudeCodeChat');
 		const thinkingIntensity = configThink.get<string>('thinking.intensity', 'think');
 
-		// Prepend mode instructions if enabled
+		// Prepend thinking mode instructions if enabled
 		let actualMessage = message;
-		if (planMode) {
-			actualMessage = 'PLAN FIRST FOR THIS MESSAGE ONLY: Plan first before making any changes. Show me in detail what you will change and wait for my explicit approval in a separate message before proceeding. Do not implement anything until I confirm. This planning requirement applies ONLY to this current message. \n\n' + message;
-		}
 		if (thinkingMode) {
 			let thinkingPrompt = '';
 			const thinkingMesssage = ' THROUGH THIS STEP BY STEP: \n'
@@ -546,6 +543,11 @@ class ClaudeChatProvider {
 		const mcpConfigPath = this.getMCPConfigPath();
 		if (mcpConfigPath) {
 			args.push('--mcp-config', this.convertToWSLPath(mcpConfigPath));
+		}
+
+		// Add plan mode if enabled
+		if (planMode) {
+			args.push('--permission-mode', 'plan');
 		}
 
 		// Add model selection if not using default
