@@ -2716,17 +2716,29 @@ class ClaudeChatProvider {
 	}
 
 	private _openUsageTerminal(usageType: string): void {
+		// Get WSL configuration
+		const config = vscode.workspace.getConfiguration('claudeCodeChat');
+		const wslEnabled = config.get<boolean>('wsl.enabled', false);
+		const wslDistro = config.get<string>('wsl.distro', 'Ubuntu');
+
 		const terminal = vscode.window.createTerminal({
 			name: 'Claude Usage',
 			location: { viewColumn: vscode.ViewColumn.One }
 		});
 
+		let command: string;
 		if (usageType === 'plan') {
 			// Plan users get live usage view
-			terminal.sendText('npx -y ccusage blocks --live');
+			command = 'npx -y ccusage blocks --live';
 		} else {
 			// API users get recent usage history
-			terminal.sendText('npx -y ccusage blocks --recent --order desc');
+			command = 'npx -y ccusage blocks --recent --order desc';
+		}
+
+		if (wslEnabled) {
+			terminal.sendText(`wsl -d ${wslDistro} bash -ic "${command}"`);
+		} else {
+			terminal.sendText(command);
 		}
 
 		terminal.show();
