@@ -1613,6 +1613,8 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			if (main) main.style.display = 'flex';
 			if (progress) progress.style.display = 'none';
 			if (success) success.style.display = 'none';
+
+			sendStats('Install modal shown');
 		}
 
 		function hideInstallModal() {
@@ -1620,6 +1622,8 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 
 		function startInstallation() {
+			sendStats('Install started');
+
 			// Hide main content, show progress
 			document.getElementById('installMain').style.display = 'none';
 			document.getElementById('installProgress').style.display = 'flex';
@@ -1637,9 +1641,11 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			successEl.style.display = 'flex';
 
 			if (success) {
+				sendStats('Install success');
 				successEl.querySelector('.install-success-text').textContent = 'Installed';
 				successEl.querySelector('.install-success-hint').textContent = 'Send a message to get started';
 			} else {
+				sendStats('Install failed');
 				// Show error state
 				successEl.querySelector('.install-check').style.display = 'none';
 				successEl.querySelector('.install-success-text').textContent = 'Installation failed';
