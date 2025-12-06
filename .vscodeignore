@@ -14,3 +14,4 @@ backup
 claude-code-chat-permissions-mcp/**
 node_modules
 mcp-permissions.js
+build
