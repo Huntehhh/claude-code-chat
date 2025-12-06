@@ -47,6 +47,13 @@ Ditch the command line and experience Claude Code like never before. This extens
 - Real-time cost and token tracking
 - Session statistics and performance metrics
 
+### 📝 **Inline Diff Viewer** ⭐ **NEW IN V1.1**
+- **Full Diff Display** - See complete file changes directly in Edit, MultiEdit, and Write messages
+- **Open in VS Code Diff** - One-click button to open VS Code's native side-by-side diff editor
+- **Smart Truncation** - Long diffs are truncated with an expand button for better readability
+- **Syntax Highlighting** - Proper code highlighting in diff views
+- **Visual Change Indicators** - Clear green/red highlighting for additions and deletions
+
 ### 🔌 **MCP Server Management** ⭐ **NEW IN V1.0**
 - **Popular Servers Gallery** - One-click installation of common MCP servers
 - **Custom Server Creation** - Build and configure your own MCP servers

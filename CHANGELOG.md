@@ -4,6 +4,38 @@ All notable changes to the "claude-code-chat" extension will be documented in th
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.1.0] - 2025-12-06
+
+### 🚀 Features Added
+- **Install Modal**: Added installation flow for users without Claude Code CLI
+  - Auto-detects when Claude Code is not installed
+  - One-click installation with progress indicator
+  - Platform-specific installation commands
+- **Diff Viewer Improvements**:
+  - Show full diff in Edit, MultiEdit, and Write tool use messages
+  - Add "Open Diff" button to open VS Code's native side-by-side diff editor
+  - Add truncation with expand button for long diffs
+  - Optimize diff storage and improve Open Diff button behavior
+- **Processing Indicator**: New morphing orange dot animation while Claude is working
+- **Subscription Detection**: Added usage badge to status bar showing plan type (Pro, Max) or API cost
+- **Conversation Compacting**: Handle `/compact` command in chat with status messages and token reset
+- **Permission System**: Migrated from MCP file-based to stdio-based permission prompts
+- **Plan Mode**: Now uses native `--permission-mode plan` CLI flag for cleaner implementation
+
+### 🐛 Bug Fixes
+- Fixed diff line alignment by removing ::before pseudo-elements
+- Fixed auto-scroll for diff tool results
+- Strip tool_use_error tags from error messages
+- Improved process termination handling
+
+### 🔧 Technical Improvements
+- Run /compact command in chat instead of spawning terminal
+- Improved terminal and UI experience
+- Updated diff icon colors
+
+### 📊 Analytics
+- Added Umami analytics events to track install flow (modal shown, started, success/failed)
+
 ## [1.0.7] - 2025-10-01
 
 ### 🚀 Features Added
