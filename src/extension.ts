@@ -1450,6 +1450,7 @@ class ClaudeChatProvider {
 	/**
 	 * Get the CLI project folder name for the current workspace
 	 * Converts workspace path like C:\HApps\project to C--HApps-project
+	 * Claude CLI replaces :/ or :\ as a unit with --, then remaining slashes with -
 	 */
 	private _getCliProjectFolderName(): string | undefined {
 		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -1457,11 +1458,13 @@ class ClaudeChatProvider {
 
 		const workspacePath = workspaceFolder.uri.fsPath;
 		// Convert path: C:\HApps\project -> C--HApps-project
-		// Replace : with -- and \ or / with -
+		// Replace :\ or :/ as a unit with -- (Windows drive letter handling)
+		// Then replace remaining slashes with -
 		const folderName = workspacePath
-			.replace(/:/g, '--')
-			.replace(/[\\/]/g, '-');
+			.replace(/:[\\/]/g, '--')  // C:\ or C:/ -> C--
+			.replace(/[\\/]/g, '-');    // remaining slashes -> -
 
+		console.log(`[CLI] Workspace path: ${workspacePath} -> folder: ${folderName}`);
 		return folderName;
 	}
 
@@ -1493,20 +1496,30 @@ class ClaudeChatProvider {
 			cliPath: string
 		}> = [];
 
-		if (!this._cliProjectsPath) return cliConversations;
+		if (!this._cliProjectsPath) {
+			console.log('[CLI] No CLI projects path configured');
+			return cliConversations;
+		}
 
 		const folderName = this._getCliProjectFolderName();
-		if (!folderName) return cliConversations;
+		if (!folderName) {
+			console.log('[CLI] Could not determine project folder name');
+			return cliConversations;
+		}
 
 		const projectPath = path.join(this._cliProjectsPath, folderName);
+		console.log(`[CLI] Looking for conversations in: ${projectPath}`);
 
 		try {
 			const projectUri = vscode.Uri.file(projectPath);
 			const files = await vscode.workspace.fs.readDirectory(projectUri);
+			console.log(`[CLI] Found ${files.length} files in project folder`);
 
 			const jsonlFiles = files
 				.filter(([name, type]) => type === vscode.FileType.File && name.endsWith('.jsonl'))
 				.map(([name]) => name);
+
+			console.log(`[CLI] Found ${jsonlFiles.length} JSONL files`);
 
 			for (const filename of jsonlFiles) {
 				try {
@@ -1579,9 +1592,9 @@ class ClaudeChatProvider {
 			);
 
 			console.log(`Found ${cliConversations.length} CLI conversations`);
-		} catch (e) {
+		} catch (e: any) {
 			// Project folder doesn't exist - that's okay
-			console.log(`No CLI project folder found at ${projectPath}`);
+			console.log(`[CLI] Error accessing project folder at ${projectPath}: ${e.message}`);
 		}
 
 		return cliConversations;

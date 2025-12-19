@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useChatStore, type Message } from '../stores/chatStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { MessageBlock, type MessageType, type ToolResult } from '../components/organisms/message-block';
+import { ToolUseBlock } from '../components/molecules/tool-use-block';
 import { PermissionCard } from '../components/molecules/permission-card';
 import { WelcomeState } from '../components/molecules/welcome-state';
 import { useVSCodeSender } from '../hooks/useVSCodeMessaging';
@@ -242,6 +243,22 @@ const MessageList = React.forwardRef<HTMLDivElement, MessageListProps>(
                 onAllow={isPending ? () => handlePermissionApprove(msg.permissionId!) : undefined}
                 onDeny={isPending ? () => handlePermissionDeny(msg.permissionId!) : undefined}
                 onAlwaysAllow={isPending ? () => handlePermissionApprove(msg.permissionId!, true) : undefined}
+              />
+            );
+          }
+
+          // Tool use/result messages - use ToolUseBlock
+          if (msg.type === 'tool-use' || msg.type === 'tool-result') {
+            return (
+              <ToolUseBlock
+                key={`tool-${idx}-${msg.timestamp}`}
+                toolName={msg.toolName || 'Unknown Tool'}
+                input={msg.toolInput || msg.rawInput}
+                output={msg.type === 'tool-result' ? msg.content : undefined}
+                isError={msg.isError}
+                filePath={msg.filePath}
+                oldContent={msg.oldContent}
+                newContent={msg.newContent}
               />
             );
           }

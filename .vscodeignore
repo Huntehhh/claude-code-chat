@@ -21,4 +21,4 @@ tailwind.config.js
 postcss.config.js
 .mcp.json
 .specstory/**
-nul
+.worktrees/**
