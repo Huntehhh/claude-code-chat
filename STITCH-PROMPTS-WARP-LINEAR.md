@@ -38,7 +38,7 @@ RULES:
 
 LAYOUT (top to bottom):
 
-1. HEADER - Dark bar, 56px height, 16px padding
+1. HEADER - Dark bar, 48px height, 12px padding
    - Left: Title "Claude Code Chat"
    - Right: Settings icon, History icon, "New" button (amber #FFA344)
 
@@ -48,113 +48,71 @@ LAYOUT (top to bottom):
    - Empty otherwise
 
 3. INPUT AREA - Dark panel #0f0f0f, 12px padding
-   - Text input box (sharp corners, #171717 background, compact height)
-   - Below: "Plan" pill toggle, "Think" pill toggle, Send button (amber circle)
+   - Text input box (sharp corners, #171717 background)
+   - CONTROLS ROW (below textarea, 8px gap): "Plan" pill toggle, "Think" pill toggle on left; Send button (amber circle) on right
 
-4. STATUS BAR - 36px height, 16px padding
-   - Left: "ASK BEFORE EDITS"
-   - Right: "78% CONTEXT"
+4. STATUS BAR - SEPARATE row at very bottom, 28px height, border-top 1px #222225
+   - Left: "ASK BEFORE EDITS" plain text (11px, #8b8b94, uppercase) - NOT a toggle
+   - Right: "78% CONTEXT" plain text (11px, #52525b)
 ```
 
 **Checkpoint:** OLED black, amber accents, sharp rectangles, rounded pills.
 
 ---
 
-## PROMPT 2: Chat Messages & Code Blocks
+## PROMPT 2: Chat Messages & Tool Cards
 
 ```
-Add chat conversation to the MAIN AREA, replacing the welcome state.
+Add chat messages to the MAIN AREA. Same colors/style as Prompt 1.
 
-CHAT MESSAGES (scrollable, padding 16px, background #09090b):
+MESSAGE TYPES:
 
-USER MESSAGE:
-- No background card, text directly on canvas
-- Top border 1px #222225 as separator (except first message)
-- Text: 14px, #fafafa, line-height 1.6
-- Supports @file references: show as inline pill (#171717 bg, #FFA344 text, 4px radius, 1px border #222225)
-- Copy button fades in on hover (ghost, top-right, #8b8b94)
-- Truncate long messages at 400 chars with "Show more" link
+1. USER MESSAGE
+   - Text on black background, 14px #fafafa
+   - Long messages truncate with "Show more" link
+   - @file references show as amber pills
+   - Images show as thumbnails (max 200px)
 
-USER IMAGE (when image attached):
-- Max-height: 200px, max-width: 100%
-- Border-radius: 6px, border: 1px #222225
-- Cursor: zoom-in (click to enlarge)
-- Margin: 8px 0
+2. CLAUDE MESSAGE
+   - Left border: 2px amber #FFA344
+   - Bullet "•" before text
+   - Full markdown: bold, italic, lists, code blocks
 
-DATE/SESSION SEPARATOR (between conversation sessions):
-- Centered text, 11px, #52525b
-- Horizontal lines on either side (gradient fade from #222225 to transparent)
-- Format: "December 18, 2025" or "Today"
+3. THINKING BLOCK (collapsible)
+   - Header: "Thinking" + chevron ▼
+   - Collapsed by default, click to expand
+   - Content: italic, #8b8b94
 
-CLAUDE MESSAGE:
-- Left border accent: 2px solid #FFA344
-- Padding-left: 14px
-- Small bullet "•" before first line (#FFA344, opacity 60%)
-- Full markdown support: **bold**, *italic*, headers (##, ###), lists, tables, blockquotes
-- Text: 14px, #e4e4e7, line-height 1.6
-- Paragraph spacing: margin-bottom 12px
+4. TOOL CARDS (collapsible, various types):
+   All tools have: icon, name, chevron, "Click to expand"
 
-BLOCKQUOTE (inside Claude messages):
-- Border-left: 2px solid #52525b
-- Padding-left: 12px, margin: 12px 0
-- Text: italic, #a1a1a1
+   - **Read** - Document icon, shows file path (clickable)
+   - **Edit** - Pencil icon, shows diff preview (red/green lines)
+   - **Bash** - Terminal icon, shows command + output
+   - **Glob** - Folder icon, shows "Found X files"
+   - **Grep** - Search icon, shows pattern + matches
+   - **MCP tools** - Puzzle icon, shows IN (JSON input) and OUT (result)
 
-CODE BLOCK (inside messages):
-- Container: background #0f0f0f, border 1px #222225, SHARP corners (0px radius), margin 12px 0
-- Header bar: background #171717, padding 6px 12px, border-bottom 1px #222225
-- Header left: Language label "PYTHON" (10px, uppercase, #8b8b94, tracking 0.5px)
-- Header right: Copy button (ghost, #8b8b94, hover #fafafa)
-- Code content: padding 12px 14px, monospace 13px, line-height 1.5
-- Syntax highlighting:
-  - Keywords: #FFA344 (amber)
-  - Strings: #a1a1a1 (gray)
-  - Comments: #52525b (dim, italic)
-  - Numbers: #FF7369 (coral)
-  - Functions: #fafafa (white)
-  - Properties: #e4e4e7
+   Expanded state shows:
+   - IN section: input parameters in monospace
+   - OUT section: result/output, truncated with expand
+   - File paths are clickable (#FFA344)
+   - Error state: red #FF7369 text
 
-INLINE CODE:
-- Background: #1c1c1f
-- Border: 1px solid #2d2d30
-- Text: #FFA344
-- Padding: 2px 6px
-- Border-radius: 3px
-- Font: monospace
+5. DIFF VIEWER (inside Edit tool cards)
+   - File path header (clickable)
+   - Line numbers on left
+   - Removed lines: red background, "−" prefix, strikethrough
+   - Added lines: green background, "+" prefix
+   - "Click to expand" for long diffs
 
-TOOL USE CARD (collapsed state):
-- Horizontal bar: background #171717, border 1px #222225, SHARP corners, padding 10px 14px
-- Left: Tool icon (18px circle, #FFA344 bg, white letter centered)
-- Center: Summary text "Reading src/main.py" (13px, #a1a1a1)
-- Right: Duration "0.2s" (#52525b), chevron ▶
-- Hover: background #1f1f1f, 150ms transition
-- Entire card clickable
-
-TOOL USE CARD (expanded state):
-- Chevron rotates to ▼
-- Below summary: Expandable sections
-- INPUT section: Label "Input" (#8b8b94), content in monospace (#0f0f0f inset bg, border 1px #222225)
-- OUTPUT section: Label "Output" (#8b8b94), content truncated at 200 chars
-- File paths are clickable links (#FFA344, hover underline)
-- Success badge: "✓" (#FFA344)
-- Error badge: "✗" (#FF7369)
-
-SYSTEM MESSAGE:
-- Centered, 11px, #52525b, italic
-- Used for "Session started", "Context cleared", etc.
-
-ERROR MESSAGE:
-- Background: rgba(255,115,105,0.08)
-- Left border: 2px #FF7369
-- Padding: 12px
-- Text: #FF7369
-
-THINKING MESSAGE (collapsible):
-- Header: "Thinking..." with collapse chevron
-- Content: italic, #8b8b94, smaller font (13px)
-- Collapsed by default, click to expand
+6. CODE BLOCK
+   - Dark container #0f0f0f, sharp corners
+   - Header: language label + copy button
+   - Syntax highlighting (amber keywords, coral numbers)
 ```
 
-**Checkpoint:** Verify user messages, Claude messages with code blocks, tool cards in both states.
+**Checkpoint:** Messages, collapsible thinking, tool cards with IN/OUT, diff viewer.
 
 ---
 
@@ -247,7 +205,7 @@ MODAL SHELL:
 
 SETTINGS MODAL (340px wide, max 80vh):
 - Header: "Settings"
-- Scrollable content, padding 16px
+- Scrollable content, padding 12px
 
 "WSL Configuration" section:
 - Section header (12px, uppercase, #8b8b94, tracking 0.5px)
@@ -375,7 +333,7 @@ FILE PICKER MODAL (320px wide):
 Design permission and install components.
 
 PERMISSION REQUEST DIALOG (inline in message flow, not modal):
-- Margin: 8px 0 16px
+- Margin: 8px 0 12px
 - Background: rgba(255,163,68,0.06)
 - Border: 1px rgba(255,163,68,0.2)
 - Border-radius: 8px

@@ -2854,12 +2854,14 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			});
 		}
 
-		function loadConversation(filename) {
+		function loadConversation(filename, source, cliPath) {
 			vscode.postMessage({
 				type: 'loadConversation',
-				filename: filename
+				filename: filename,
+				source: source,
+				cliPath: cliPath
 			});
-			
+
 			// Hide conversation history and show chat
 			toggleConversationHistory();
 		}
@@ -3009,7 +3011,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			conversations.forEach(conv => {
 				const item = document.createElement('div');
 				item.className = 'conversation-item';
-				item.onclick = () => loadConversation(conv.filename);
+				item.onclick = () => loadConversation(conv.filename, conv.source, conv.cliPath);
 
 				const date = new Date(conv.startTime).toLocaleDateString();
 				const time = new Date(conv.startTime).toLocaleTimeString();
@@ -3021,11 +3023,19 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 					planName = planName.charAt(0).toUpperCase() + planName.slice(1);
 					usageStr = planName;
 				} else {
-					usageStr = \`$\${conv.totalCost.toFixed(3)}\`;
+					usageStr = \`$\${conv.totalCost ? conv.totalCost.toFixed(3) : '0.000'}\`;
 				}
 
+				// Source badge (CLI or internal)
+				const sourceBadge = conv.source === 'cli'
+					? '<span class="conversation-source-badge cli">CLI</span>'
+					: '<span class="conversation-source-badge internal">Extension</span>';
+
 				item.innerHTML = \`
-					<div class="conversation-title">\${conv.firstUserMessage.substring(0, 60)}\${conv.firstUserMessage.length > 60 ? '...' : ''}</div>
+					<div class="conversation-header-row">
+						<div class="conversation-title">\${conv.firstUserMessage.substring(0, 55)}\${conv.firstUserMessage.length > 55 ? '...' : ''}</div>
+						\${sourceBadge}
+					</div>
 					<div class="conversation-meta">\${date} at \${time} • \${conv.messageCount} messages • \${usageStr}</div>
 					<div class="conversation-preview">Last: \${conv.lastUserMessage.substring(0, 80)}\${conv.lastUserMessage.length > 80 ? '...' : ''}</div>
 				\`;

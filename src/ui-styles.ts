@@ -2672,6 +2672,32 @@ const styles = `
         opacity: 0.8;
     }
 
+    .conversation-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .conversation-source-badge {
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 500;
+        text-transform: uppercase;
+        flex-shrink: 0;
+    }
+
+    .conversation-source-badge.cli {
+        background-color: rgba(82, 156, 202, 0.2);
+        color: #529CCA;
+    }
+
+    .conversation-source-badge.internal {
+        background-color: rgba(77, 171, 154, 0.2);
+        color: #4DAB9A;
+    }
+
     /* Tool loading animation */
     .tool-loading {
         padding: 16px 12px;

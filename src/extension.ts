@@ -144,8 +144,11 @@ class ClaudeChatProvider {
 		messageCount: number,
 		totalCost: number,
 		firstUserMessage: string,
-		lastUserMessage: string
+		lastUserMessage: string,
+		source?: 'internal' | 'cli',  // Track conversation source
+		cliPath?: string  // Full path for CLI conversations
 	}> = [];
+	private _cliProjectsPath: string | undefined;  // Path to ~/.claude/projects/
 	private _currentClaudeProcess: cp.ChildProcess | undefined;
 	private _abortController: AbortController | undefined;
 	private _isWslProcess: boolean = false;
@@ -163,6 +166,7 @@ class ClaudeChatProvider {
 		this._initializeBackupRepo();
 		this._initializeConversations();
 		this._initializeMCPConfig();
+		this._initializeCLIProjectsPath();
 
 		// Load conversation index from workspace state
 		this._conversationIndex = this._context.workspaceState.get('claude.conversationIndex', []);
@@ -311,7 +315,7 @@ class ClaudeChatProvider {
 				this._selectImageFile();
 				return;
 			case 'loadConversation':
-				this.loadConversation(message.filename);
+				this.loadConversation(message.filename, message.source, message.cliPath);
 				return;
 			case 'stopRequest':
 				this._stopClaudeProcess();
@@ -1396,6 +1400,160 @@ class ClaudeChatProvider {
 	}
 
 	/**
+	 * Initialize CLI projects path for reading CLI conversation history
+	 */
+	private _initializeCLIProjectsPath(): void {
+		try {
+			// Claude CLI stores projects in ~/.claude/projects/
+			const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+			this._cliProjectsPath = path.join(homeDir, '.claude', 'projects');
+			console.log(`CLI projects path: ${this._cliProjectsPath}`);
+		} catch (error: any) {
+			console.error('Failed to initialize CLI projects path:', error.message);
+		}
+	}
+
+	/**
+	 * Get the CLI project folder name for the current workspace
+	 * Converts workspace path like C:\HApps\project to C--HApps-project
+	 */
+	private _getCliProjectFolderName(): string | undefined {
+		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+		if (!workspaceFolder) return undefined;
+
+		const workspacePath = workspaceFolder.uri.fsPath;
+		// Convert path: C:\HApps\project -> C--HApps-project
+		// Replace : with -- and \ or / with -
+		const folderName = workspacePath
+			.replace(/:/g, '--')
+			.replace(/[\\/]/g, '-');
+
+		return folderName;
+	}
+
+	/**
+	 * Scan CLI conversations from ~/.claude/projects/<workspace>/
+	 */
+	private async _scanCLIConversations(): Promise<Array<{
+		filename: string,
+		sessionId: string,
+		startTime: string,
+		endTime: string,
+		messageCount: number,
+		totalCost: number,
+		firstUserMessage: string,
+		lastUserMessage: string,
+		source: 'cli',
+		cliPath: string
+	}>> {
+		const cliConversations: Array<{
+			filename: string,
+			sessionId: string,
+			startTime: string,
+			endTime: string,
+			messageCount: number,
+			totalCost: number,
+			firstUserMessage: string,
+			lastUserMessage: string,
+			source: 'cli',
+			cliPath: string
+		}> = [];
+
+		if (!this._cliProjectsPath) return cliConversations;
+
+		const folderName = this._getCliProjectFolderName();
+		if (!folderName) return cliConversations;
+
+		const projectPath = path.join(this._cliProjectsPath, folderName);
+
+		try {
+			const projectUri = vscode.Uri.file(projectPath);
+			const files = await vscode.workspace.fs.readDirectory(projectUri);
+
+			const jsonlFiles = files
+				.filter(([name, type]) => type === vscode.FileType.File && name.endsWith('.jsonl'))
+				.map(([name]) => name);
+
+			for (const filename of jsonlFiles) {
+				try {
+					const filePath = path.join(projectPath, filename);
+					const fileUri = vscode.Uri.file(filePath);
+					const content = await vscode.workspace.fs.readFile(fileUri);
+					const text = new TextDecoder().decode(content);
+					const lines = text.trim().split('\n').filter(l => l.trim());
+
+					if (lines.length === 0) continue;
+
+					// Parse JSONL lines to extract summary and metadata
+					let summary = '';
+					let startTime = '';
+					let messageCount = 0;
+
+					for (const line of lines) {
+						try {
+							const obj = JSON.parse(line);
+
+							// Get summary/title from summary type
+							if (obj.type === 'summary' && obj.summary) {
+								summary = obj.summary;
+							}
+
+							// Count messages and get timestamps
+							if (obj.type === 'user' || obj.type === 'assistant') {
+								messageCount++;
+								if (!startTime && obj.timestamp) {
+									startTime = obj.timestamp;
+								}
+							}
+						} catch {
+							// Skip invalid JSON lines
+						}
+					}
+
+					// Use filename UUID as session ID, file modified time if no timestamp
+					const sessionId = filename.replace('.jsonl', '');
+					const fileStat = await vscode.workspace.fs.stat(fileUri);
+					const fileTime = new Date(fileStat.mtime).toISOString();
+
+					if (!startTime) {
+						startTime = fileTime;
+					}
+
+					// Use summary as title, or fallback to filename
+					const title = summary || `CLI Session ${sessionId.substring(0, 8)}`;
+
+					cliConversations.push({
+						filename,
+						sessionId,
+						startTime,
+						endTime: fileTime,
+						messageCount,
+						totalCost: 0,
+						firstUserMessage: title,
+						lastUserMessage: title,
+						source: 'cli',
+						cliPath: filePath
+					});
+				} catch (e) {
+					console.error(`Failed to parse CLI conversation ${filename}:`, e);
+				}
+			}
+
+			// Sort by start time descending
+			cliConversations.sort((a, b) =>
+				new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+			);
+
+			console.log(`Found ${cliConversations.length} CLI conversations`);
+		} catch (e) {
+			// Project folder doesn't exist - that's okay
+			console.log(`No CLI project folder found at ${projectPath}`);
+		}
+
+		return cliConversations;
+	}
+
+	/**
 	 * Check if a tool is pre-approved in local permissions
 	 */
 	private async _isToolPreApproved(toolName: string, input: Record<string, unknown>): Promise<boolean> {
@@ -2246,15 +2404,130 @@ class ClaudeChatProvider {
 	}
 
 
-	public async loadConversation(filename: string): Promise<void> {
-		// Load the conversation history
-		await this._loadConversationHistory(filename);
+	public async loadConversation(filename: string, source?: 'internal' | 'cli', cliPath?: string): Promise<void> {
+		if (source === 'cli' && cliPath) {
+			// Load CLI conversation
+			await this._loadCLIConversation(cliPath);
+		} else {
+			// Load internal conversation
+			await this._loadConversationHistory(filename);
+		}
 	}
 
-	private _sendConversationList(): void {
+	/**
+	 * Load a CLI conversation from JSONL file
+	 */
+	private async _loadCLIConversation(filePath: string): Promise<void> {
+		console.log("_loadCLIConversation", filePath);
+
+		try {
+			const fileUri = vscode.Uri.file(filePath);
+			const content = await vscode.workspace.fs.readFile(fileUri);
+			const text = new TextDecoder().decode(content);
+			const lines = text.trim().split('\n').filter(l => l.trim());
+
+			// Clear UI first
+			this._postMessage({ type: 'sessionCleared' });
+
+			// Parse JSONL and send messages
+			setTimeout(() => {
+				for (const line of lines) {
+					try {
+						const obj = JSON.parse(line);
+
+						// Convert CLI message types to our format
+						switch (obj.type) {
+							case 'user':
+								if (obj.message?.content) {
+									const userContent = Array.isArray(obj.message.content)
+										? obj.message.content.map((c: any) => c.text || '').join('')
+										: obj.message.content;
+									this._postMessage({
+										type: 'userInput',
+										data: userContent
+									});
+								}
+								break;
+
+							case 'assistant':
+								if (obj.message?.content) {
+									for (const block of obj.message.content) {
+										if (block.type === 'text' && block.text) {
+											this._postMessage({
+												type: 'output',
+												data: block.text
+											});
+										} else if (block.type === 'tool_use') {
+											this._postMessage({
+												type: 'toolUse',
+												data: {
+													toolName: block.name,
+													input: block.input,
+													toolUseId: block.id
+												}
+											});
+										}
+									}
+								}
+								break;
+
+							case 'result':
+								if (obj.result) {
+									this._postMessage({
+										type: 'toolResult',
+										data: {
+											toolName: obj.tool_name || 'unknown',
+											result: typeof obj.result === 'string' ? obj.result : JSON.stringify(obj.result)
+										}
+									});
+								}
+								break;
+
+							case 'summary':
+								// Title/summary - could show as system message
+								if (obj.summary) {
+									this._postMessage({
+										type: 'system',
+										data: `Session: ${obj.summary}`
+									});
+								}
+								break;
+						}
+					} catch {
+						// Skip invalid JSON lines
+					}
+				}
+
+				// Scroll to bottom after loading
+				this._postMessage({ type: 'scrollToBottom' });
+			}, 100);
+
+		} catch (error: any) {
+			console.error('Failed to load CLI conversation:', error.message);
+			this._postMessage({
+				type: 'error',
+				data: `Failed to load conversation: ${error.message}`
+			});
+		}
+	}
+
+	private async _sendConversationList(): Promise<void> {
+		// Get CLI conversations and merge with internal ones
+		const cliConversations = await this._scanCLIConversations();
+
+		// Mark internal conversations with source
+		const internalConversations = this._conversationIndex.map(conv => ({
+			...conv,
+			source: conv.source || 'internal' as const
+		}));
+
+		// Merge and sort by start time (newest first)
+		const allConversations = [...internalConversations, ...cliConversations]
+			.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+
 		this._postMessage({
 			type: 'conversationList',
-			data: this._conversationIndex
+			data: allConversations
 		});
 	}
 
