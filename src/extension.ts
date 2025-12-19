@@ -2492,11 +2492,42 @@ class ClaudeChatProvider {
 												data: block.text
 											});
 										} else if (block.type === 'tool_use') {
+											// Format tool info for display
+											const input = block.input || {};
+											let toolInfo = '';
+											let filePath = '';
+
+											// Extract relevant info based on tool type
+											if (block.name === 'Read' || block.name === 'read') {
+												filePath = input.file_path || input.path || '';
+												toolInfo = filePath;
+											} else if (block.name === 'Write' || block.name === 'write') {
+												filePath = input.file_path || input.path || '';
+												toolInfo = filePath;
+											} else if (block.name === 'Edit' || block.name === 'edit') {
+												filePath = input.file_path || input.path || '';
+												toolInfo = filePath;
+											} else if (block.name === 'Bash' || block.name === 'bash') {
+												toolInfo = input.command || input.description || '';
+											} else if (block.name === 'Grep' || block.name === 'grep') {
+												toolInfo = `${input.pattern || ''} in ${input.path || input.include || '.'}`;
+											} else if (block.name === 'Glob' || block.name === 'glob') {
+												toolInfo = input.pattern || '';
+											} else if (block.name?.startsWith('mcp_') || block.name?.startsWith('mcp__')) {
+												// MCP tool call
+												toolInfo = JSON.stringify(input).substring(0, 100);
+											} else {
+												// Generic fallback
+												toolInfo = JSON.stringify(input).substring(0, 100);
+											}
+
 											this._postMessage({
 												type: 'toolUse',
 												data: {
 													toolName: block.name,
-													input: block.input,
+													toolInfo: toolInfo,
+													rawInput: input,
+													filePath: filePath,
 													toolUseId: block.id
 												}
 											});
@@ -3003,14 +3034,30 @@ class ClaudeChatProvider {
 	private async _updateSettings(settings: { [key: string]: any }): Promise<void> {
 		const config = vscode.workspace.getConfiguration('claudeCodeChat');
 
+		// Map frontend keys to VS Code configuration keys
+		const keyMap: { [key: string]: string } = {
+			'wslEnabled': 'wsl.enabled',
+			'wslDistribution': 'wsl.distro',
+			'nodePath': 'wsl.nodePath',
+			'claudePath': 'wsl.claudePath',
+			'compactToolOutput': 'compact.toolOutput',
+			'compactMcpCalls': 'compact.mcpCalls',
+			'previewHeight': 'compact.previewHeight',
+			'showTodoList': 'display.showTodoList',
+			'yoloMode': 'permissions.yoloMode',
+		};
+
 		try {
-			for (const [key, value] of Object.entries(settings)) {
-				if (key === 'permissions.yoloMode') {
+			for (const [frontendKey, value] of Object.entries(settings)) {
+				// Map the key or use as-is if no mapping exists
+				const configKey = keyMap[frontendKey] || frontendKey;
+
+				if (configKey === 'permissions.yoloMode') {
 					// YOLO mode is workspace-specific
-					await config.update(key, value, vscode.ConfigurationTarget.Workspace);
+					await config.update(configKey, value, vscode.ConfigurationTarget.Workspace);
 				} else {
 					// Other settings are global (user-wide)
-					await config.update(key, value, vscode.ConfigurationTarget.Global);
+					await config.update(configKey, value, vscode.ConfigurationTarget.Global);
 				}
 			}
 
