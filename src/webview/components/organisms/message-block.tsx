@@ -6,6 +6,7 @@ import { Icon } from '../ui/icon';
 import { FileMention } from '../ui/file-mention';
 import { CodeInline } from '../ui/code-inline';
 import { CollapsibleCard } from '../molecules/collapsible-card';
+import { MarkdownRenderer } from '../../lib/markdown';
 
 export type MessageType = 'user' | 'assistant' | 'thinking' | 'tool' | 'error';
 
@@ -148,9 +149,9 @@ const MessageBlock = React.forwardRef<HTMLDivElement, MessageBlockProps>(
         {/* Content */}
         <div className="flex flex-col gap-2 pt-0.5 w-full">
           <div className="flex gap-2">
-            <span className="text-[#FFA344] leading-relaxed select-none">•</span>
-            <div className="text-[15px] text-[#fafafa] leading-relaxed">
-              {content}
+            <span className="text-[#FFA344] leading-relaxed select-none shrink-0">•</span>
+            <div className="text-[15px] text-[#fafafa] leading-relaxed min-w-0 flex-1">
+              <MarkdownRenderer content={content} />
             </div>
           </div>
         </div>
