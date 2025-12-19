@@ -1,4 +1,6 @@
 const esbuild = require('esbuild');
+const stylePlugin = require('esbuild-style-plugin');
+const path = require('path');
 
 const isWatch = process.argv.includes('--watch');
 const isMinify = process.argv.includes('--minify');
@@ -12,9 +14,19 @@ const buildOptions = {
   format: 'iife',
   sourcemap: !isMinify,
   minify: isMinify,
-  loader: { '.tsx': 'tsx', '.ts': 'ts', '.css': 'css' },
+  loader: { '.tsx': 'tsx', '.ts': 'ts' },
   define: { 'process.env.NODE_ENV': isMinify ? '"production"' : '"development"' },
   logLevel: 'info',
+  plugins: [
+    stylePlugin({
+      postcss: {
+        plugins: [
+          require('tailwindcss')(path.resolve(__dirname, '../tailwind.config.js')),
+          require('autoprefixer'),
+        ],
+      },
+    }),
+  ],
 };
 
 async function build() {

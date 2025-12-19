@@ -1177,6 +1177,9 @@ Good: description: Processes Excel files and generates reports
 - [ ] Sub-agent delegation used for token-heavy operations (>3K tokens or >2 API turns)
 - [ ] Sub-agents return file pointers, not verbose content
 - [ ] Error recovery patterns included for sub-agent failures
+- [ ] Phased implementation with verification gates for complex changes
+- [ ] User decisions captured early and documented in plan
+- [ ] Multi-session continuity via changelog + context manifest pattern
 
 **Code & Scripts:**
 - [ ] Scripts solve problems (don't punt to Claude)

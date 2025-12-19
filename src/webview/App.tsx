@@ -218,10 +218,14 @@ export default function App() {
   // History Panel Handlers
   // ==========================================================================
 
-  const handleSelectConversation = useCallback((conversation: Conversation) => {
-    loadConversation(conversation.id, conversation.source as 'local' | 'claude');
+  const handleSelectConversation = useCallback((historyConv: { id: string; source: 'chat' | 'cli' }) => {
+    // Find the original conversation data from the store
+    const original = conversations.find((c) => c.sessionId === historyConv.id);
+    if (original) {
+      loadConversation(original.filename, original.source, original.cliPath);
+    }
     closeModal();
-  }, [loadConversation, closeModal]);
+  }, [conversations, loadConversation, closeModal]);
 
   const handleRestoreCheckpoint = useCallback((conversation: Conversation, checkpoint: { sha: string }) => {
     // TODO: Implement checkpoint restore
@@ -229,13 +233,13 @@ export default function App() {
   }, []);
 
   // Convert store conversations to HistoryPanel format
-  const historyConversations: Conversation[] = conversations.map((c) => ({
-    id: c.id,
-    title: c.name || 'Untitled',
-    source: (c.source as 'chat' | 'cli') || 'chat',
-    timestamp: c.lastModified || new Date().toISOString(),
+  const historyConversations = conversations.map((c) => ({
+    id: c.sessionId,
+    title: c.firstUserMessage || c.name || 'Untitled',
+    source: c.source === 'cli' ? 'cli' as const : 'chat' as const,
+    timestamp: c.startTime || c.lastModified || new Date().toISOString(),
     messageCount: c.messageCount || 0,
-    preview: c.preview || '',
+    preview: c.lastUserMessage || c.preview || '',
     checkpoints: c.checkpoints,
   }));
 

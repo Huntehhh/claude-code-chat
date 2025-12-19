@@ -45,12 +45,16 @@ const getHtml = (
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'none';
-    style-src ${webview.cspSource} 'unsafe-inline';
+    style-src ${webview.cspSource} 'unsafe-inline' https://fonts.googleapis.com;
     script-src 'nonce-${nonce}';
     img-src ${webview.cspSource} data: https:;
-    font-src ${webview.cspSource};
+    font-src ${webview.cspSource} https://fonts.gstatic.com;
+    connect-src https://fonts.googleapis.com https://fonts.gstatic.com;
   ">
   <title>Claude Code Chat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="${styleUri}">
 </head>
 <body>

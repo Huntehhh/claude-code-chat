@@ -46,9 +46,14 @@ export interface TodoItem {
 
 // Extended conversation with checkpoints
 export interface Conversation extends ConversationListItem {
-  messageCount?: number;
+  // These come from the base ConversationListItem
+  // messageCount is already in base
   preview?: string;
   checkpoints?: CommitInfo[];
+  // Convenience getters
+  id?: string;  // Maps to sessionId
+  name?: string;  // Maps to firstUserMessage
+  lastModified?: string;  // Maps to startTime
 }
 
 // =============================================================================

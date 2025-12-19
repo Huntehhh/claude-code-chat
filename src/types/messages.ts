@@ -345,10 +345,15 @@ export interface CommitInfo {
 
 export interface ConversationListItem {
   filename: string;
-  displayName: string;
-  timestamp: string;
-  source: 'local' | 'claude';
-  fullPath?: string;
+  sessionId: string;
+  startTime: string;
+  endTime: string;
+  messageCount: number;
+  totalCost: number;
+  firstUserMessage: string;
+  lastUserMessage: string;
+  source: 'internal' | 'cli';
+  cliPath?: string;
 }
 
 export interface MCPServerConfig {

@@ -91,3 +91,8 @@ Skills are **prompt-based context modifiers**, not executable code. They are org
 - Multi-step approval workflows
 - Compliance checking procedures
 - Quality assurance checklists
+
+**Multi-session orchestration:**
+- Complex migrations spanning multiple context windows
+- Phased implementations with verification gates
+- Context handoff patterns (changelogs, plan files, resume prompts)

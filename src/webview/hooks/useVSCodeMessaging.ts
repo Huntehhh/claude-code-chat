@@ -31,6 +31,7 @@ export function useVSCodeMessaging() {
     setSubscriptionType,
     addPendingPermission,
     updatePermissionStatus,
+    clearPendingPermissions,
     setConversations,
     setWorkspaceFiles,
     setCommits,
@@ -166,7 +167,8 @@ export function useVSCodeMessaging() {
           break;
         }
 
-        case 'systemMessage': {
+        case 'systemMessage':
+        case 'system': {
           const content = typeof msg.data === 'string' ? msg.data : (msg.data as { content: string }).content;
           addMessage({ type: 'system', content, timestamp: Date.now() });
           break;
@@ -267,7 +269,8 @@ export function useVSCodeMessaging() {
           break;
         }
 
-        case 'permissionsList': {
+        case 'permissionsList':
+        case 'permissionsData': {
           const data = msg.data as { alwaysAllow: Record<string, boolean | string[]> };
           setPermissions(data.alwaysAllow);
           break;
@@ -306,8 +309,11 @@ export function useVSCodeMessaging() {
           const data = msg.data as ConversationListItem[];
           setConversations(data.map((c) => ({
             ...c,
-            messageCount: 0,
-            preview: '',
+            // Map fields for convenience
+            id: c.sessionId,
+            name: c.firstUserMessage,
+            lastModified: c.startTime,
+            preview: c.lastUserMessage || '',
           })));
           break;
         }
@@ -337,7 +343,8 @@ export function useVSCodeMessaging() {
           break;
         }
 
-        case 'checkpointsList': {
+        case 'checkpointsList':
+        case 'checkpoints': {
           const data = msg.data as CommitInfo[];
           setCommits(data);
           break;
@@ -403,7 +410,8 @@ export function useVSCodeMessaging() {
         // =================================================================
         // Custom Snippets
         // =================================================================
-        case 'customSnippets': {
+        case 'customSnippets':
+        case 'customSnippetsData': {
           const data = msg.data as CustomSnippet[];
           setCustomSnippets(data);
           break;
@@ -463,6 +471,76 @@ export function useVSCodeMessaging() {
           break;
         }
 
+        // =================================================================
+        // Additional Backend Messages
+        // =================================================================
+        case 'clearLoading': {
+          setProcessing(false);
+          hideThinkingOverlay();
+          break;
+        }
+
+        case 'showInstallModal': {
+          openModal('install');
+          break;
+        }
+
+        case 'loginRequired': {
+          // TODO: Show login required UI
+          console.log('[VSCode Messaging] Login required');
+          break;
+        }
+
+        case 'mcpServerError': {
+          const data = msg.data as { error: string };
+          console.error('[MCP Server Error]', data.error);
+          break;
+        }
+
+        case 'mcpServerSaved':
+        case 'mcpServerDeleted': {
+          // Refresh MCP servers list after save/delete
+          // The list is typically refreshed automatically
+          break;
+        }
+
+        case 'customSnippetSaved':
+        case 'customSnippetDeleted': {
+          // Refresh snippets list after save/delete
+          // The list is typically refreshed automatically
+          break;
+        }
+
+        case 'scrollToBottom': {
+          // This can be handled by the MessageList component via a ref
+          // For now, just log it
+          break;
+        }
+
+        case 'expirePendingPermissions': {
+          clearPendingPermissions();
+          break;
+        }
+
+        case 'sessionResumed': {
+          const data = msg.data as { sessionId: string };
+          setSessionId(data.sessionId);
+          break;
+        }
+
+        case 'restoreError':
+        case 'restoreProgress': {
+          // TODO: Handle restore progress/error UI
+          console.log('[Restore]', msg.type, msg.data);
+          break;
+        }
+
+        case 'imagePath': {
+          // TODO: Handle image path response
+          console.log('[Image Path]', msg.data);
+          break;
+        }
+
         default:
           // Unknown message type - log for debugging
           console.log('[VSCode Messaging] Unknown message type:', msg.type, msg);
@@ -484,6 +562,7 @@ export function useVSCodeMessaging() {
     setSubscriptionType,
     addPendingPermission,
     updatePermissionStatus,
+    clearPendingPermissions,
     setConversations,
     setWorkspaceFiles,
     setCommits,
@@ -557,16 +636,16 @@ export const useVSCodeSender = () => {
   // Conversations & History
   // =========================================================================
 
-  const loadConversation = useCallback((filename: string, source?: 'local' | 'claude', fullPath?: string) => {
-    vscode.postMessage({ type: 'loadConversation', filename, source, fullPath });
+  const loadConversation = useCallback((filename: string, source?: 'internal' | 'cli', cliPath?: string) => {
+    vscode.postMessage({ type: 'loadConversation', filename, source, cliPath });
   }, []);
 
   const requestConversations = useCallback(() => {
-    vscode.postMessage({ type: 'requestConversations' });
+    vscode.postMessage({ type: 'getConversationList' });
   }, []);
 
   const restoreToCommit = useCallback((sha: string) => {
-    vscode.postMessage({ type: 'restoreToCommit', sha });
+    vscode.postMessage({ type: 'restoreCommit', commitSha: sha });
   }, []);
 
   // =========================================================================
@@ -574,7 +653,7 @@ export const useVSCodeSender = () => {
   // =========================================================================
 
   const requestWorkspaceFiles = useCallback((searchTerm?: string) => {
-    vscode.postMessage({ type: 'requestWorkspaceFiles', searchTerm });
+    vscode.postMessage({ type: 'getWorkspaceFiles', searchTerm });
   }, []);
 
   const selectImageFile = useCallback(() => {
@@ -582,7 +661,7 @@ export const useVSCodeSender = () => {
   }, []);
 
   const openFile = useCallback((filePath: string) => {
-    vscode.postMessage({ type: 'openFileInEditor', filePath });
+    vscode.postMessage({ type: 'openFile', filePath });
   }, []);
 
   const openDiff = useCallback((oldContent: string, newContent: string, filePath: string) => {
@@ -594,7 +673,7 @@ export const useVSCodeSender = () => {
   }, []);
 
   const createImage = useCallback((imageData: string, imageType: string) => {
-    vscode.postMessage({ type: 'createImage', imageData, imageType });
+    vscode.postMessage({ type: 'createImageFile', imageData, imageType });
   }, []);
 
   // =========================================================================
@@ -618,7 +697,7 @@ export const useVSCodeSender = () => {
   // =========================================================================
 
   const selectModel = useCallback((model: string) => {
-    vscode.postMessage({ type: 'setSelectedModel', model });
+    vscode.postMessage({ type: 'selectModel', model });
   }, []);
 
   const openModelTerminal = useCallback(() => {
@@ -629,8 +708,8 @@ export const useVSCodeSender = () => {
   // Usage & Billing
   // =========================================================================
 
-  const viewUsage = useCallback((usageType: 'plan' | 'api') => {
-    vscode.postMessage({ type: 'openUsageTerminal', usageType });
+  const viewUsage = useCallback((usageType?: 'plan' | 'api') => {
+    vscode.postMessage({ type: 'viewUsage', usageType });
   }, []);
 
   // =========================================================================
@@ -698,7 +777,7 @@ export const useVSCodeSender = () => {
   // =========================================================================
 
   const runInstall = useCallback(() => {
-    vscode.postMessage({ type: 'runInstall' });
+    vscode.postMessage({ type: 'runInstallCommand' });
   }, []);
 
   // =========================================================================
