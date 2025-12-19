@@ -6,7 +6,7 @@ import { Textarea } from '../ui/textarea';
 import { Button } from '../ui/button';
 import { Icon } from '../ui/icon';
 import { ModeToggle } from '../molecules/mode-toggle';
-import { StatusFooter } from './status-footer';
+import { StatusIndicator } from '../ui/status-indicator';
 
 export interface ChatInputProps extends React.HTMLAttributes<HTMLDivElement> {
   value?: string;
@@ -130,8 +130,8 @@ const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
 
           {/* Controls row */}
           <div className="flex items-center justify-between">
-            {/* Mode toggles */}
-            <div className="flex items-center gap-2">
+            {/* Left side: Mode toggles + Status indicator */}
+            <div className="flex items-center gap-3">
               {onPlanModeChange && (
                 <ModeToggle
                   label="Plan"
@@ -146,31 +146,36 @@ const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                   onClick={() => onThinkModeChange(!thinkMode)}
                 />
               )}
+              {/* Status indicator inline */}
+              <StatusIndicator
+                status={isProcessing ? 'processing' : status}
+                size="sm"
+              />
             </div>
 
-            {/* Send button */}
-            <Button
-              variant="accent"
-              size="icon"
-              className="rounded-full shadow-lg shadow-[#FFA344]/10"
-              onClick={isProcessing ? onStop : onSubmit}
-              disabled={!isProcessing && !value.trim()}
-            >
-              <Icon
-                name={isProcessing ? 'stop' : 'arrow_upward'}
-                size="sm"
-                className="font-bold"
-              />
-            </Button>
+            {/* Right side: Context usage + Send button */}
+            <div className="flex items-center gap-3">
+              {contextUsage !== undefined && (
+                <span className="text-[11px] font-mono text-[#52525b] tracking-wider">
+                  {contextUsage}%
+                </span>
+              )}
+              <Button
+                variant="accent"
+                size="icon"
+                className="rounded-full shadow-lg shadow-[#FFA344]/10"
+                onClick={isProcessing ? onStop : onSubmit}
+                disabled={!isProcessing && !value.trim()}
+              >
+                <Icon
+                  name={isProcessing ? 'stop' : 'arrow_upward'}
+                  size="sm"
+                  className="font-bold"
+                />
+              </Button>
+            </div>
           </div>
         </div>
-
-        {/* Status footer */}
-        <StatusFooter
-          status={isProcessing ? 'processing' : status}
-          contextUsage={contextUsage}
-          onStop={isProcessing ? onStop : undefined}
-        />
       </div>
     );
   }

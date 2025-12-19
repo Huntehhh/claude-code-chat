@@ -18,10 +18,12 @@ const ModeToggle = React.forwardRef<HTMLButtonElement, ModeToggleProps>(
         className={cn(
           'group flex items-center gap-1.5 px-3 h-7 rounded-full',
           'bg-[#171717] border border-[#222225]',
-          'hover:border-[#FFA344]/50',
           'text-[#8b8b94] hover:text-[#fafafa]',
           'transition-all cursor-pointer select-none',
-          active && 'border-[#FFA344]/50 text-[#fafafa]',
+          // Inactive: hover shows orange border at 50%
+          !active && 'hover:border-[#FFA344]/50',
+          // Active: base border at 50%, hover brightens to full opacity
+          active && 'border-[#FFA344]/50 text-[#fafafa] hover:border-[#FFA344] hover:bg-[#1a1a1a]',
           className
         )}
         {...props}
