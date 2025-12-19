@@ -38,6 +38,7 @@ export function useVSCodeMessaging() {
     addCommit,
     setTodos,
     setDraftMessage,
+    setScrollPosition,
     setClipboardText,
   } = useChatStore();
 
@@ -57,6 +58,7 @@ export function useVSCodeMessaging() {
     closeModal,
     showThinkingOverlay,
     hideThinkingOverlay,
+    showToast,
   } = useUIStore();
 
   useEffect(() => {
@@ -71,6 +73,7 @@ export function useVSCodeMessaging() {
           const data = msg.data as {
             chatName?: string;
             draftMessage: string;
+            scrollPosition: number;
             selectedModel: string;
             currentSessionId?: string;
             totalCost: number;
@@ -81,6 +84,7 @@ export function useVSCodeMessaging() {
           };
           setChatName(data.chatName || 'Claude Code Chat');
           setDraftMessage(data.draftMessage || '');
+          setScrollPosition(data.scrollPosition || 0);
           if (data.selectedModel) {
             setModel(data.selectedModel);
           }
@@ -105,6 +109,13 @@ export function useVSCodeMessaging() {
         case 'sessionCleared':
         case 'newSession': {
           clearMessages();
+          setChatName('Claude Code Chat'); // Reset chat name on new session
+          break;
+        }
+
+        case 'chatRenamed': {
+          const newName = msg.data as string;
+          setChatName(newName || 'Claude Code Chat');
           break;
         }
 
@@ -485,6 +496,12 @@ export function useVSCodeMessaging() {
           break;
         }
 
+        case 'toast': {
+          const data = msg.data as { message: string; duration?: number };
+          showToast(data.message, data.duration);
+          break;
+        }
+
         case 'loginRequired': {
           // TODO: Show login required UI
           console.log('[VSCode Messaging] Login required');
@@ -514,6 +531,13 @@ export function useVSCodeMessaging() {
         case 'scrollToBottom': {
           // This can be handled by the MessageList component via a ref
           // For now, just log it
+          break;
+        }
+
+        case 'restoreScrollPosition': {
+          // Set scroll position from backend (persisted across sessions)
+          const position = msg.data as number;
+          setScrollPosition(position || 0);
           break;
         }
 
@@ -569,6 +593,7 @@ export function useVSCodeMessaging() {
     addCommit,
     setTodos,
     setDraftMessage,
+    setScrollPosition,
     setClipboardText,
     updateSettings,
     setModel,
@@ -580,6 +605,7 @@ export function useVSCodeMessaging() {
     closeModal,
     showThinkingOverlay,
     hideThinkingOverlay,
+    showToast,
   ]);
 }
 
@@ -764,6 +790,10 @@ export const useVSCodeSender = () => {
     vscode.postMessage({ type: 'saveInputText', text });
   }, []);
 
+  const saveScrollPosition = useCallback((position: number) => {
+    vscode.postMessage({ type: 'saveScrollPosition', position });
+  }, []);
+
   // =========================================================================
   // Clipboard
   // =========================================================================
@@ -847,6 +877,7 @@ export const useVSCodeSender = () => {
     // Chat Management
     renameChat,
     saveInputText,
+    saveScrollPosition,
 
     // Clipboard
     getClipboardText,

@@ -18,12 +18,21 @@ export type ModalType =
 // Store Interface
 // =============================================================================
 
+interface ToastState {
+  message: string;
+  visible: boolean;
+  timeoutId: ReturnType<typeof setTimeout> | null;
+}
+
 interface UIState {
   // Modal states - single active modal pattern
   activeModal: ModalType | null;
 
   // Thinking overlay (not a modal, full-screen overlay)
   isThinkingOverlayVisible: boolean;
+
+  // Toast notification state
+  toast: ToastState;
 
   // Todo panel
   todoCollapsed: boolean;
@@ -96,17 +105,28 @@ interface UIState {
   // Context menu
   showContextMenu: (x: number, y: number, target: string) => void;
   hideContextMenu: () => void;
+
+  // Toast notifications
+  showToast: (message: string, duration?: number) => void;
+  hideToast: () => void;
 }
 
 // =============================================================================
 // Store Implementation
 // =============================================================================
 
-export const useUIStore = create<UIState>((set) => ({
+export const useUIStore = create<UIState>((set, get) => ({
   // Initial state
   activeModal: null,
   isThinkingOverlayVisible: false,
   todoCollapsed: false,
+
+  // Toast notification state
+  toast: {
+    message: '',
+    visible: false,
+    timeoutId: null,
+  },
 
   // File picker state
   fileSearchTerm: '',
@@ -186,6 +206,33 @@ export const useUIStore = create<UIState>((set) => ({
     contextMenuPosition: null,
     contextMenuTarget: null,
   }),
+
+  // Toast notifications
+  showToast: (message, duration = 3000) => {
+    const state = get();
+    // Clear existing timeout if any
+    if (state.toast.timeoutId) {
+      clearTimeout(state.toast.timeoutId);
+    }
+    // Set new toast with auto-hide
+    const timeoutId = setTimeout(() => {
+      set((s) => ({
+        toast: { ...s.toast, visible: false, timeoutId: null }
+      }));
+    }, duration);
+    set({
+      toast: { message, visible: true, timeoutId }
+    });
+  },
+  hideToast: () => {
+    const state = get();
+    if (state.toast.timeoutId) {
+      clearTimeout(state.toast.timeoutId);
+    }
+    set({
+      toast: { message: '', visible: false, timeoutId: null }
+    });
+  },
 }));
 
 // =============================================================================

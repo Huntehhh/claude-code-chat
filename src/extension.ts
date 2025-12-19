@@ -73,6 +73,16 @@ interface ConversationData {
 	filename: string;
 }
 
+interface ProcessConfig {
+	model: string;
+	yoloMode: boolean;
+	mcpConfigPath: string | undefined;
+	wslEnabled: boolean;
+	wslDistro: string;
+	planMode: boolean;
+	thinkingMode: boolean;
+}
+
 class ClaudeChatWebviewProvider implements vscode.WebviewViewProvider {
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
@@ -157,6 +167,15 @@ class ClaudeChatProvider {
 	private _selectedModel: string = 'default'; // Default model
 	private _isProcessing: boolean | undefined;
 	private _draftMessage: string = '';
+	private _scrollPosition: number = 0;
+	private _chatName: string = 'Claude Code Chat';
+
+	// Persistent process mode state
+	private _persistentProcess: cp.ChildProcess | undefined;
+	private _processConfig: ProcessConfig | undefined;
+	private _restartPending: boolean = false;
+	private _restartDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+	private _persistentProcessRawOutput: string = '';  // Buffer for stdout parsing
 
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
@@ -183,9 +202,34 @@ class ClaudeChatProvider {
 		// Load cached subscription type (will be refreshed on first message)
 		this._subscriptionType = this._context.globalState.get('claude.subscriptionType');
 
+		// Load persisted UI state (draft message, scroll position, chat name)
+		this._draftMessage = this._context.workspaceState.get('claude.draftMessage', '');
+		this._scrollPosition = this._context.workspaceState.get('claude.scrollPosition', 0);
+		this._chatName = this._context.workspaceState.get('claude.chatName', 'Claude Code Chat');
+
 		// Resume session from latest conversation
 		const latestConversation = this._getLatestConversation();
 		this._currentSessionId = latestConversation?.sessionId;
+
+		// Pre-spawn persistent Claude process for instant first message
+		this._preSpawnPersistentProcess();
+	}
+
+	/**
+	 * Pre-spawn the persistent process on extension activation.
+	 * This runs asynchronously to not block extension startup.
+	 */
+	private _preSpawnPersistentProcess(): void {
+		// Delay slightly to allow VS Code to fully initialize
+		setTimeout(async () => {
+			try {
+				console.log('Pre-spawning persistent Claude process...');
+				await this._ensurePersistentProcess();
+				console.log('Persistent process pre-spawned successfully');
+			} catch (error) {
+				console.log('Failed to pre-spawn persistent process (will retry on first message):', error);
+			}
+		}, 1000);
 	}
 
 	public show(column: vscode.ViewColumn | vscode.Uri = vscode.ViewColumn.Two) {
@@ -249,22 +293,24 @@ class ClaudeChatProvider {
 	}
 
 	private _sendReadyMessage() {
-		// Send current session info if available
-		/*if (this._currentSessionId) {
-			this._postMessage({
-				type: 'sessionResumed',
-				data: {
-					sessionId: this._currentSessionId
-				}
-			});
-		}*/
-
+		// Send comprehensive ready message with all persisted state
 		this._postMessage({
 			type: 'ready',
-			data: this._isProcessing ? 'Claude is working...' : 'Ready to chat with Claude Code! Type your message below.'
+			data: {
+				chatName: this._chatName || 'Claude Code Chat',
+				draftMessage: this._draftMessage || '',
+				scrollPosition: this._scrollPosition || 0,
+				selectedModel: this._selectedModel || 'default',
+				currentSessionId: this._currentSessionId,
+				totalCost: this._totalCost || 0,
+				totalTokensInput: this._totalTokensInput || 0,
+				totalTokensOutput: this._totalTokensOutput || 0,
+				requestCount: this._requestCount || 0,
+				subscriptionType: this._subscriptionType,
+			}
 		});
 
-		// Send current model to webview
+		// Send current model to webview (for model selector)
 		this._postMessage({
 			type: 'modelSelected',
 			model: this._selectedModel
@@ -286,12 +332,14 @@ class ClaudeChatProvider {
 		// Send current settings to webview
 		this._sendCurrentSettings();
 
-		// Send saved draft message if any
-		if (this._draftMessage) {
-			this._postMessage({
-				type: 'restoreInputText',
-				data: this._draftMessage
-			});
+		// Send scroll position restore command (after messages are loaded)
+		if (this._scrollPosition > 0) {
+			setTimeout(() => {
+				this._postMessage({
+					type: 'restoreScrollPosition',
+					data: this._scrollPosition
+				});
+			}, 100);
 		}
 	}
 
@@ -396,6 +444,12 @@ class ClaudeChatProvider {
 			case 'saveInputText':
 				this._saveInputText(message.text);
 				return;
+			case 'saveScrollPosition':
+				this._saveScrollPosition(message.position);
+				return;
+			case 'renameChat':
+				this._renameChat(message.name);
+				return;
 			case 'getCheckpoints':
 				this._sendCheckpoints();
 				return;
@@ -475,9 +529,6 @@ class ClaudeChatProvider {
 	}
 
 	private async _sendMessageToClaude(message: string, planMode?: boolean, thinkingMode?: boolean) {
-		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-		const cwd = workspaceFolder ? workspaceFolder.uri.fsPath : process.cwd();
-
 		// Get thinking intensity setting
 		const configThink = vscode.workspace.getConfiguration('claudeCodeChat');
 		const thinkingIntensity = configThink.get<string>('thinking.intensity', 'think');
@@ -486,7 +537,7 @@ class ClaudeChatProvider {
 		let actualMessage = message;
 		if (thinkingMode) {
 			let thinkingPrompt = '';
-			const thinkingMesssage = ' THROUGH THIS STEP BY STEP: \n'
+			const thinkingMesssage = ' THROUGH THIS STEP BY STEP: \n';
 			switch (thinkingIntensity) {
 				case 'think':
 					thinkingPrompt = 'THINK';
@@ -516,6 +567,143 @@ class ClaudeChatProvider {
 			type: 'userInput',
 			data: message
 		});
+
+		// Auto-set chat name from first user message (if not already renamed)
+		const hasUserMessages = this._currentConversation.some(m => m.messageType === 'userInput');
+		if (!hasUserMessages || this._currentConversation.filter(m => m.messageType === 'userInput').length === 1) {
+			// This is the first user message - use it as the chat name
+			const truncatedName = message.length > 50 ? message.substring(0, 50) + '...' : message;
+			this._chatName = truncatedName;
+			this._context.workspaceState.update('claude.chatName', this._chatName);
+
+			// Update VS Code panel title
+			if (this._panel) {
+				this._panel.title = this._chatName;
+			}
+
+			// Send updated name to webview
+			this._postMessage({
+				type: 'chatRenamed',
+				data: this._chatName
+			});
+		}
+
+		// Set processing state to true
+		this._postMessage({
+			type: 'setProcessing',
+			data: { isProcessing: true }
+		});
+
+		// Create backup commit before Claude makes changes
+		try {
+			await this._createBackupCommit(message);
+		}
+		catch (e) {
+			console.log("error", e);
+		}
+
+		// Show loading indicator
+		this._postMessage({
+			type: 'loading',
+			data: 'Claude is working...'
+		});
+
+		// Use persistent process mode - get or create persistent process
+		const claudeProcess = await this._ensurePersistentProcess(planMode || false, thinkingMode || true);
+
+		if (!claudeProcess || !claudeProcess.stdin || claudeProcess.stdin.destroyed) {
+			// Failed to get process - show error
+			this._isProcessing = false;
+			this._postMessage({ type: 'clearLoading' });
+			this._postMessage({
+				type: 'setProcessing',
+				data: { isProcessing: false }
+			});
+			this._sendAndSaveMessage({
+				type: 'error',
+				data: 'Failed to start Claude process. Please check that claude-code is installed.'
+			});
+			this._postMessage({ type: 'showInstallModal' });
+			return;
+		}
+
+		// Send the message to Claude's stdin (process is already set up with handlers)
+		const userMessage = {
+			type: 'user',
+			session_id: this._currentSessionId || '',
+			message: {
+				role: 'user',
+				content: [{ type: 'text', text: actualMessage }]
+			},
+			parent_tool_use_id: null
+		};
+		claudeProcess.stdin.write(JSON.stringify(userMessage) + '\n');
+		console.log('Message sent to persistent Claude process');
+	}
+
+	// Legacy spawn-per-message method (kept for fallback if needed)
+	private async _sendMessageToClaudeLegacy(message: string, planMode?: boolean, thinkingMode?: boolean) {
+		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+		const cwd = workspaceFolder ? workspaceFolder.uri.fsPath : process.cwd();
+
+		// Get thinking intensity setting
+		const configThink = vscode.workspace.getConfiguration('claudeCodeChat');
+		const thinkingIntensity = configThink.get<string>('thinking.intensity', 'think');
+
+		// Prepend thinking mode instructions if enabled
+		let actualMessage = message;
+		if (thinkingMode) {
+			let thinkingPrompt = '';
+			const thinkingMesssage = ' THROUGH THIS STEP BY STEP: \n';
+			switch (thinkingIntensity) {
+				case 'think':
+					thinkingPrompt = 'THINK';
+					break;
+				case 'think-hard':
+					thinkingPrompt = 'THINK HARD';
+					break;
+				case 'think-harder':
+					thinkingPrompt = 'THINK HARDER';
+					break;
+				case 'ultrathink':
+					thinkingPrompt = 'ULTRATHINK';
+					break;
+				default:
+					thinkingPrompt = 'THINK';
+			}
+			actualMessage = thinkingPrompt + thinkingMesssage + actualMessage;
+		}
+
+		this._isProcessing = true;
+
+		// Clear draft message since we're sending it
+		this._draftMessage = '';
+
+		// Show original user input in chat and save to conversation (without mode prefixes)
+		this._sendAndSaveMessage({
+			type: 'userInput',
+			data: message
+		});
+
+		// Auto-set chat name from first user message (if not already renamed)
+		const hasUserMessages = this._currentConversation.some(m => m.messageType === 'userInput');
+		if (!hasUserMessages || this._currentConversation.filter(m => m.messageType === 'userInput').length === 1) {
+			// This is the first user message - use it as the chat name
+			const truncatedName = message.length > 50 ? message.substring(0, 50) + '...' : message;
+			this._chatName = truncatedName;
+			this._context.workspaceState.update('claude.chatName', this._chatName);
+
+			// Update VS Code panel title
+			if (this._panel) {
+				this._panel.title = this._chatName;
+			}
+
+			// Send updated name to webview
+			this._postMessage({
+				type: 'chatRenamed',
+				data: this._chatName
+			});
+		}
 
 		// Set processing state to true
 		this._postMessage({
@@ -1133,6 +1321,19 @@ class ClaudeChatProvider {
 		this._totalTokensOutput = 0;
 		this._requestCount = 0;
 
+		// Clear UI state
+		this._scrollPosition = 0;
+		this._context.workspaceState.update('claude.scrollPosition', 0);
+
+		// Reset chat name to default
+		this._chatName = 'Claude Code Chat';
+		this._context.workspaceState.update('claude.chatName', this._chatName);
+
+		// Update VS Code panel title
+		if (this._panel) {
+			this._panel.title = this._chatName;
+		}
+
 		// Notify webview to clear all messages and reset session
 		this._postMessage({
 			type: 'sessionCleared'
@@ -1457,11 +1658,12 @@ class ClaudeChatProvider {
 
 		const workspacePath = workspaceFolder.uri.fsPath;
 		// Convert path: C:\HApps\project -> C--HApps-project
-		// Replace : with -- and \ or / with -
+		// Claude CLI replaces :\ or :/ with -- (as a unit), then remaining \ or / with -
 		const folderName = workspacePath
-			.replace(/:/g, '--')
-			.replace(/[\\/]/g, '-');
+			.replace(/:[\\\/]/g, '--')  // Replace :\ or :/ with --
+			.replace(/[\\\/]/g, '-');    // Replace remaining \ or / with -
 
+		console.log(`Workspace path: ${workspacePath} -> Folder name: ${folderName}`);
 		return folderName;
 	}
 
@@ -1498,92 +1700,155 @@ class ClaudeChatProvider {
 		const folderName = this._getCliProjectFolderName();
 		if (!folderName) return cliConversations;
 
-		const projectPath = path.join(this._cliProjectsPath, folderName);
+		// Try the exact folder name first, then case variations (Windows is case-insensitive)
+		const possiblePaths = [
+			path.join(this._cliProjectsPath, folderName),
+			path.join(this._cliProjectsPath, folderName.toLowerCase()),
+			path.join(this._cliProjectsPath, folderName.charAt(0).toLowerCase() + folderName.slice(1)), // lowercase first char only
+		];
 
-		try {
-			const projectUri = vscode.Uri.file(projectPath);
-			const files = await vscode.workspace.fs.readDirectory(projectUri);
+		let projectPath: string | undefined;
+		let files: [string, vscode.FileType][] = [];
 
-			const jsonlFiles = files
-				.filter(([name, type]) => type === vscode.FileType.File && name.endsWith('.jsonl'))
-				.map(([name]) => name);
-
-			for (const filename of jsonlFiles) {
-				try {
-					const filePath = path.join(projectPath, filename);
-					const fileUri = vscode.Uri.file(filePath);
-					const content = await vscode.workspace.fs.readFile(fileUri);
-					const text = new TextDecoder().decode(content);
-					const lines = text.trim().split('\n').filter(l => l.trim());
-
-					if (lines.length === 0) continue;
-
-					// Parse JSONL lines to extract summary and metadata
-					let summary = '';
-					let startTime = '';
-					let messageCount = 0;
-
-					for (const line of lines) {
-						try {
-							const obj = JSON.parse(line);
-
-							// Get summary/title from summary type
-							if (obj.type === 'summary' && obj.summary) {
-								summary = obj.summary;
-							}
-
-							// Count messages and get timestamps
-							if (obj.type === 'user' || obj.type === 'assistant') {
-								messageCount++;
-								if (!startTime && obj.timestamp) {
-									startTime = obj.timestamp;
-								}
-							}
-						} catch {
-							// Skip invalid JSON lines
-						}
-					}
-
-					// Use filename UUID as session ID, file modified time if no timestamp
-					const sessionId = filename.replace('.jsonl', '');
-					const fileStat = await vscode.workspace.fs.stat(fileUri);
-					const fileTime = new Date(fileStat.mtime).toISOString();
-
-					if (!startTime) {
-						startTime = fileTime;
-					}
-
-					// Use summary as title, or fallback to filename
-					const title = summary || `CLI Session ${sessionId.substring(0, 8)}`;
-
-					cliConversations.push({
-						filename,
-						sessionId,
-						startTime,
-						endTime: fileTime,
-						messageCount,
-						totalCost: 0,
-						firstUserMessage: title,
-						lastUserMessage: title,
-						source: 'cli',
-						cliPath: filePath
-					});
-				} catch (e) {
-					console.error(`Failed to parse CLI conversation ${filename}:`, e);
-				}
+		for (const testPath of possiblePaths) {
+			try {
+				const testUri = vscode.Uri.file(testPath);
+				files = await vscode.workspace.fs.readDirectory(testUri);
+				projectPath = testPath;
+				console.log(`Found CLI project folder at: ${testPath}`);
+				break;
+			} catch {
+				// Try next path
 			}
-
-			// Sort by start time descending
-			cliConversations.sort((a, b) =>
-				new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
-			);
-
-			console.log(`Found ${cliConversations.length} CLI conversations`);
-		} catch (e) {
-			// Project folder doesn't exist - that's okay
-			console.log(`No CLI project folder found at ${projectPath}`);
 		}
 
+		if (!projectPath) {
+			console.log(`No CLI project folder found. Tried: ${possiblePaths.join(', ')}`);
+			return cliConversations;
+		}
+
+		const jsonlFiles = files
+			.filter(([name, type]) => type === vscode.FileType.File && name.endsWith('.jsonl'))
+			.map(([name]) => name);
+
+		console.log(`Found ${jsonlFiles.length} JSONL files in ${projectPath}`);
+
+		for (const filename of jsonlFiles) {
+			try {
+				const filePath = path.join(projectPath, filename);
+				const fileUri = vscode.Uri.file(filePath);
+				const content = await vscode.workspace.fs.readFile(fileUri);
+				const text = new TextDecoder().decode(content);
+				const lines = text.trim().split('\n').filter(l => l.trim());
+
+				if (lines.length === 0) continue;
+
+				// Parse JSONL lines to extract summary, first user message, and metadata
+				let summary = '';
+				let firstUserMessage = '';
+				let startTime = '';
+				let messageCount = 0;
+				let isAgentWarmup = false;
+
+				for (const line of lines) {
+					try {
+						const obj = JSON.parse(line);
+
+						// Get summary/title from summary type
+						if (obj.type === 'summary' && obj.summary) {
+							summary = obj.summary;
+						}
+
+						// Count messages and get timestamps
+						if (obj.type === 'user') {
+							messageCount++;
+							if (!startTime && obj.timestamp) {
+								startTime = obj.timestamp;
+							}
+
+							// Extract first user message content for title
+							if (!firstUserMessage && obj.message?.content) {
+								const content = obj.message.content;
+								if (typeof content === 'string') {
+									// Skip "Warmup" messages from agent subprocesses
+									if (content.toLowerCase() === 'warmup') {
+										isAgentWarmup = true;
+									} else {
+										firstUserMessage = content;
+									}
+								} else if (Array.isArray(content)) {
+									// Handle tool_result arrays - skip them for title
+									const textParts = content
+										.filter((c: any) => c.type !== 'tool_result')
+										.map((c: any) => c.text || '')
+										.filter((t: string) => t.trim());
+									if (textParts.length > 0) {
+										firstUserMessage = textParts.join(' ');
+									}
+								}
+							}
+						} else if (obj.type === 'assistant') {
+							messageCount++;
+						}
+					} catch {
+						// Skip invalid JSON lines
+					}
+				}
+
+				// Skip agent warmup files with only warmup messages and very few messages
+				if (isAgentWarmup && messageCount <= 2) {
+					continue;
+				}
+
+				// Skip files with no real messages
+				if (messageCount === 0) {
+					continue;
+				}
+
+				// Use filename UUID as session ID, file modified time if no timestamp
+				const sessionId = filename.replace('.jsonl', '');
+				const fileStat = await vscode.workspace.fs.stat(fileUri);
+				const fileTime = new Date(fileStat.mtime).toISOString();
+
+				if (!startTime) {
+					startTime = fileTime;
+				}
+
+				// Use summary, then first user message, then fallback to filename
+				let title = summary;
+				if (!title && firstUserMessage) {
+					// Truncate long messages for display
+					title = firstUserMessage.length > 60
+						? firstUserMessage.substring(0, 60) + '...'
+						: firstUserMessage;
+				}
+				if (!title) {
+					title = `CLI Session ${sessionId.substring(0, 8)}`;
+				}
+
+				cliConversations.push({
+					filename,
+					sessionId,
+					startTime,
+					endTime: fileTime,
+					messageCount,
+					totalCost: 0,
+					firstUserMessage: title,
+					lastUserMessage: title,
+					source: 'cli',
+					cliPath: filePath
+				});
+			} catch (e) {
+				console.error(`Failed to parse CLI conversation ${filename}:`, e);
+			}
+		}
+
+		// Sort by start time descending
+		cliConversations.sort((a, b) =>
+			new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+		);
+
+		console.log(`Found ${cliConversations.length} CLI conversations`);
 		return cliConversations;
 	}
 
@@ -2219,6 +2484,9 @@ class ClaudeChatProvider {
 
 			this._postMessage({ type: 'mcpServerSaved', data: { name } });
 			console.log(`Saved MCP server: ${name}`);
+
+			// Schedule process restart for MCP config change
+			this._scheduleProcessRestart(`MCP server '${name}' added/updated`);
 		} catch (error) {
 			console.error('Error saving MCP server:', error);
 			this._postMessage({ type: 'mcpServerError', data: { error: 'Failed to save MCP server' } });
@@ -2256,6 +2524,9 @@ class ClaudeChatProvider {
 
 				this._postMessage({ type: 'mcpServerDeleted', data: { name } });
 				console.log(`Deleted MCP server: ${name}`);
+
+				// Schedule process restart for MCP config change
+				this._scheduleProcessRestart(`MCP server '${name}' removed`);
 			} else {
 				this._postMessage({ type: 'mcpServerError', data: { error: `Server '${name}' not found` } });
 			}
@@ -2473,13 +2744,40 @@ class ClaudeChatProvider {
 						switch (obj.type) {
 							case 'user':
 								if (obj.message?.content) {
-									const userContent = Array.isArray(obj.message.content)
-										? obj.message.content.map((c: any) => c.text || '').join('')
-										: obj.message.content;
-									this._postMessage({
-										type: 'userInput',
-										data: userContent
-									});
+									let userContent = '';
+									const content = obj.message.content;
+
+									if (typeof content === 'string') {
+										// Simple text message
+										userContent = content;
+									} else if (Array.isArray(content)) {
+										// Array of content blocks (text, tool_result, etc.)
+										const textParts: string[] = [];
+										for (const block of content) {
+											if (block.type === 'tool_result' && block.content) {
+												// Tool results - show truncated version
+												const resultText = typeof block.content === 'string'
+													? block.content
+													: JSON.stringify(block.content);
+												if (resultText.length > 200) {
+													textParts.push(`[Tool Result: ${resultText.substring(0, 200)}...]`);
+												} else {
+													textParts.push(`[Tool Result: ${resultText}]`);
+												}
+											} else if (block.text) {
+												textParts.push(block.text);
+											}
+										}
+										userContent = textParts.join('\n');
+									}
+
+									// Skip empty or "Warmup" messages
+									if (userContent && userContent.toLowerCase() !== 'warmup') {
+										this._postMessage({
+											type: 'userInput',
+											data: userContent
+										});
+									}
 								}
 								break;
 
@@ -2492,11 +2790,42 @@ class ClaudeChatProvider {
 												data: block.text
 											});
 										} else if (block.type === 'tool_use') {
+											// Format tool info for display
+											const input = block.input || {};
+											let toolInfo = '';
+											let filePath = '';
+
+											// Extract relevant info based on tool type
+											if (block.name === 'Read' || block.name === 'read') {
+												filePath = input.file_path || input.path || '';
+												toolInfo = filePath;
+											} else if (block.name === 'Write' || block.name === 'write') {
+												filePath = input.file_path || input.path || '';
+												toolInfo = filePath;
+											} else if (block.name === 'Edit' || block.name === 'edit') {
+												filePath = input.file_path || input.path || '';
+												toolInfo = filePath;
+											} else if (block.name === 'Bash' || block.name === 'bash') {
+												toolInfo = input.command || input.description || '';
+											} else if (block.name === 'Grep' || block.name === 'grep') {
+												toolInfo = `${input.pattern || ''} in ${input.path || input.include || '.'}`;
+											} else if (block.name === 'Glob' || block.name === 'glob') {
+												toolInfo = input.pattern || '';
+											} else if (block.name?.startsWith('mcp_') || block.name?.startsWith('mcp__')) {
+												// MCP tool call
+												toolInfo = JSON.stringify(input).substring(0, 100);
+											} else {
+												// Generic fallback
+												toolInfo = JSON.stringify(input).substring(0, 100);
+											}
+
 											this._postMessage({
 												type: 'toolUse',
 												data: {
 													toolName: block.name,
-													input: block.input,
+													toolInfo: toolInfo,
+													rawInput: input,
+													filePath: filePath,
 													toolUseId: block.id
 												}
 											});
@@ -2748,6 +3077,425 @@ class ClaudeChatProvider {
 		});
 	}
 
+	// ==========================================
+	// Persistent Process Mode Methods
+	// ==========================================
+
+	/**
+	 * Build a snapshot of current process configuration.
+	 * Used to detect when settings change that require process restart.
+	 */
+	private _buildProcessConfig(planMode: boolean = false, thinkingMode: boolean = true): ProcessConfig {
+		const config = vscode.workspace.getConfiguration('claudeCodeChat');
+		return {
+			model: this._selectedModel,
+			yoloMode: config.get<boolean>('permissions.yoloMode', false),
+			mcpConfigPath: this.getMCPConfigPath(),
+			wslEnabled: config.get<boolean>('wsl.enabled', false),
+			wslDistro: config.get<string>('wsl.distro', 'Ubuntu'),
+			planMode,
+			thinkingMode,
+		};
+	}
+
+	/**
+	 * Check if process configuration has changed in ways that require restart.
+	 */
+	private _hasConfigChanged(newConfig: ProcessConfig): boolean {
+		if (!this._processConfig) return true;
+
+		// Settings that require restart (excluding planMode/thinkingMode which are per-message)
+		return (
+			newConfig.model !== this._processConfig.model ||
+			newConfig.yoloMode !== this._processConfig.yoloMode ||
+			newConfig.mcpConfigPath !== this._processConfig.mcpConfigPath ||
+			newConfig.wslEnabled !== this._processConfig.wslEnabled ||
+			newConfig.wslDistro !== this._processConfig.wslDistro
+		);
+	}
+
+	/**
+	 * Ensure a persistent process is running, spawning if needed.
+	 * Returns the process to write messages to.
+	 */
+	private async _ensurePersistentProcess(planMode: boolean = false, thinkingMode: boolean = true): Promise<cp.ChildProcess | undefined> {
+		const currentConfig = this._buildProcessConfig(planMode, thinkingMode);
+		const configChanged = this._hasConfigChanged(currentConfig);
+
+		// If process exists and config unchanged (for restart-triggering settings), reuse it
+		if (this._persistentProcess && !this._persistentProcess.killed && !configChanged) {
+			console.log('Reusing existing persistent process');
+			return this._persistentProcess;
+		}
+
+		// Kill existing process if config changed
+		if (this._persistentProcess && configChanged) {
+			console.log('Config changed, restarting persistent process');
+			await this._killPersistentProcess();
+		}
+
+		// Spawn new persistent process
+		return this._spawnPersistentProcess(currentConfig);
+	}
+
+	/**
+	 * Spawn a new persistent Claude process.
+	 */
+	private _spawnPersistentProcess(config: ProcessConfig): cp.ChildProcess | undefined {
+		// Get workspace folder for cwd
+		const workspaceFolders = vscode.workspace.workspaceFolders;
+		const cwd = workspaceFolders && workspaceFolders.length > 0
+			? workspaceFolders[0].uri.fsPath
+			: process.cwd();
+
+		// Build command arguments
+		const args = [
+			'--output-format', 'stream-json',
+			'--input-format', 'stream-json',
+			'--verbose'
+		];
+
+		if (config.yoloMode) {
+			args.push('--dangerously-skip-permissions');
+		} else {
+			args.push('--permission-prompt-tool', 'stdio');
+		}
+
+		if (config.mcpConfigPath) {
+			args.push('--mcp-config', this.convertToWSLPath(config.mcpConfigPath));
+		}
+
+		if (config.planMode) {
+			args.push('--permission-mode', 'plan');
+		}
+
+		if (config.model && config.model !== 'default') {
+			args.push('--model', config.model);
+		}
+
+		if (this._currentSessionId) {
+			args.push('--resume', this._currentSessionId);
+			console.log('Persistent process resuming session:', this._currentSessionId);
+		}
+
+		console.log('Spawning persistent Claude process with args:', args);
+
+		// Create abort controller
+		this._abortController = new AbortController();
+
+		let claudeProcess: cp.ChildProcess;
+
+		try {
+			if (config.wslEnabled) {
+				const nodePath = vscode.workspace.getConfiguration('claudeCodeChat').get<string>('wsl.nodePath', '/usr/bin/node');
+				const claudePath = vscode.workspace.getConfiguration('claudeCodeChat').get<string>('wsl.claudePath', '/usr/local/bin/claude');
+				const wslCommand = `"${nodePath}" --no-warnings --enable-source-maps "${claudePath}" ${args.join(' ')}`;
+
+				this._isWslProcess = true;
+				this._wslDistro = config.wslDistro;
+
+				claudeProcess = cp.spawn('wsl', ['-d', config.wslDistro, 'bash', '-ic', wslCommand], {
+					signal: this._abortController.signal,
+					detached: process.platform !== 'win32',
+					cwd: cwd,
+					stdio: ['pipe', 'pipe', 'pipe'],
+					env: {
+						...process.env,
+						FORCE_COLOR: '0',
+						NO_COLOR: '1'
+					}
+				});
+			} else {
+				this._isWslProcess = false;
+
+				claudeProcess = cp.spawn('claude', args, {
+					signal: this._abortController.signal,
+					shell: process.platform === 'win32',
+					detached: process.platform !== 'win32',
+					cwd: cwd,
+					stdio: ['pipe', 'pipe', 'pipe'],
+					env: {
+						...process.env,
+						FORCE_COLOR: '0',
+						NO_COLOR: '1'
+					}
+				});
+			}
+		} catch (error) {
+			console.error('Failed to spawn persistent process:', error);
+			return undefined;
+		}
+
+		// Store references
+		this._persistentProcess = claudeProcess;
+		this._currentClaudeProcess = claudeProcess;
+		this._processConfig = config;
+		this._persistentProcessRawOutput = '';
+
+		// Setup event handlers for persistent mode
+		this._setupPersistentProcessHandlers(claudeProcess);
+
+		// Send initialize request to get account info
+		if (claudeProcess.stdin && !this._accountInfoFetchedThisSession) {
+			this._accountInfoFetchedThisSession = true;
+			const initRequest = {
+				type: 'control_request',
+				request_id: 'init-' + Date.now(),
+				request: {
+					subtype: 'initialize'
+				}
+			};
+			claudeProcess.stdin.write(JSON.stringify(initRequest) + '\n');
+		}
+
+		console.log('Persistent Claude process spawned with PID:', claudeProcess.pid);
+		return claudeProcess;
+	}
+
+	/**
+	 * Setup event handlers for persistent process.
+	 * Key difference from regular handlers: does NOT close stdin on result.
+	 */
+	private _setupPersistentProcessHandlers(claudeProcess: cp.ChildProcess): void {
+		let errorOutput = '';
+
+		if (claudeProcess.stdout) {
+			claudeProcess.stdout.on('data', (data) => {
+				this._persistentProcessRawOutput += data.toString();
+
+				// Process JSON stream line by line
+				const lines = this._persistentProcessRawOutput.split('\n');
+				this._persistentProcessRawOutput = lines.pop() || '';
+
+				for (const line of lines) {
+					if (line.trim()) {
+						try {
+							const jsonData = JSON.parse(line.trim());
+
+							// Handle control_request messages (permission requests via stdio)
+							if (jsonData.type === 'control_request') {
+								this._handleControlRequest(jsonData, claudeProcess).catch(err => {
+									console.error('Error handling control request:', err);
+								});
+								continue;
+							}
+
+							// Handle control_response messages
+							if (jsonData.type === 'control_response') {
+								this._handleControlResponse(jsonData);
+								continue;
+							}
+
+							// Handle result message - DO NOT close stdin (keep process alive)
+							if (jsonData.type === 'result') {
+								this._onPersistentMessageComplete(jsonData);
+								// Check if restart was pending
+								if (this._restartPending) {
+									this._executeDelayedRestart();
+								}
+							}
+
+							this._processJsonStreamData(jsonData);
+						} catch (error) {
+							console.log('Failed to parse JSON line:', line, error);
+						}
+					}
+				}
+			});
+		}
+
+		if (claudeProcess.stderr) {
+			claudeProcess.stderr.on('data', (data) => {
+				errorOutput += data.toString();
+			});
+		}
+
+		// Handle unexpected process close
+		claudeProcess.on('close', (code) => {
+			console.log('Persistent process closed with code:', code);
+
+			// Only handle if this is still our current persistent process
+			if (claudeProcess !== this._persistentProcess) {
+				return;
+			}
+
+			// Clear references
+			this._persistentProcess = undefined;
+			this._processConfig = undefined;
+			this._currentClaudeProcess = undefined;
+
+			// Cancel any pending permission requests
+			this._cancelPendingPermissionRequests();
+
+			// Clear loading indicator
+			this._postMessage({ type: 'clearLoading' });
+			this._isProcessing = false;
+			this._postMessage({
+				type: 'setProcessing',
+				data: { isProcessing: false }
+			});
+
+			// Show error if non-zero exit
+			if (code !== 0 && errorOutput.trim()) {
+				this._sendAndSaveMessage({
+					type: 'error',
+					data: `Process exited unexpectedly: ${errorOutput.trim()}`
+				});
+			}
+
+			// Toast notification about crash
+			if (code !== 0) {
+				this._postMessage({
+					type: 'toast',
+					data: { message: 'Claude process exited. Will reconnect on next message.' }
+				});
+			}
+		});
+
+		claudeProcess.on('error', (error) => {
+			console.error('Persistent process error:', error.message);
+
+			if (claudeProcess !== this._persistentProcess) {
+				return;
+			}
+
+			this._persistentProcess = undefined;
+			this._processConfig = undefined;
+			this._currentClaudeProcess = undefined;
+			this._cancelPendingPermissionRequests();
+
+			// Handle ENOENT (Claude not installed)
+			if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+				this._postMessage({
+					type: 'toast',
+					data: { message: 'Claude CLI not found. Please install claude-code.' }
+				});
+			}
+		});
+	}
+
+	/**
+	 * Handle message completion in persistent mode.
+	 * Unlike regular mode, we don't close stdin.
+	 */
+	private _onPersistentMessageComplete(resultData: any): void {
+		// Extract session ID from result
+		if (resultData.session_id && !this._currentSessionId) {
+			this._currentSessionId = resultData.session_id;
+			console.log('Session ID captured:', this._currentSessionId);
+		}
+
+		// Clear loading state
+		this._postMessage({ type: 'clearLoading' });
+		this._isProcessing = false;
+		this._postMessage({
+			type: 'setProcessing',
+			data: { isProcessing: false }
+		});
+	}
+
+	/**
+	 * Kill the persistent process gracefully.
+	 */
+	private async _killPersistentProcess(): Promise<void> {
+		const processToKill = this._persistentProcess;
+		const pid = processToKill?.pid;
+
+		// Clear references
+		this._persistentProcess = undefined;
+		this._processConfig = undefined;
+		this._persistentProcessRawOutput = '';
+
+		if (!pid) {
+			return;
+		}
+
+		console.log(`Terminating persistent process (PID: ${pid})...`);
+
+		// Use existing kill logic
+		this._abortController?.abort();
+		this._abortController = undefined;
+		this._currentClaudeProcess = undefined;
+
+		await this._killProcessGroup(pid, 'SIGTERM');
+
+		// Wait for exit with timeout
+		const exitPromise = new Promise<void>((resolve) => {
+			if (processToKill?.killed) {
+				resolve();
+				return;
+			}
+			processToKill?.once('exit', () => resolve());
+		});
+
+		const timeoutPromise = new Promise<void>((resolve) => {
+			setTimeout(() => resolve(), 2000);
+		});
+
+		await Promise.race([exitPromise, timeoutPromise]);
+
+		if (processToKill && !processToKill.killed) {
+			await this._killProcessGroup(pid, 'SIGKILL');
+		}
+
+		console.log('Persistent process terminated');
+	}
+
+	/**
+	 * Schedule a process restart (debounced).
+	 * If currently processing, marks restart as pending.
+	 */
+	private _scheduleProcessRestart(reason: string): void {
+		// Clear existing debounce timer
+		if (this._restartDebounceTimer) {
+			clearTimeout(this._restartDebounceTimer);
+			this._restartDebounceTimer = undefined;
+		}
+
+		// If currently processing, mark restart pending
+		if (this._isProcessing) {
+			console.log('Restart scheduled after current message:', reason);
+			this._restartPending = true;
+			this._postMessage({
+				type: 'toast',
+				data: { message: `Settings changed. Will restart after current message.` }
+			});
+			return;
+		}
+
+		// Debounce rapid changes (300ms)
+		this._restartDebounceTimer = setTimeout(async () => {
+			this._restartDebounceTimer = undefined;
+			await this._restartPersistentProcess(reason);
+		}, 300);
+	}
+
+	/**
+	 * Execute the actual process restart.
+	 */
+	private async _restartPersistentProcess(reason: string): Promise<void> {
+		console.log('Restarting persistent process:', reason);
+
+		await this._killPersistentProcess();
+
+		// Toast notification
+		this._postMessage({
+			type: 'toast',
+			data: { message: `Process restarted: ${reason}` }
+		});
+
+		// Pre-spawn new process
+		await this._ensurePersistentProcess();
+	}
+
+	/**
+	 * Execute delayed restart after message completion.
+	 */
+	private async _executeDelayedRestart(): Promise<void> {
+		this._restartPending = false;
+		await this._restartPersistentProcess('Pending settings applied');
+	}
+
 	private _updateConversationIndex(filename: string, conversationData: ConversationData): void {
 		// Extract first and last user messages
 		const userMessages = conversationData.messages.filter((m: any) => m.messageType === 'userInput');
@@ -2991,6 +3739,9 @@ class ClaudeChatProvider {
 			// Send updated settings to UI
 			this._sendCurrentSettings();
 
+			// Schedule process restart for YOLO mode change
+			this._scheduleProcessRestart('YOLO mode enabled');
+
 		} catch (error) {
 			console.error('Error enabling YOLO mode:', error);
 		}
@@ -2998,19 +3749,65 @@ class ClaudeChatProvider {
 
 	private _saveInputText(text: string): void {
 		this._draftMessage = text || '';
+		// Persist to workspaceState for session restoration
+		this._context.workspaceState.update('claude.draftMessage', this._draftMessage);
+	}
+
+	private _saveScrollPosition(position: number): void {
+		this._scrollPosition = position || 0;
+		// Persist to workspaceState for session restoration
+		this._context.workspaceState.update('claude.scrollPosition', this._scrollPosition);
+	}
+
+	private _renameChat(name: string): void {
+		this._chatName = name || 'Claude Code Chat';
+		// Persist to workspaceState for session restoration
+		this._context.workspaceState.update('claude.chatName', this._chatName);
+
+		// Update the VS Code panel title
+		if (this._panel) {
+			this._panel.title = this._chatName;
+		}
+
+		// Update the conversation index entry if we have a current session
+		if (this._currentSessionId) {
+			const index = this._conversationIndex.findIndex(
+				(c) => c.sessionId === this._currentSessionId
+			);
+			if (index !== -1) {
+				this._conversationIndex[index].firstUserMessage = this._chatName;
+				this._context.workspaceState.update('claude.conversationIndex', this._conversationIndex);
+			}
+		}
 	}
 
 	private async _updateSettings(settings: { [key: string]: any }): Promise<void> {
 		const config = vscode.workspace.getConfiguration('claudeCodeChat');
 
+		// Map frontend keys to VS Code configuration keys
+		const keyMap: { [key: string]: string } = {
+			'wslEnabled': 'wsl.enabled',
+			'wslDistribution': 'wsl.distro',
+			'nodePath': 'wsl.nodePath',
+			'claudePath': 'wsl.claudePath',
+			'compactToolOutput': 'compact.toolOutput',
+			'compactMcpCalls': 'compact.mcpCalls',
+			'previewHeight': 'compact.previewHeight',
+			'showTodoList': 'display.showTodoList',
+			'yoloMode': 'permissions.yoloMode',
+		};
+
 		try {
-			for (const [key, value] of Object.entries(settings)) {
-				if (key === 'permissions.yoloMode') {
+			for (const [frontendKey, value] of Object.entries(settings)) {
+				// Map the key or use as-is if no mapping exists
+				const configKey = keyMap[frontendKey] || frontendKey;
+
+				if (configKey === 'permissions.yoloMode') {
 					// YOLO mode is workspace-specific
-					await config.update(key, value, vscode.ConfigurationTarget.Workspace);
+					await config.update(configKey, value, vscode.ConfigurationTarget.Workspace);
 				} else {
 					// Other settings are global (user-wide)
-					await config.update(key, value, vscode.ConfigurationTarget.Global);
+					await config.update(configKey, value, vscode.ConfigurationTarget.Global);
 				}
 			}
 
@@ -3037,11 +3834,17 @@ class ClaudeChatProvider {
 		// Validate model name to prevent issues mentioned in the GitHub issue
 		const validModels = ['opus', 'sonnet', 'default'];
 		if (validModels.includes(model)) {
+			const previousModel = this._selectedModel;
 			this._selectedModel = model;
 			console.log('Model selected:', model);
 
 			// Store the model preference in workspace state
 			this._context.workspaceState.update('claude.selectedModel', model);
+
+			// Schedule process restart if model changed
+			if (previousModel !== model) {
+				this._scheduleProcessRestart(`Model changed to ${model}`);
+			}
 
 			// Show confirmation
 			vscode.window.showInformationMessage(`Claude model switched to: ${model.charAt(0).toUpperCase() + model.slice(1)}`);
