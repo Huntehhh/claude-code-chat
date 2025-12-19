@@ -16,6 +16,7 @@
 	},
 	"exclude": [
 		"mcp-permissions.js",
-		"claude-code-chat-permissions-mcp"
+		"claude-code-chat-permissions-mcp",
+		"src/webview"
 	]
 }

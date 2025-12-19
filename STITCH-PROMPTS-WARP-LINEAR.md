@@ -1,0 +1,627 @@
+# Claude Code Chat - Stitch Prompts (Warp/Linear Style)
+
+**Style:** Warp Terminal × Linear App × Claude.ai - terminal aesthetic, premium SaaS
+**Accent Colors:** Amber (#FFA344) and Coral (#FF7369) - NO GREEN
+
+---
+
+## Build Order (7 Prompts)
+
+1. **Prompt 1:** Complete app layout (header + chat container + input area + status bar)
+2. **Prompt 2:** Chat messages (user messages + Claude responses + tool cards + code blocks)
+3. **Prompt 3:** Input controls and modes (textarea + toggles + dropdowns + popups)
+4. **Prompt 4:** Primary modals (settings + MCP servers + model selector)
+5. **Prompt 5:** Secondary modals (history panel + slash commands + file picker)
+6. **Prompt 6:** Permission system (permission dialog + thinking intensity + install modal)
+7. **Prompt 7:** Visual polish (diff viewer + todo panel + loading states + error states)
+
+---
+
+## PROMPT 1: Complete App Layout
+
+```
+Create "Claude Code Chat" - a VS Code extension sidebar panel for an AI coding assistant.
+
+THEME: DARK MODE ONLY. OLED black backgrounds (#09090b, #0f0f0f, #171717). Dark terminal-style interface.
+
+ACCENT COLOR: Amber/Orange (#FFA344) for all interactive elements. Only use colors listed below - no other colors.
+
+CORNER RADIUS RULE:
+- Rectangular containers (input boxes, cards, modals): SHARP corners (0px radius)
+- Pills and toggle tracks: Rounded (full radius)
+- Circular buttons: Full circle
+
+SPACING RULE (generous padding throughout):
+- Panel outer margin: 16px from all edges
+- Section padding: 16px internal padding
+- Element gaps: 12px between elements
+- Input padding: 12px inside text areas
+- Status bar padding: 12px horizontal
+
+LAYOUT TYPE: VS Code sidebar panel. Vertical orientation. Think: Slack sidebar, Discord panel, VS Code Explorer.
+
+DESIGN REFERENCES (study these for quality):
+- Warp Terminal (terminal aesthetic, dark theme, monospace feel)
+- Claude.ai (Anthropic's chat interface - clean, minimal, professional)
+- Linear App (premium SaaS, subtle depth, tight typography)
+- Zed Editor (minimal, professional code UI)
+- Arc Browser sidebar (vertical space, subtle borders)
+
+DESIGN PHILOSOPHY:
+- "Warp Terminal" meets "Claude.ai" aesthetic
+- Premium developer tool, not a generic chat app
+- Achromatic, high-contrast dark theme
+- Typography that feels expensive (tight letter-spacing: -0.02em)
+- Technical, high-density, no wasted whitespace
+- Depth through 1px borders only - NO drop shadows
+
+NEGATIVE CONSTRAINTS (DO NOT INCLUDE):
+- NO suggestion cards or quick action buttons in welcome area
+- NO rounded corners on rectangular containers (sharp edges only)
+- NO drop shadows anywhere
+- NO gradient backgrounds (except send button)
+- NO icons in welcome area
+- NO spinners - use "Tinkering..." text for loading
+- NO light mode - dark theme only
+
+COLORS (OLED-black with AMBER accent):
+- Base: #09090b (OLED black canvas)
+- Surface: #0f0f0f (elevated panels)
+- Card: #171717 (inputs, hover states)
+- Border: #222225 (subtle, 1px only - slightly darker than zinc)
+- Text: #fafafa
+- Secondary: #a1a1a1
+- Muted: #8b8b94 (slightly lighter for readability)
+- Dim: #52525b
+- Accent: #FFA344 (amber - PRIMARY)
+- Warning: #FF7369 (coral red)
+
+GLOBAL STYLES:
+- Selection: ::selection { background: rgba(255,163,68,0.2); color: #FFA344 }
+- Scrollbars: 10px width, transparent track, #27272a thumb (4px radius), hover #3f3f46
+- Typography: font-feature-settings: "cv11", "ss01" for Inter/system fonts
+
+LAYOUT:
+
+HEADER (height 56px, background rgba(15,15,15,0.8), backdrop-filter blur(12px), border-bottom 1px #222225, padding 0 16px):
+- Left: Chat title (14px, weight 500, tracking -0.02em, #fafafa) - EDITABLE on click
+- Right: Icon buttons (⚙️ 🕐) ghost style #8b8b94 hover #fafafa, gap 8px
+- Right: "New" button (#FFA344 background, white text, SHARP corners, padding 8px 12px)
+
+MAIN AREA (flex 1, background #09090b, padding 24px 16px):
+- Vertically centered content
+- Welcome: "Ready" (20px, weight 500, #fafafa)
+- Below: "Type a message below" (13px, #8b8b94, margin-top 8px)
+- Nothing else. Pure minimal emptiness.
+
+INPUT AREA (background #0f0f0f, border-top 1px #222225, padding 16px):
+- Input box: background #171717, border 1px #222225, SHARP corners, padding 12px, monospace font
+- Placeholder: "Message..." (#52525b)
+- Focus state: border #FFA344
+- Below input (margin-top 12px, flex row, justify-between):
+  - Left: "Plan" toggle + "Think" toggle (pill shapes, gap 12px, #222225 track, #FFA344 when active)
+  - Right: Send button (32px circle, #FFA344 amber background, white arrow icon)
+
+STATUS BAR (height 36px, background rgba(9,9,11,0.8), backdrop-filter blur(12px), border-top 1px #222225, padding 0 16px):
+- Left: "ASK BEFORE EDITS" (10px, uppercase, #52525b)
+- Right: "78% CONTEXT" (10px, uppercase, #52525b)
+
+```
+
+**Checkpoint:** Dark OLED black theme, Warp Terminal meets Claude.ai aesthetic. Amber accents.
+
+---
+
+## PROMPT 2: Chat Messages & Code Blocks
+
+```
+Add chat conversation to the MAIN AREA, replacing the welcome state.
+
+CHAT MESSAGES (scrollable, padding 16px, background #09090b):
+
+USER MESSAGE:
+- No background card, text directly on canvas
+- Top border 1px #222225 as separator (except first message)
+- Text: 14px, #fafafa, line-height 1.6
+- Supports @file references: show as inline pill (#171717 bg, #FFA344 text, 4px radius, 1px border #222225)
+- Copy button fades in on hover (ghost, top-right, #8b8b94)
+- Truncate long messages at 400 chars with "Show more" link
+
+USER IMAGE (when image attached):
+- Max-height: 200px, max-width: 100%
+- Border-radius: 6px, border: 1px #222225
+- Cursor: zoom-in (click to enlarge)
+- Margin: 8px 0
+
+DATE/SESSION SEPARATOR (between conversation sessions):
+- Centered text, 11px, #52525b
+- Horizontal lines on either side (gradient fade from #222225 to transparent)
+- Format: "December 18, 2025" or "Today"
+
+CLAUDE MESSAGE:
+- Left border accent: 2px solid #FFA344
+- Padding-left: 14px
+- Small bullet "•" before first line (#FFA344, opacity 60%)
+- Full markdown support: **bold**, *italic*, headers (##, ###), lists, tables, blockquotes
+- Text: 14px, #e4e4e7, line-height 1.6
+- Paragraph spacing: margin-bottom 12px
+
+BLOCKQUOTE (inside Claude messages):
+- Border-left: 2px solid #52525b
+- Padding-left: 12px, margin: 12px 0
+- Text: italic, #a1a1a1
+
+CODE BLOCK (inside messages):
+- Container: background #0f0f0f, border 1px #222225, SHARP corners (0px radius), margin 12px 0
+- Header bar: background #171717, padding 6px 12px, border-bottom 1px #222225
+- Header left: Language label "PYTHON" (10px, uppercase, #8b8b94, tracking 0.5px)
+- Header right: Copy button (ghost, #8b8b94, hover #fafafa)
+- Code content: padding 12px 14px, monospace 13px, line-height 1.5
+- Syntax highlighting:
+  - Keywords: #FFA344 (amber)
+  - Strings: #a1a1a1 (gray)
+  - Comments: #52525b (dim, italic)
+  - Numbers: #FF7369 (coral)
+  - Functions: #fafafa (white)
+  - Properties: #e4e4e7
+
+INLINE CODE:
+- Background: #1c1c1f
+- Border: 1px solid #2d2d30
+- Text: #FFA344
+- Padding: 2px 6px
+- Border-radius: 3px
+- Font: monospace
+
+TOOL USE CARD (collapsed state):
+- Horizontal bar: background #171717, border 1px #222225, SHARP corners, padding 10px 14px
+- Left: Tool icon (18px circle, #FFA344 bg, white letter centered)
+- Center: Summary text "Reading src/main.py" (13px, #a1a1a1)
+- Right: Duration "0.2s" (#52525b), chevron ▶
+- Hover: background #1f1f1f, 150ms transition
+- Entire card clickable
+
+TOOL USE CARD (expanded state):
+- Chevron rotates to ▼
+- Below summary: Expandable sections
+- INPUT section: Label "Input" (#8b8b94), content in monospace (#0f0f0f inset bg, border 1px #222225)
+- OUTPUT section: Label "Output" (#8b8b94), content truncated at 200 chars
+- File paths are clickable links (#FFA344, hover underline)
+- Success badge: "✓" (#FFA344)
+- Error badge: "✗" (#FF7369)
+
+SYSTEM MESSAGE:
+- Centered, 11px, #52525b, italic
+- Used for "Session started", "Context cleared", etc.
+
+ERROR MESSAGE:
+- Background: rgba(255,115,105,0.08)
+- Left border: 2px #FF7369
+- Padding: 12px
+- Text: #FF7369
+
+THINKING MESSAGE (collapsible):
+- Header: "Thinking..." with collapse chevron
+- Content: italic, #8b8b94, smaller font (13px)
+- Collapsed by default, click to expand
+```
+
+**Checkpoint:** Verify user messages, Claude messages with code blocks, tool cards in both states.
+
+---
+
+## PROMPT 3: Input Controls & Popups
+
+```
+Enhance INPUT AREA with full controls and popup overlays.
+
+MODE TOGGLES (above textarea, margin-bottom 8px):
+- Two toggles side by side, gap 12px
+- Label: 11px, #8b8b94, margin-right 6px
+- Track: 32px × 16px, background #222225, 8px radius
+- Thumb: 12px circle, #fafafa
+- Active: track #FFA344, thumb slides right, box-shadow: 0 0 8px rgba(245,158,11,0.2) (amber glow)
+- Transition: 150ms ease
+- "Plan" toggle and "Think" toggle (Think opens intensity modal when enabled)
+
+TEXTAREA:
+- Background: #171717
+- Border: 1px #222225
+- Border-radius: 0px (SHARP corners)
+- Padding: 12px
+- Font: monospace, 14px
+- Placeholder: "Message..." (#52525b)
+- Min-height: 44px, auto-expands with content
+- Max-height: 200px, then scroll
+- Focus: border #FFA344, box-shadow 0 0 0 2px rgba(255,163,68,0.1)
+- Drag-over state: dashed border #FFA344, semi-transparent overlay with "Drop file" text centered
+
+IMAGE ATTACHMENT PREVIEW (when image staged before send):
+- Thumbnail: 48px × 48px, SHARP corners, border 1px #222225
+- Position: inside textarea, bottom-left, margin 8px
+- Remove button: 16px circle, #FF7369 bg, white "×", top-right of thumbnail
+- Multiple images stack horizontally with 6px gap
+
+CONTROLS ROW (below textarea, margin-top 8px, flex justify-between):
+- Left group (gap 6px):
+  - Model dropdown: "Opus ▾" (#171717 bg, #a1a1a1 text, SHARP corners, 11px)
+  - MCP dropdown: "MCP ▾" (same style)
+- Right group (gap 6px):
+  - "/" button (ghost, 28px square, #8b8b94, hover #171717 bg)
+  - "@" button (same)
+  - Image button "🖼" (same)
+  - Send button: 32px circle, #FFA344 amber background, white "↑" icon
+
+FILE PICKER POPUP (triggered by @ or @ button):
+- Floating above input, 100% width of input area
+- Background #0f0f0f, border 1px #222225, SHARP corners
+- Shadow: 0 4px 16px rgba(0,0,0,0.4)
+- Max-height: 300px, scrollable
+- Header: Search input "Search files..." (#171717 bg, magnifier icon)
+- File list items:
+  - File icon (colorful by type: JS=#F7DF1E, TS=#3178C6, PY=#3776AB)
+  - Filename (14px, #fafafa, weight 500)
+  - Path below (12px, #52525b)
+  - Hover: #171717 background
+  - Selected: left border 2px #FFA344
+- Empty state: "No files found" centered, 13px, #52525b, subtle file icon above
+- Footer: "↑↓ Navigate • Enter Select • Esc Close" (10px, #52525b)
+- Keyboard navigation: arrows, enter, escape
+
+SLASH COMMANDS POPUP (triggered by / or / button):
+- Same floating style, 300px width
+- "/" badge in search input
+- Commands grouped:
+  - "Custom" section header
+  - "Built-in" section header
+- Each command: emoji + name (14px) + description (12px, #8b8b94)
+- Hover: #171717 background
+- Selected: #FFA344 text
+```
+
+**Checkpoint:** Verify toggles, textarea states, both popup overlays with keyboard nav.
+
+---
+
+## PROMPT 4: Primary Modals
+
+```
+Design three primary modal dialogs.
+
+MODAL BACKDROP: rgba(0,0,0,0.7), backdrop-filter blur(4px), click outside to close.
+
+MODAL SHELL:
+- Centered, max-width varies by modal
+- Background #0f0f0f, border 1px #222225, SHARP corners
+- Shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 0 rgba(255,255,255,0.05) (top lip lighting)
+- Header: Title (16px, weight 500), X close button (ghost, #8b8b94)
+- Animation: fade + scale from 0.95 to 1.0, 150ms ease
+
+SETTINGS MODAL (340px wide, max 80vh):
+- Header: "Settings"
+- Scrollable content, padding 16px
+
+"WSL Configuration" section:
+- Section header (12px, uppercase, #8b8b94, tracking 0.5px)
+- Toggle row: "Enable WSL" with switch
+- When enabled, show inputs:
+  - WSL Distribution (text input)
+  - Node.js Path (text input)
+  - Claude Path (text input)
+- Helper text below each (11px, #52525b)
+
+"Permissions" section:
+- Empty state: Lock icon, "No permissions set" (#52525b)
+- Permission list (max 200px scroll):
+  - Each row: Tool badge (uppercase, #171717 bg, 10px) + pattern (mono) + trash icon
+- "Add Rule" button (#FFA344 text, ghost)
+- "Enable YOLO Mode" toggle at bottom (warning: #FF7369 tint when on)
+
+"Display" section:
+- Three toggle rows:
+  - "Compact tool output"
+  - "Hide MCP tool calls"
+  - "Show Tasks panel"
+
+MCP SERVERS MODAL (340px wide):
+- Header: "MCP Servers"
+- Server list:
+  - Each: Icon + Name (14px) + Type badge (HTTP/SSE/stdio) + Toggle + Menu "⋯"
+  - Type badges: HTTP=#FFA344, SSE=#a1a1a1, stdio=#8b8b94
+- "Add Server" button expands inline form:
+  - Name input
+  - Type dropdown
+  - Conditional: URL (http/sse) or Command + Args (stdio)
+  - Save/Cancel buttons
+- "Popular Servers" section:
+  - 2-column grid of cards
+  - Each: Emoji (24px) + Name + Description (11px)
+  - Cards: 📚 Context7, 🧠 Memory, 🔗 Sequential, 🎭 Puppeteer, 🌐 Fetch, 📁 Filesystem
+  - Click to auto-add
+
+MODEL SELECTOR MODAL (300px wide):
+- Header: "Select Model"
+- Three radio card options, stacked:
+  - "Opus" - Most capable (description below)
+  - "Sonnet" - Fast & capable
+  - "Default" - Your configured model + "Configure" link
+- Selected: left border #FFA344, #171717 fill
+- Radio circle: #222225 border, #FFA344 fill when selected
+```
+
+**Checkpoint:** All three modals with proper sections and controls.
+
+---
+
+## PROMPT 5: Secondary Modals
+
+```
+Design three secondary overlays.
+
+CONVERSATION HISTORY PANEL:
+- Slide-in from right, 320px wide, full height
+- Background #0f0f0f, left border 1px #222225
+- Shadow: -4px 0 16px rgba(0,0,0,0.3), inset 1px 0 0 0 rgba(255,255,255,0.03) (left edge lighting)
+- Animation: slide from right, 200ms ease
+- Header: "History" (16px), X close button (#8b8b94)
+- Search input below header (#171717 bg, border 1px #222225)
+- Conversation list (scrollable):
+  - Each item: padding 12px, hover #171717
+  - Title (14px, weight 500, truncate)
+  - Meta row: Source badge + timestamp + message count
+  - Source badges: "CLI" (#9A6DD7 tint), "Chat" (#FFA344 tint)
+  - Preview text (12px, #8b8b94, 2 lines max)
+  - Active item: left border 2px #FFA344
+- Click loads conversation
+
+CHECKPOINT BROWSER (inside history panel, per conversation):
+- Expandable section below each conversation item
+- Header: "⏪ Checkpoints" with count badge, chevron toggle
+- Checkpoint list (nested, indented 12px):
+  - Each: Git SHA (monospace, 7 chars, #8b8b94) + message (truncate) + relative time
+  - Hover: #171717 background
+  - "Restore" button appears on hover (ghost, #FFA344 text)
+- Empty state: "No checkpoints yet" (12px, #52525b)
+- NOTE: UI placeholder - functionality coming soon
+
+SLASH COMMANDS MODAL (340px wide):
+- Header: "Commands"
+- Sticky search with "/" prefix badge
+
+"Custom Commands" section:
+- Grid of existing custom command pills
+- "➕ Add" card with dashed border
+- Add form (when expanded):
+  - Command name input with "/" prefix
+  - Prompt textarea
+  - Save/Cancel buttons
+
+"Built-in Snippets" section:
+- Grid: ⚡Performance, 🔒Security, 🔍Review, 📖Explain, 🐛Debug, 🔄Refactor, 🧪Test, 📝Document
+
+"CLI Commands" section:
+- Scrollable list of 23 commands
+- Each: emoji + /name + description
+- Commands: /clear, /compact, /config, /cost, /doctor, /help, /init, /login, /logout, /mcp, /memory, /model, /permissions, /review, /status, /usage, etc.
+- Click opens terminal with command
+
+FILE PICKER MODAL (320px wide):
+- Header: "Select File"
+- Large search input with magnifier
+- File list:
+  - Colorful file type icons (JS yellow, TS blue, PY green, MD gray)
+  - Filename (14px, weight 500)
+  - Path (12px, #52525b)
+  - Images show 32px thumbnail
+- Keyboard: ↑↓ arrows, Enter select, Esc close
+- Click outside closes
+```
+
+**Checkpoint:** History panel sliding in, slash commands with sections, file picker.
+
+---
+
+## PROMPT 6: Permission System & Install
+
+```
+Design permission and install components.
+
+PERMISSION REQUEST DIALOG (inline in message flow, not modal):
+- Margin: 8px 0 16px
+- Background: rgba(255,163,68,0.06)
+- Border: 1px rgba(255,163,68,0.2)
+- Border-radius: 8px
+- Padding: 14px
+- Slide-up animation on appear
+
+Header row:
+- ⚠️ Warning icon (#FFA344)
+- "Permission needed" (14px, weight 500)
+- "⋯" menu button (right side)
+- Menu options: "🚀 Enable YOLO Mode", "📋 Copy command"
+
+Content:
+- Tool badge: uppercase pill (#171717 bg, #FFA344 text, full radius)
+- Command display: monospace, #0f0f0f bg, 1px #222225 border, padding 8px 10px, SHARP corners
+
+Actions row (right-aligned, gap 8px):
+- "Deny" button (ghost, #FF7369 text)
+- "Allow" button (#171717 bg, #fafafa text)
+- "Always Allow" button (#FFA344 bg, white text)
+
+Decided states (150ms fade transition):
+- Approved: background rgba(255,163,68,0.08), "✓ Allowed" badge
+- Denied: background rgba(255,115,105,0.08), "✗ Denied" badge
+- Expired: 50% opacity, gray tint
+
+THINKING INTENSITY MODAL (300px wide):
+- Header: "Thinking Depth"
+- Description: "Higher = deeper reasoning, more tokens" (12px, #8b8b94)
+- Horizontal slider:
+  - Track: 4px height, #222225, full width
+  - Thumb: 20px circle, #fafafa, shadow
+  - Active portion: #FFA344 with glow (box-shadow 0 0 8px rgba(245,158,11,0.2))
+  - 4 stop positions (0-3)
+- Labels below track (evenly spaced):
+  - "Think" | "Hard" | "Harder" | "Ultra"
+  - Active: #fafafa, weight 500
+  - Inactive: #8b8b94
+  - Labels are clickable
+- Footer: "Confirm" button (full width, #FFA344 background, SHARP corners)
+
+INSTALL MODAL (300px wide, centered):
+- Close X button top-right (#8b8b94)
+
+Initial state:
+- Download icon (40px, #FFA344)
+- "Install Claude Code" (18px, weight 500)
+- "Required for this extension" (13px, #8b8b94)
+- "Install Now" button (full width, #FFA344 background, 44px height, SHARP corners)
+- "View documentation" link below (#8b8b94, hover #fafafa)
+
+Progress state:
+- Circular progress ring (40px, #FFA344, animated rotation)
+- "Installing..." (14px)
+- "This may take a minute" (12px, #8b8b94)
+
+Success state:
+- Checkmark in circle (40px, #FFA344, animated draw)
+- "Installation Complete" (18px, weight 500)
+- "Start chatting" (13px, #8b8b94)
+```
+
+**Checkpoint:** Permission dialog states, thinking slider, install modal states.
+
+---
+
+## PROMPT 7: Diff Viewer, Todo Panel & Loading States
+
+```
+Final components for visual polish.
+
+DIFF VIEWER (inside messages, for file changes):
+- Container: background #0f0f0f, border 1px #222225, SHARP corners
+- Header bar: padding 8px 12px, border-bottom 1px #222225
+  - Left: File path (monospace, 12px, #a1a1a1), clickable
+  - Right: "Open Diff" button (ghost, #8b8b94, hover #fafafa)
+- Diff content:
+  - Line numbers gutter (24px wide, #171717 bg, #52525b text)
+  - Added lines "+": background rgba(255,163,68,0.1), #FFA344 prefix
+  - Removed lines "-": background rgba(255,115,105,0.1), #FF7369 prefix
+  - Context lines: #a1a1a1 text, 60% opacity
+  - Monospace font, 13px
+- Collapsible: "Show X more lines" button for hidden context
+- Max height 300px, then scroll
+
+TODO PANEL (collapsible, above input area when enabled):
+- Container: background #0f0f0f, border 1px #222225, SHARP corners
+- Margin: 0 12px 8px
+- Header (clickable to collapse):
+  - 📋 icon
+  - "Tasks" label (13px, weight 500)
+  - Count badge (pill, #171717 bg, #FFA344 text, full radius)
+  - Chevron ▼ (rotates to ▶ when collapsed)
+- Content (max-height 150px, scroll):
+  - Todo items as list
+  - Each: Status icon + Task text (13px)
+  - Status icons:
+    - ⏳ Pending (#8b8b94)
+    - ✳ In-progress (#FFA344, subtle pulse animation)
+    - ✅ Completed (#8b8b94, strikethrough text)
+- Collapsed: only header visible
+
+STATUS BAR STATES:
+- Ready: Small dot (#FFA344) + "Ready" (#52525b)
+- Processing: Pulsing dot (#FFA344 with animation) + "Processing..." + Stop button appears
+- Error: Red dot (#FF7369) + "Error" text
+
+LOADING STATES:
+
+"Tinkering" indicator (when Claude is responding):
+- Inline after last message
+- "✳ Tinkering..." (14px, italic, #8b8b94)
+- Asterisk has subtle rotation animation (2s linear infinite)
+- NO dots, NO spinner
+
+Tool execution indicator:
+- Inside tool card: "Running..." with subtle pulse
+- "Running Read..." or "Running Edit..." based on tool
+
+Full thinking overlay (rare, for long operations):
+- Semi-transparent #09090b at 85% covers messages
+- NOT covering input area
+- Centered: Pulsing asterisk ✳ (32px, #FFA344) + "Claude is thinking..." text
+
+MICRO-INTERACTIONS:
+- All buttons: 150ms ease transitions
+- Hover: brightness(1.1) or background shift
+- Active/Press: scale(0.97)
+- Focus rings: 2px #FFA344 with 2px offset
+- Cards: hover background #171717 → #1f1f1f
+- Tooltips: #171717 bg, #fafafa text, SHARP corners, arrow, fade in 100ms
+- Success flash: brief #FFA344 border pulse
+- Error shake: brief horizontal shake animation
+- Selection highlight: rgba(255,163,68,0.2) background
+```
+
+**Checkpoint:** Diff viewer with +/- lines, todo panel states, all loading animations.
+
+---
+
+## Theme Reference
+
+**Backgrounds:**
+- #09090b — Canvas (OLED black)
+- #0f0f0f — Surface (panels, modals)
+- #171717 — Card (inputs, hover)
+- #1c1c1f — Inline code background
+- #1f1f1f — Elevated hover
+- #222225 — Border (slightly darker than zinc)
+- #2d2d30 — Inline code border
+
+**Text:**
+- #fafafa — Primary
+- #e4e4e7 — Body
+- #a1a1a1 — Secondary
+- #8b8b94 — Muted (slightly lighter for readability)
+- #52525b — Dim/Disabled
+
+**Accents (NO GREEN):**
+- #FFA344 — Amber (primary)
+- #FFB366 — Amber hover
+- #FF7369 — Coral (errors, warnings)
+- #FF8A80 — Coral light
+- Send button: linear-gradient(135deg, #FFA344, #FF7369)
+
+**Effects:**
+- Selection: rgba(255,163,68,0.2) background
+- Active toggle glow: box-shadow 0 0 8px rgba(245,158,11,0.2)
+- Top lip lighting: inset 0 1px 0 0 rgba(255,255,255,0.05)
+- Glassmorphism: backdrop-filter blur(12px) on header/status
+
+**Code Syntax:**
+- Keywords: #FFA344
+- Strings: #a1a1a1
+- Comments: #52525b (italic)
+- Numbers: #FF7369
+- Functions: #fafafa
+
+**Typography:**
+- UI: -apple-system, "Inter", "Segoe UI", sans-serif
+- Code: 'JetBrains Mono', 'SF Mono', monospace
+- Headings: weight 500, tracking -0.02em
+- Body: 14px, line-height 1.5
+- Small: 11-12px
+- Status: 10px, uppercase, tracking 0.5px
+- Font features: font-feature-settings: "cv11", "ss01"
+
+**Radius:**
+- Rectangular containers (inputs, cards, modals): 0px (sharp corners)
+- Pills/Toggles: Full radius (rounded ends)
+- Circular buttons: Full circle
+
+---
+
+*Style: Warp Terminal × Claude.ai × Linear App*
+*Accent: Amber/Coral (NO GREEN)*
+*Version: 1.1 - December 18, 2025*

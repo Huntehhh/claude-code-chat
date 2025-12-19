@@ -44,6 +44,15 @@ function loadWorkspacePermissions(): WorkspacePermissions {
 }
 
 
+/**
+ * Escapes special regex characters in a string except for *.
+ * Used to safely convert glob-like patterns to regex.
+ */
+function escapeRegexExceptStar(str: string): string {
+  // Escape all regex special chars except *
+  return str.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function isAlwaysAllowed(toolName: string, input: any): boolean {
   const permissions = loadWorkspacePermissions();
   const toolPermission = permissions.alwaysAllow[toolName];
@@ -66,7 +75,9 @@ function isAlwaysAllowed(toolName: string, input: any): boolean {
             return true; // Exact match for base command
           }
           // Pattern match for command with arguments
-          const pattern = allowedCmd.replace(/\*/g, '.*');
+          // Fix: Escape regex special characters before converting * to .* to prevent ReDoS
+          const escapedPattern = escapeRegexExceptStar(allowedCmd);
+          const pattern = escapedPattern.replace(/\*/g, '.*');
           return new RegExp(`^${pattern}$`).test(command);
         }
         return command.startsWith(allowedCmd);
@@ -79,6 +90,15 @@ function isAlwaysAllowed(toolName: string, input: any): boolean {
 
 function generateRequestId(): string {
   return `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+}
+
+/**
+ * Validates that a request ID is safe and doesn't contain path traversal characters.
+ * Returns true if the ID is valid, false otherwise.
+ */
+function isValidRequestId(requestId: string): boolean {
+  // Only allow alphanumeric, underscore, and hyphen - prevents path traversal
+  return /^[a-zA-Z0-9_-]{10,50}$/.test(requestId);
 }
 
 async function requestPermission(tool_name: string, input: any): Promise<{approved: boolean, reason?: string}> {
@@ -94,8 +114,17 @@ async function requestPermission(tool_name: string, input: any): Promise<{approv
   }
 
   const requestId = generateRequestId();
-  const requestFile = path.join(PERMISSIONS_PATH, `${requestId}.request`);
-  const responseFile = path.join(PERMISSIONS_PATH, `${requestId}.response`);
+
+  // Validate requestId to prevent path traversal (defense in depth)
+  if (!isValidRequestId(requestId)) {
+    console.error(`Invalid request ID generated: ${requestId}`);
+    return { approved: false, reason: "Invalid request ID" };
+  }
+
+  // Use path.basename for additional safety against path traversal
+  const safeId = path.basename(requestId);
+  const requestFile = path.join(PERMISSIONS_PATH, `${safeId}.request`);
+  const responseFile = path.join(PERMISSIONS_PATH, `${safeId}.response`);
 
   // Write request file
   const request = {
@@ -110,8 +139,20 @@ async function requestPermission(tool_name: string, input: any): Promise<{approv
 
     // Use fs.watch to wait for response file
     return new Promise<{approved: boolean, reason?: string}>((resolve) => {
+      let watcher: fs.FSWatcher | null = null;
+      let readErrorCount = 0;
+      const MAX_READ_ERRORS = 3; // Max retries before giving up
+
+      // Helper to clean up resources
+      const cleanup = () => {
+        if (watcher) {
+          watcher.close();
+          watcher = null;
+        }
+      };
+
       const timeout = setTimeout(() => {
-        watcher.close();
+        cleanup();
         // Clean up request file on timeout
         if (fs.existsSync(requestFile)) {
           fs.unlinkSync(requestFile);
@@ -120,7 +161,7 @@ async function requestPermission(tool_name: string, input: any): Promise<{approv
         resolve({ approved: false, reason: "Permission request timed out" });
       }, 3600000); // 1 hour timeout
 
-      const watcher = fs.watch(PERMISSIONS_PATH, (eventType, filename) => {
+      watcher = fs.watch(PERMISSIONS_PATH, (eventType, filename) => {
         if (eventType === 'rename' && filename === path.basename(responseFile)) {
           // Check if file exists (rename event can be for creation or deletion)
           if (fs.existsSync(responseFile)) {
@@ -133,7 +174,7 @@ async function requestPermission(tool_name: string, input: any): Promise<{approv
 
               // Clear timeout and close watcher
               clearTimeout(timeout);
-              watcher.close();
+              cleanup();
 
               resolve({
                 approved: response.approved,
@@ -141,7 +182,15 @@ async function requestPermission(tool_name: string, input: any): Promise<{approv
               });
             } catch (error) {
               console.error(`Error reading response file: ${error}`);
-              // Continue watching in case of read error
+              readErrorCount++;
+              // Clean up after max retries to prevent resource leak
+              if (readErrorCount >= MAX_READ_ERRORS) {
+                console.error(`Max read errors reached, cleaning up watcher`);
+                clearTimeout(timeout);
+                cleanup();
+                resolve({ approved: false, reason: "Error reading response file" });
+              }
+              // Otherwise continue watching in case of transient read error
             }
           }
         }
@@ -151,7 +200,7 @@ async function requestPermission(tool_name: string, input: any): Promise<{approv
       watcher.on('error', (error) => {
         console.error(`File watcher error: ${error}`);
         clearTimeout(timeout);
-        watcher.close();
+        cleanup();
         resolve({ approved: false, reason: "File watcher error" });
       });
     });

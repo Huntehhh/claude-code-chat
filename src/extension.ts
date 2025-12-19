@@ -167,6 +167,11 @@ class ClaudeChatProvider {
 		// Load conversation index from workspace state
 		this._conversationIndex = this._context.workspaceState.get('claude.conversationIndex', []);
 
+		// Rebuild index from files if empty (e.g., after extension reinstall)
+		if (this._conversationIndex.length === 0) {
+			this._rebuildConversationIndex();
+		}
+
 		// Load saved model preference
 		this._selectedModel = this._context.workspaceState.get('claude.selectedModel', 'default');
 
@@ -2468,6 +2473,61 @@ class ClaudeChatProvider {
 
 	private _getLatestConversation(): any | undefined {
 		return this._conversationIndex.length > 0 ? this._conversationIndex[0] : undefined;
+	}
+
+	private async _rebuildConversationIndex(): Promise<void> {
+		if (!this._conversationsPath) { return; }
+
+		try {
+			const conversationsUri = vscode.Uri.file(this._conversationsPath);
+			const files = await vscode.workspace.fs.readDirectory(conversationsUri);
+
+			const conversationFiles = files
+				.filter(([name, type]) => type === vscode.FileType.File && name.endsWith('.json'))
+				.map(([name]) => name);
+
+			for (const filename of conversationFiles) {
+				try {
+					const filePath = path.join(this._conversationsPath, filename);
+					const fileUri = vscode.Uri.file(filePath);
+					const content = await vscode.workspace.fs.readFile(fileUri);
+					const data = JSON.parse(new TextDecoder().decode(content));
+
+					// Extract first and last user messages
+					const userMessages = (data.messages || []).filter((m: any) => m.messageType === 'userInput');
+					const firstUserMessage = userMessages[0]?.data || '';
+					const lastUserMessage = userMessages[userMessages.length - 1]?.data || firstUserMessage;
+
+					const indexEntry = {
+						filename,
+						sessionId: data.sessionId,
+						startTime: data.startTime,
+						endTime: data.endTime || data.startTime,
+						messageCount: data.messageCount || 0,
+						totalCost: data.totalCost || 0,
+						firstUserMessage: typeof firstUserMessage === 'string' ? firstUserMessage : JSON.stringify(firstUserMessage),
+						lastUserMessage: typeof lastUserMessage === 'string' ? lastUserMessage : JSON.stringify(lastUserMessage)
+					};
+
+					this._conversationIndex.push(indexEntry);
+				} catch (e) {
+					console.error(`Failed to parse conversation file ${filename}:`, e);
+				}
+			}
+
+			// Sort by start time descending (newest first)
+			this._conversationIndex.sort((a, b) =>
+				new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+			);
+
+			// Save rebuilt index
+			if (this._conversationIndex.length > 0) {
+				this._context.workspaceState.update('claude.conversationIndex', this._conversationIndex);
+				console.log(`Rebuilt conversation index with ${this._conversationIndex.length} conversations`);
+			}
+		} catch (e) {
+			console.error('Failed to rebuild conversation index:', e);
+		}
 	}
 
 	private async _loadConversationHistory(filename: string): Promise<void> {

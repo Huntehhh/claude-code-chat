@@ -124,15 +124,10 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 		</div>
 	</div>
 	
-	<div class="status ready" id="status">
-		<div class="status-indicator"></div>
-		<div class="status-text" id="statusText">Initializing...</div>
-		<button class="btn stop" id="stopBtn" onclick="stopRequest()" style="display: none;">
-			<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-				<path d="M6 6h12v12H6z"/>
-			</svg>
-			Stop
-		</button>
+	<!-- Status removed - keeping hidden elements for JS compatibility -->
+	<div id="status" style="display:none;height:0;overflow:hidden;visibility:hidden;position:absolute;pointer-events:none;">
+		<div id="statusText"></div>
+		<button id="stopBtn" style="display:none;"></button>
 	</div>
 
 			<div id="yoloWarning" class="yolo-warning" style="display: none;">

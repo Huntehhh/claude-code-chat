@@ -57,6 +57,17 @@
         "title": "Open Claude Code Chat",
         "category": "Claude Code Chat",
         "icon": "icon-bubble.png"
+      },
+      {
+        "command": "claude-code-chat.newWindow",
+        "title": "New Chat Window",
+        "category": "Claude Code Chat",
+        "icon": "icon-bubble.png"
+      },
+      {
+        "command": "claude-code-chat.renameChat",
+        "title": "Rename Chat",
+        "category": "Claude Code Chat"
       }
     ],
     "keybindings": [
@@ -64,12 +75,24 @@
         "command": "claude-code-chat.openChat",
         "key": "ctrl+shift+c",
         "mac": "cmd+shift+c"
+      },
+      {
+        "command": "claude-code-chat.newWindow",
+        "key": "ctrl+shift+n",
+        "mac": "cmd+shift+n",
+        "when": "activeWebviewPanelId == claudeChat"
       }
     ],
     "menus": {
       "commandPalette": [
         {
           "command": "claude-code-chat.openChat"
+        },
+        {
+          "command": "claude-code-chat.newWindow"
+        },
+        {
+          "command": "claude-code-chat.renameChat"
         }
       ],
       "editor/context": [
@@ -190,23 +213,43 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile:extension && npm run compile:webview -- --minify",
+    "compile": "npm run compile:extension && npm run compile:webview",
+    "compile:extension": "tsc -p ./",
+    "compile:webview": "node build/esbuild.webview.js",
+    "watch": "npm run watch:extension & npm run watch:webview",
+    "watch:extension": "tsc -watch -p ./",
+    "watch:webview": "node build/esbuild.webview.js --watch",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.19",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
+    "@types/react": "^18.3.27",
+    "@types/react-dom": "^18.3.7",
     "@types/vscode": "^1.94.0",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.5.0",
+    "autoprefixer": "^10.4.23",
+    "esbuild": "^0.24.2",
     "eslint": "^9.25.1",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.462.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.6.0",
+    "zustand": "^5.0.9"
   }
 }

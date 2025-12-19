@@ -2395,22 +2395,11 @@ const styles = `
     }
 
     .status {
-        padding: 8px 12px;
-        background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
-        color: #e1e1e1;
-        font-size: 12px;
-        border-top: 1px solid var(--vscode-panel-border);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-weight: 500;
+        display: none !important;
     }
 
     .status-indicator {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        flex-shrink: 0;
+        display: none !important;
     }
 
     .status.ready .status-indicator {
