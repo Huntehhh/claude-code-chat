@@ -41,8 +41,10 @@ Whenever a user asks for "high-level documentation" Markdown Document, you shall
 
 **At session start:** Always create a new worktree unless user explicitly says to use `main` or current branch.
 
+**Location:** Always create worktrees inside `.worktrees/` folder within the project, not outside the project directory.
+
 ```bash
-git worktree add ../<project>-<feature> -b <feature-branch>
+git worktree add .worktrees/<feature> -b <feature-branch>
 ```
 
 **Branch discipline:**
@@ -65,7 +67,7 @@ git merge <feature-branch>
 
 **After merging:** Cleanup immediately
 ```bash
-git worktree remove ../<worktree> && git branch -d <branch>
+git worktree remove .worktrees/<feature> && git branch -d <branch>
 ```
 
 **Conflict handling:**
