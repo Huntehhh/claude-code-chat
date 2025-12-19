@@ -48,6 +48,10 @@ Whenever a user asks for "high-level documentation" Markdown Document, you shall
 git worktree add .worktrees/<feature> -b <feature-branch>
 cd .worktrees/<feature>
 ```
+3. Rebase to get fresh code before any edits:
+```bash
+git fetch origin && git rebase origin/main
+```
 
 **Location:** Always inside `.worktrees/` folder within the project.
 
@@ -79,6 +83,17 @@ git worktree remove .worktrees/<feature> && git branch -d <branch>
 - If conflict is obvious (whitespace, import order): resolve automatically
 - If ANY uncertainty: stop and ask user before resolving
 - Show conflict context and propose resolution options
+
+### Commit Format
+
+**Use conventional prefixes:**
+- `feat:` — new feature
+- `fix:` — bug fix
+- `refactor:` — code restructuring
+- `docs:` — documentation only
+- `chore:` — maintenance tasks
+
+Example: `feat: add dark mode toggle to settings`
 
 ### Auto-Commit Triggers
 
