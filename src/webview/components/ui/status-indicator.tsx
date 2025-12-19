@@ -7,7 +7,7 @@ const statusIndicatorVariants = cva(
   {
     variants: {
       status: {
-        ready: 'bg-[#FFA344]',
+        ready: 'bg-emerald-500',
         processing: 'bg-[#FFA344] animate-status-pulse',
         error: 'bg-[#FF7369]',
         success: 'bg-emerald-500',

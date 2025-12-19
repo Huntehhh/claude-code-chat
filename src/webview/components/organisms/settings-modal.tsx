@@ -201,29 +201,31 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {/* Section: Display */}
         <div className="flex flex-col gap-3 pb-2">
-          <h3 className="text-xs font-medium text-[#8b8b94] uppercase tracking-[0.5px]">
-            Display
-          </h3>
+          {/* Header row with DISPLAY and Height column labels */}
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-medium text-[#8b8b94] uppercase tracking-[0.5px]">
+              Display
+            </h3>
+            <span className="text-xs font-medium text-[#8b8b94] uppercase tracking-[0.5px] mr-[52px]">
+              Height
+            </span>
+          </div>
 
-          {/* Compact tool output with preview height input */}
+          {/* Compact tool output */}
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-200">Compact tool output</span>
             <div className="flex items-center gap-2">
-              {/* Preview height input */}
-              <div className="flex flex-col items-end gap-0.5">
-                <span className="text-[11px] text-[#8b8b94]">Preview height</span>
-                <div className="flex items-center gap-1">
-                  <input
-                    type="number"
-                    value={previewHeight}
-                    onChange={(e) => onPreviewHeightChange?.(parseInt(e.target.value, 10) || 150)}
-                    className="w-[60px] h-6 bg-[#171717] border border-[#222225] text-[12px] text-[#fafafa] text-right px-2 focus:border-[#FFA344] focus:ring-0 focus:outline-none"
-                    style={{ borderRadius: 0 }}
-                    min={50}
-                    max={500}
-                  />
-                  <span className="text-[11px] text-[#52525b]">px</span>
-                </div>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  value={previewHeight}
+                  onChange={(e) => onPreviewHeightChange?.(parseInt(e.target.value, 10) || 150)}
+                  className="w-[60px] h-6 bg-[#171717] border border-[#222225] text-[12px] text-[#fafafa] text-right px-2 focus:border-[#FFA344] focus:ring-0 focus:outline-none"
+                  style={{ borderRadius: 0 }}
+                  min={50}
+                  max={500}
+                />
+                <span className="text-[11px] text-[#52525b]">px</span>
               </div>
               <Toggle
                 checked={compactToolOutput}
@@ -232,22 +234,50 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          {/* Compact MCP tool calls (renamed from "Hide MCP tool calls") */}
+          {/* Compact MCP tool calls */}
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-200">Compact MCP tool calls</span>
-            <Toggle
-              checked={compactMcpCalls}
-              onCheckedChange={onCompactMcpCallsChange}
-            />
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  value={previewHeight}
+                  onChange={(e) => onPreviewHeightChange?.(parseInt(e.target.value, 10) || 150)}
+                  className="w-[60px] h-6 bg-[#171717] border border-[#222225] text-[12px] text-[#fafafa] text-right px-2 focus:border-[#FFA344] focus:ring-0 focus:outline-none"
+                  style={{ borderRadius: 0 }}
+                  min={50}
+                  max={500}
+                />
+                <span className="text-[11px] text-[#52525b]">px</span>
+              </div>
+              <Toggle
+                checked={compactMcpCalls}
+                onCheckedChange={onCompactMcpCallsChange}
+              />
+            </div>
           </div>
 
-          {/* Show to-do list (renamed from "Show Tasks panel") */}
+          {/* Show to-do list */}
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-200">Show to-do list</span>
-            <Toggle
-              checked={showTodoList}
-              onCheckedChange={onShowTodoListChange}
-            />
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  value={previewHeight}
+                  onChange={(e) => onPreviewHeightChange?.(parseInt(e.target.value, 10) || 150)}
+                  className="w-[60px] h-6 bg-[#171717] border border-[#222225] text-[12px] text-[#fafafa] text-right px-2 focus:border-[#FFA344] focus:ring-0 focus:outline-none"
+                  style={{ borderRadius: 0 }}
+                  min={50}
+                  max={500}
+                />
+                <span className="text-[11px] text-[#52525b]">px</span>
+              </div>
+              <Toggle
+                checked={showTodoList}
+                onCheckedChange={onShowTodoListChange}
+              />
+            </div>
           </div>
         </div>
       </div>
