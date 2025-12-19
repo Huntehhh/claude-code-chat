@@ -93,6 +93,9 @@ interface ChatState {
   // Draft message (auto-saved input)
   draftMessage: string;
 
+  // Scroll position (persisted across sessions)
+  scrollPosition: number;
+
   // Clipboard text (from VSCode)
   clipboardText: string;
 
@@ -136,8 +139,9 @@ interface ChatState {
   // Todos
   setTodos: (todos: TodoItem[]) => void;
 
-  // Draft & Clipboard
+  // Draft, Scroll & Clipboard
   setDraftMessage: (text: string) => void;
+  setScrollPosition: (position: number) => void;
   setClipboardText: (text: string) => void;
 }
 
@@ -163,6 +167,7 @@ export const useChatStore = create<ChatState>((set) => ({
   commits: [],
   todos: [],
   draftMessage: '',
+  scrollPosition: 0,
   clipboardText: '',
 
   // Message actions
@@ -187,6 +192,7 @@ export const useChatStore = create<ChatState>((set) => ({
     requestCount: 0,
     pendingPermissions: [],
     todos: [],
+    scrollPosition: 0,
   }),
 
   setProcessing: (processing) => set({ isProcessing: processing }),
@@ -236,7 +242,8 @@ export const useChatStore = create<ChatState>((set) => ({
   // Todos actions
   setTodos: (todos) => set({ todos }),
 
-  // Draft & clipboard actions
+  // Draft, scroll & clipboard actions
   setDraftMessage: (text) => set({ draftMessage: text }),
+  setScrollPosition: (position) => set({ scrollPosition: position }),
   setClipboardText: (text) => set({ clipboardText: text }),
 }));

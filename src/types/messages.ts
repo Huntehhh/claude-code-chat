@@ -135,6 +135,11 @@ export interface SaveInputTextRequest extends BaseMessage {
   text: string;
 }
 
+export interface SaveScrollPositionRequest extends BaseMessage {
+  type: 'saveScrollPosition';
+  position: number;
+}
+
 export interface RenameChatRequest extends BaseMessage {
   type: 'renameChat';
   name: string;
@@ -192,6 +197,7 @@ export type WebviewToExtensionMessage =
   | OpenFileInEditorRequest
   | OpenDiffByIndexRequest
   | SaveInputTextRequest
+  | SaveScrollPositionRequest
   | RenameChatRequest
   | ExecuteSlashCommandRequest
   | DismissWSLAlertRequest
@@ -209,6 +215,7 @@ export interface ReadyMessage extends BaseMessage {
   data: {
     chatName?: string;
     draftMessage: string;
+    scrollPosition: number;
     selectedModel: string;
     currentSessionId?: string;
     totalCost: number;

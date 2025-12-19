@@ -9,6 +9,26 @@ import { WelcomeState } from '../components/molecules/welcome-state';
 import { useVSCodeSender } from '../hooks/useVSCodeMessaging';
 import { cn } from '../lib/utils';
 
+// Debounce helper for scroll position saving
+function useDebounce<T extends (...args: Parameters<T>) => void>(
+  callback: T,
+  delay: number
+): T {
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout>>();
+
+  return React.useCallback(
+    ((...args: Parameters<T>) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => {
+        callback(...args);
+      }, delay);
+    }) as T,
+    [callback, delay]
+  );
+}
+
 // =============================================================================
 // Helper Functions
 // =============================================================================
@@ -86,20 +106,59 @@ export interface MessageListProps extends React.HTMLAttributes<HTMLDivElement> {
 const MessageList = React.forwardRef<HTMLDivElement, MessageListProps>(
   ({ className, showWelcome = true, ...props }, ref) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
-    const { messages, pendingPermissions } = useChatStore();
+    const { messages, pendingPermissions, scrollPosition, setScrollPosition } = useChatStore();
     const { compactToolOutput } = useSettingsStore();
-    const { respondToPermission } = useVSCodeSender();
+    const { respondToPermission, saveScrollPosition } = useVSCodeSender();
+    const isRestoringScroll = React.useRef(false);
+    const lastMessageCount = React.useRef(messages.length);
 
-    // Auto-scroll to bottom when messages change
+    // Debounced scroll position save (500ms delay to avoid excessive saves)
+    const debouncedSaveScroll = useDebounce(saveScrollPosition, 500);
+
+    // Handle scroll events - track and save position
+    const handleScroll = React.useCallback(() => {
+      const container = containerRef.current;
+      if (container && !isRestoringScroll.current) {
+        const position = container.scrollTop;
+        setScrollPosition(position);
+        debouncedSaveScroll(position);
+      }
+    }, [setScrollPosition, debouncedSaveScroll]);
+
+    // Restore scroll position when messages are loaded and scrollPosition changes
     React.useEffect(() => {
       const container = containerRef.current;
-      if (container) {
-        // Smooth scroll to bottom
+      if (container && scrollPosition > 0 && messages.length > 0) {
+        // Only restore if we haven't already and container can scroll
+        const maxScroll = container.scrollHeight - container.clientHeight;
+        if (maxScroll > 0 && container.scrollTop === 0) {
+          isRestoringScroll.current = true;
+          // Clamp to max scroll in case content changed
+          const targetPosition = Math.min(scrollPosition, maxScroll);
+          container.scrollTo({ top: targetPosition, behavior: 'instant' });
+          // Reset flag after scroll completes
+          setTimeout(() => {
+            isRestoringScroll.current = false;
+          }, 100);
+        }
+      }
+    }, [scrollPosition, messages.length]);
+
+    // Auto-scroll to bottom only when NEW messages arrive (not on initial load)
+    React.useEffect(() => {
+      const container = containerRef.current;
+      if (container && messages.length > lastMessageCount.current) {
+        // New message arrived - scroll to bottom
+        isRestoringScroll.current = true;
         container.scrollTo({
           top: container.scrollHeight,
           behavior: 'smooth',
         });
+        setTimeout(() => {
+          isRestoringScroll.current = false;
+        }, 500);
       }
+      lastMessageCount.current = messages.length;
     }, [messages.length]);
 
     // Permission handlers
@@ -152,6 +211,7 @@ const MessageList = React.forwardRef<HTMLDivElement, MessageListProps>(
             ref.current = node;
           }
         }}
+        onScroll={handleScroll}
         className={cn(
           'flex flex-col gap-4 overflow-y-auto',
           'px-4 py-6',

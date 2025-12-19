@@ -20,6 +20,7 @@ import { McpServersModal, type McpServer as McpServerModal } from './components/
 import { ModelSelectorModal, type ModelOption } from './components/organisms/model-selector-modal';
 import { SlashCommandsModal, type CliCommand, type Snippet } from './components/organisms/slash-commands-modal';
 import { InstallModal, type InstallState } from './components/molecules/install-modal';
+import { Toast } from './components/atoms/toast';
 
 // =============================================================================
 // App Component
@@ -46,12 +47,14 @@ export default function App() {
     executeSlashCommand,
     runInstall,
     enableYoloMode,
+    renameChat,
     updateSettings: updateSettingsBackend,
   } = useVSCodeSender();
 
   // Chat state
   const {
     chatName,
+    setChatName,
     isProcessing,
     draftMessage,
     setDraftMessage,
@@ -162,6 +165,11 @@ export default function App() {
     toggleModal('history');
     requestConversations();
   }, [toggleModal, requestConversations]);
+
+  const handleRename = useCallback((newName: string) => {
+    setChatName(newName);
+    renameChat(newName);
+  }, [setChatName, renameChat]);
 
   // ==========================================================================
   // Settings Modal Handlers
@@ -351,6 +359,7 @@ export default function App() {
         onSettings={handleSettings}
         onHistory={handleHistory}
         onNewChat={handleNewChat}
+        onRename={handleRename}
       />
 
       {/* Main content area */}
@@ -388,6 +397,9 @@ export default function App() {
         message="Claude is thinking..."
         secondaryMessage="This may take a moment"
       />
+
+      {/* Toast Notifications */}
+      <Toast />
 
       {/* =================================================================
           MODALS

@@ -5,6 +5,22 @@ import { cn } from '../../lib/utils';
 import { Icon } from '../ui/icon';
 import { Badge } from '../ui/badge';
 
+/**
+ * Format ISO timestamp to readable format
+ * Converts "2025-12-18T16:42:13.628Z" to "2025-12-18 16:42:13"
+ */
+function formatTimestamp(timestamp: string): string {
+  try {
+    // Remove milliseconds and Z, replace T with space
+    return timestamp
+      .replace(/\.\d+Z?$/, '') // Remove .628Z or .628
+      .replace(/Z$/, '')       // Remove trailing Z if no milliseconds
+      .replace('T', ' ');      // Replace T with space
+  } catch {
+    return timestamp;
+  }
+}
+
 export type ConversationSource = 'chat' | 'cli';
 
 export interface Checkpoint {
@@ -86,7 +102,7 @@ const ConversationItem = React.forwardRef<HTMLDivElement, ConversationItemProps>
               {source === 'chat' ? 'Chat' : 'CLI'}
             </span>
 
-            <span className="text-[11px] text-[#8b8b94]">{timestamp}</span>
+            <span className="text-[11px] text-[#8b8b94]">{formatTimestamp(timestamp)}</span>
             <span className="text-[11px] text-[#8b8b94]">•</span>
             <span className="flex items-center gap-0.5 text-[11px] text-[#8b8b94]">
               <Icon
@@ -147,7 +163,7 @@ const ConversationItem = React.forwardRef<HTMLDivElement, ConversationItemProps>
                         {checkpoint.message}
                       </span>
                       <span className="text-[10px] text-[#52525b]">
-                        {checkpoint.timestamp}
+                        {formatTimestamp(checkpoint.timestamp)}
                       </span>
                     </div>
                     {/* Restore Button */}
