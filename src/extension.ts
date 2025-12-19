@@ -2473,13 +2473,29 @@ class ClaudeChatProvider {
 						switch (obj.type) {
 							case 'user':
 								if (obj.message?.content) {
-									const userContent = Array.isArray(obj.message.content)
-										? obj.message.content.map((c: any) => c.text || '').join('')
-										: obj.message.content;
-									this._postMessage({
-										type: 'userInput',
-										data: userContent
-									});
+									let userContent = '';
+									const content = obj.message.content;
+
+									if (typeof content === 'string') {
+										// Simple text message from user
+										userContent = content;
+									} else if (Array.isArray(content)) {
+										// Array of content blocks
+										// Filter out tool_result blocks - these are tool responses, not user messages
+										const textBlocks = content.filter((c: any) => c.type !== 'tool_result');
+										if (textBlocks.length > 0) {
+											userContent = textBlocks.map((c: any) => c.text || '').join('\n').trim();
+										}
+										// If only tool_result blocks exist, this is a tool response, not user input
+									}
+
+									// Only display actual user messages (not empty, not just "Warmup")
+									if (userContent && userContent.toLowerCase() !== 'warmup') {
+										this._postMessage({
+											type: 'userInput',
+											data: userContent
+										});
+									}
 								}
 								break;
 
