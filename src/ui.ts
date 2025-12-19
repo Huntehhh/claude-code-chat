@@ -130,10 +130,6 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 		<button id="stopBtn" style="display:none;"></button>
 	</div>
 
-			<div id="yoloWarning" class="yolo-warning" style="display: none;">
-			⚠️ Yolo Mode Active: Claude Code will auto-approve all tool requests.
-		</div>
-
 	<!-- File picker modal -->
 	<div id="filePickerModal" class="file-picker-modal" style="display: none;">
 		<div class="file-picker-content">

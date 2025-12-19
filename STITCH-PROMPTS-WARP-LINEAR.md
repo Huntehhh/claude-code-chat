@@ -20,95 +20,43 @@
 ## PROMPT 1: Complete App Layout
 
 ```
-Create "Claude Code Chat" - a VS Code extension sidebar panel for an AI coding assistant.
+Dark sidebar panel for "Claude Code Chat" - an AI coding assistant.
 
-THEME: DARK MODE ONLY. OLED black backgrounds (#09090b, #0f0f0f, #171717). Dark terminal-style interface.
+STYLE: Warp Terminal meets Claude.ai. OLED black, minimal, premium developer tool.
 
-ACCENT COLOR: Amber/Orange (#FFA344) for all interactive elements. Only use colors listed below - no other colors.
+COLORS:
+- Background: #09090b (black), #0f0f0f (panels), #171717 (inputs)
+- Text: #fafafa (primary), #8b8b94 (muted), #52525b (dim)
+- Accent: #FFA344 (amber/orange) - use for buttons and active states
+- Borders: #222225, 1px only
 
-CORNER RADIUS RULE:
-- Rectangular containers (input boxes, cards, modals): SHARP corners (0px radius)
-- Pills and toggle tracks: Rounded (full radius)
-- Circular buttons: Full circle
+RULES:
+- Sharp corners on all rectangles (0px radius)
+- Pills/toggles stay rounded
+- Compact layout, minimal padding
+- No shadows, no suggestion cards, no icons in welcome area
 
-SPACING RULE (generous padding throughout):
-- Panel outer margin: 16px from all edges
-- Section padding: 16px internal padding
-- Element gaps: 12px between elements
-- Input padding: 12px inside text areas
-- Status bar padding: 12px horizontal
+LAYOUT (top to bottom):
 
-LAYOUT TYPE: VS Code sidebar panel. Vertical orientation. Think: Slack sidebar, Discord panel, VS Code Explorer.
+1. HEADER - Dark bar, 56px height, 16px padding
+   - Left: Title "Claude Code Chat"
+   - Right: Settings icon, History icon, "New" button (amber #FFA344)
 
-DESIGN REFERENCES (study these for quality):
-- Warp Terminal (terminal aesthetic, dark theme, monospace feel)
-- Claude.ai (Anthropic's chat interface - clean, minimal, professional)
-- Linear App (premium SaaS, subtle depth, tight typography)
-- Zed Editor (minimal, professional code UI)
-- Arc Browser sidebar (vertical space, subtle borders)
+2. MAIN AREA - Black #09090b, centered content
+   - "Ready" heading
+   - "Type a message below" subtext
+   - Empty otherwise
 
-DESIGN PHILOSOPHY:
-- "Warp Terminal" meets "Claude.ai" aesthetic
-- Premium developer tool, not a generic chat app
-- Achromatic, high-contrast dark theme
-- Typography that feels expensive (tight letter-spacing: -0.02em)
-- Technical, high-density, no wasted whitespace
-- Depth through 1px borders only - NO drop shadows
+3. INPUT AREA - Dark panel #0f0f0f, 12px padding
+   - Text input box (sharp corners, #171717 background, compact height)
+   - Below: "Plan" pill toggle, "Think" pill toggle, Send button (amber circle)
 
-NEGATIVE CONSTRAINTS (DO NOT INCLUDE):
-- NO suggestion cards or quick action buttons in welcome area
-- NO rounded corners on rectangular containers (sharp edges only)
-- NO drop shadows anywhere
-- NO gradient backgrounds (except send button)
-- NO icons in welcome area
-- NO spinners - use "Tinkering..." text for loading
-- NO light mode - dark theme only
-
-COLORS (OLED-black with AMBER accent):
-- Base: #09090b (OLED black canvas)
-- Surface: #0f0f0f (elevated panels)
-- Card: #171717 (inputs, hover states)
-- Border: #222225 (subtle, 1px only - slightly darker than zinc)
-- Text: #fafafa
-- Secondary: #a1a1a1
-- Muted: #8b8b94 (slightly lighter for readability)
-- Dim: #52525b
-- Accent: #FFA344 (amber - PRIMARY)
-- Warning: #FF7369 (coral red)
-
-GLOBAL STYLES:
-- Selection: ::selection { background: rgba(255,163,68,0.2); color: #FFA344 }
-- Scrollbars: 10px width, transparent track, #27272a thumb (4px radius), hover #3f3f46
-- Typography: font-feature-settings: "cv11", "ss01" for Inter/system fonts
-
-LAYOUT:
-
-HEADER (height 56px, background rgba(15,15,15,0.8), backdrop-filter blur(12px), border-bottom 1px #222225, padding 0 16px):
-- Left: Chat title (14px, weight 500, tracking -0.02em, #fafafa) - EDITABLE on click
-- Right: Icon buttons (⚙️ 🕐) ghost style #8b8b94 hover #fafafa, gap 8px
-- Right: "New" button (#FFA344 background, white text, SHARP corners, padding 8px 12px)
-
-MAIN AREA (flex 1, background #09090b, padding 24px 16px):
-- Vertically centered content
-- Welcome: "Ready" (20px, weight 500, #fafafa)
-- Below: "Type a message below" (13px, #8b8b94, margin-top 8px)
-- Nothing else. Pure minimal emptiness.
-
-INPUT AREA (background #0f0f0f, border-top 1px #222225, padding 16px):
-- Input box: background #171717, border 1px #222225, SHARP corners, padding 12px, monospace font
-- Placeholder: "Message..." (#52525b)
-- Focus state: border #FFA344
-- Below input (margin-top 12px, flex row, justify-between):
-  - Left: "Plan" toggle + "Think" toggle (pill shapes, gap 12px, #222225 track, #FFA344 when active)
-  - Right: Send button (32px circle, #FFA344 amber background, white arrow icon)
-
-STATUS BAR (height 36px, background rgba(9,9,11,0.8), backdrop-filter blur(12px), border-top 1px #222225, padding 0 16px):
-- Left: "ASK BEFORE EDITS" (10px, uppercase, #52525b)
-- Right: "78% CONTEXT" (10px, uppercase, #52525b)
-
+4. STATUS BAR - 36px height, 16px padding
+   - Left: "ASK BEFORE EDITS"
+   - Right: "78% CONTEXT"
 ```
 
-**Checkpoint:** Dark OLED black theme, Warp Terminal meets Claude.ai aesthetic. Amber accents.
+**Checkpoint:** OLED black, amber accents, sharp rectangles, rounded pills.
 
 ---
 

@@ -14,7 +14,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		let filteredFiles = [];
 		let selectedFileIndex = -1;
 		let planModeEnabled = false;
-		let thinkingModeEnabled = false;
+		let thinkingModeEnabled = true; // Default to ON
 		let lastPendingEditIndex = -1; // Track the last Edit/MultiEdit/Write toolUse without result
 		let lastPendingEditData = null; // Store diff data for the pending edit { filePath, oldContent, newContent }
 
@@ -1178,6 +1178,12 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		// Initialize textarea height
 		adjustTextareaHeight();
 
+		// Initialize thinking mode switch to ON (default)
+		const thinkingSwitch = document.getElementById('thinkingModeSwitch');
+		if (thinkingSwitch && thinkingModeEnabled) {
+			thinkingSwitch.classList.add('active');
+		}
+
 		// File picker event listeners
 		fileSearchInput.addEventListener('input', (e) => {
 			filterFiles(e.target.value);
@@ -1216,15 +1222,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 		
 		function updateYoloWarning() {
-			const yoloModeCheckbox = document.getElementById('yolo-mode');
-			const warning = document.getElementById('yoloWarning');
-			
-			if (!yoloModeCheckbox || !warning) {
-				return; // Elements not ready yet
-			}
-			
-			const yoloMode = yoloModeCheckbox.checked;
-			warning.style.display = yoloMode ? 'block' : 'none';
+			// YOLO warning removed from UI - function kept for compatibility
 		}
 		
 		function isPermissionError(content) {
