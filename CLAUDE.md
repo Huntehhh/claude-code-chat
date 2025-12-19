@@ -39,17 +39,21 @@ Whenever a user asks for "high-level documentation" Markdown Document, you shall
 
 ### Worktree Workflow
 
-**At session start:** Always create a new worktree unless user explicitly says to use `main` or current branch.
+**NEVER work directly on `main`.** Always create a worktree first. This isolates your work so other Claude instances' merge states don't affect you.
 
-**Location:** Always create worktrees inside `.worktrees/` folder within the project, not outside the project directory.
-
+**At session start:**
+1. Check if already in a worktree: `git worktree list`
+2. If on `main`, create a worktree before doing ANY work:
 ```bash
 git worktree add .worktrees/<feature> -b <feature-branch>
+cd .worktrees/<feature>
 ```
+
+**Location:** Always inside `.worktrees/` folder within the project.
 
 **Branch discipline:**
 
-- Default to new worktree for all work
+- NEVER edit files while on `main` — create worktree first
 - Never push directly to `main`
 - Commit only to current worktree's branch
 - After ~5 turns or completing a feature, ask: *"Ready to merge this to main?"*
