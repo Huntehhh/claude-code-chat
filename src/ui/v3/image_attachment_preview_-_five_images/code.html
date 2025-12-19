@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Image Attachment Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ffa142",
+              "background-light": "#f8f7f5",
+              "background-dark": "#23190f",
+            },
+            fontFamily: {
+              "display": ["Space Grotesk", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700, 'GRAD' 0, 'opsz' 20;
+        }
+    </style>
+</head>
+<body class="bg-[#09090b] flex items-center justify-center min-h-screen font-display antialiased p-8 text-white">
+<!-- Component Container -->
+<div class="flex flex-row gap-[6px]">
+<!-- Thumbnail 1 -->
+<div class="group relative w-[48px] h-[48px] border border-[#222225] hover:border-primary/50 hover:brightness-105 transition-all duration-200 cursor-pointer overflow-visible bg-cover bg-center" data-alt="Abstract blue gradient placeholder image representing an uploaded file" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuALKtgcJkueCi3rBFArxo7TO7nxgP9C2NlWJmhYkzXK2mN1VOBWi14o19hzACL7UiHiAz36R4TMXGsPtP5pgcGmzddGCBoMSnOiHVxaEBdG_PjGIVsjSHsEHfsHiRMkfIA9oZ200dOm9uuFoNTUeLfZfcfLfObuIopeSaDWTzSx6F0ZHyzFnqF1ZOGNQvopL2eEmCAup4nJZeqFVj-F2lNrTPioxlpke8N1U15X3TLc7wmPLex0R5MPPn3Ugkh22zqTO22HuJTmRos');">
+<!-- Remove Button -->
+<button aria-label="Remove image" class="absolute -top-2 -right-2 flex items-center justify-center w-4 h-4 bg-[#FF7369] rounded-full shadow-sm hover:brightness-110 transition-all z-10">
+<span class="material-symbols-outlined text-white text-[10px] leading-none">close</span>
+</button>
+</div>
+<!-- Thumbnail 2 -->
+<div class="group relative w-[48px] h-[48px] border border-[#222225] hover:border-primary/50 hover:brightness-105 transition-all duration-200 cursor-pointer overflow-visible bg-cover bg-center" data-alt="Abstract emerald green gradient placeholder image representing an uploaded file" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC1XAfGzbm0O4pLY04_99I8BdtSs8A504BLjofw1PJPtAdm7fHsSgCyrSrPmzzYt49y2aeuvjcl7tTUuuKaPx_7_CqPVSeQlIWYwwY_i0U6Lb6pSx3p6cP7JQS6DpSE-56W894vCW-6ULg38ksca5xBSuqUDpzw01tCaSFTWziFkywpOs0v4Gp9jbPDDp2-2t5qyhV6_ZMZTHQea32dtQVHPVHVX3esuD305HeMsjj-9fLrmEGtPWfD1N9nlp37REWczKIqrpbR5uE');">
+<!-- Remove Button -->
+<button aria-label="Remove image" class="absolute -top-2 -right-2 flex items-center justify-center w-4 h-4 bg-[#FF7369] rounded-full shadow-sm hover:brightness-110 transition-all z-10">
+<span class="material-symbols-outlined text-white text-[10px] leading-none">close</span>
+</button>
+</div>
+<!-- Thumbnail 3 -->
+<div class="group relative w-[48px] h-[48px] border border-[#222225] hover:border-primary/50 hover:brightness-105 transition-all duration-200 cursor-pointer overflow-visible bg-cover bg-center" data-alt="Abstract purple gradient placeholder image representing an uploaded file" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB4oSAYAJQyxoXa1fCv-FJ_vZULDyUxtBsAPpa5sm3sFWtLTQ-x2F0_05mMiz5ZZy-wrfRCaH237xPdG6GEa556D58BNoJTQ6uGRS38Lg8dmMPvYoBex5VCsvgQnb0alX9P9pcJuxnaHGmAyWEMKryqBop5iGPLuR54M9nyRXN6wrX4-1C6kA5-y1vGR8aa9LmF0VnNJPNK2oBJXqAeoW_vkwJK_rjFgIncGiiGrOhG-QaFi6r5PMIlSBCPKdTtkbsVD01qsEallgw');">
+<!-- Remove Button -->
+<button aria-label="Remove image" class="absolute -top-2 -right-2 flex items-center justify-center w-4 h-4 bg-[#FF7369] rounded-full shadow-sm hover:brightness-110 transition-all z-10">
+<span class="material-symbols-outlined text-white text-[10px] leading-none">close</span>
+</button>
+</div>
+<!-- Thumbnail 4 (Overflow) -->
+<div class="group relative w-[48px] h-[48px] border border-[#222225] hover:border-primary/50 hover:brightness-105 transition-all duration-200 cursor-pointer overflow-visible bg-cover bg-center" data-alt="Abstract rose red gradient placeholder image representing an uploaded file" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCk5pRfhMW9_K-Q6OVwZ4Ntwq712y3ZyUYcnfEgFfOLS51tJ5OB1xztlg-PJmPb8of0fxO8xQxaq0w1yEyOfmyLJ-GCcZPeMzJdwGkRwpGpanFPG-aM2AX5MhyLnJTmBnH1X2QcsWPXDlPZV9RxbJd3lnXX97JQBC_PcXYFZgXpnAgfDaeCM73Zrr0f6sp1lHjWeIYoR0sn7EzGJbErIwhJm4SNerRsvU4qq1CAlcjkvF3-vlCUARX6SqV8skl2-hz3AfUnCXnznTQ');">
+<!-- Remove Button -->
+<button aria-label="Remove image" class="absolute -top-2 -right-2 flex items-center justify-center w-4 h-4 bg-[#FF7369] rounded-full shadow-sm hover:brightness-110 transition-all z-10">
+<span class="material-symbols-outlined text-white text-[10px] leading-none">close</span>
+</button>
+<!-- Overflow Badge -->
+<div class="absolute bottom-0 right-0 bg-[rgba(0,0,0,0.7)] text-white text-[10px] font-semibold rounded-[2px] px-[3px] py-[1px] leading-none m-0.5 backdrop-blur-[1px]">
+                +2
+            </div>
+</div>
+</div>
+</body></html>

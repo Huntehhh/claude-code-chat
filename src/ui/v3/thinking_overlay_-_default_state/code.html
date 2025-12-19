@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Thinking Overlay - Default State</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ffa142",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#23190f",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                    animation: {
+                        'pulse-glow': 'pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        'pulse-glow': {
+                            '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+                            '50%': { opacity: '.7', transform: 'scale(1.1)' },
+                        }
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom styles for specific requirements */
+        .backdrop-blur-custom {
+            backdrop-filter: blur(2px);
+        }
+        
+        /* Ensuring the specific asterisk style */
+        .asterisk-glow {
+            text-shadow: 0 0 12px rgba(255, 161, 66, 0.4);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen bg-[#09090b] font-display">
+<!-- Component Container -->
+<div class="relative flex h-[300px] w-[400px] flex-col items-center justify-center border border-[#222225] bg-[#09090b]/85 backdrop-blur-custom">
+<!-- Content Flex Column -->
+<div class="flex flex-col items-center justify-center gap-3">
+<!-- Pulsing Icon -->
+<div class="flex items-center justify-center animate-pulse-glow">
+<span class="material-symbols-outlined text-4xl text-[#FFA344] asterisk-glow leading-none select-none" style="font-size: 32px;">
+                    asterisk
+                </span>
+</div>
+<!-- Text Content -->
+<div class="flex flex-col items-center justify-center gap-1 text-center">
+<h2 class="text-[#fafafa] text-sm font-medium leading-tight">
+                    Claude is thinking...
+                </h2>
+<p class="text-[#8b8b94] text-xs font-normal leading-normal">
+                    This may take a moment
+                </p>
+</div>
+</div>
+</div>
+</body></html>

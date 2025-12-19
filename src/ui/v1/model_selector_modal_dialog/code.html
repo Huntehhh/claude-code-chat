@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Model Selector Modal</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ffa142",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#23190f",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                    boxShadow: {
+                        "modal": "0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 0 rgba(255,255,255,0.05)"
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom animation for the modal entrance */
+        @keyframes modalEnter {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        .animate-modal-enter {
+            animation: modalEnter 150ms ease-out forwards;
+        }
+        
+        /* Custom radio styling to match specific design requirements */
+        .custom-radio:checked {
+            background-color: #FFA344;
+            border-color: #FFA344;
+            background-image: none; /* Remove default checkmark */
+        }
+        .custom-radio:checked::after {
+            content: '';
+            display: block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: #0f0f0f;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        /* Custom scrollbar hiding */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display antialiased overflow-hidden">
+<!-- Backdrop -->
+<div class="relative flex h-screen w-full items-center justify-center bg-[rgba(0,0,0,0.7)] backdrop-blur-[4px]">
+<!-- Modal Shell -->
+<div class="group/modal relative w-full max-w-[300px] flex flex-col bg-[#0f0f0f] border border-[#222225] shadow-modal animate-modal-enter overflow-hidden" style="border-radius: 0;"> <!-- Explicitly sharp corners as requested -->
+<!-- Header -->
+<div class="flex items-center justify-between px-4 py-3 border-b border-[#222225]">
+<h2 class="text-white text-[16px] font-medium leading-tight">Select Model</h2>
+<button class="flex items-center justify-center w-8 h-8 rounded hover:bg-[#222225] text-[#8b8b94] transition-colors focus:outline-none focus:ring-1 focus:ring-[#8b8b94]/50">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Content: Radio List -->
+<div class="flex flex-col p-2 space-y-1">
+<!-- Option 1: Opus -->
+<label class="group/item relative flex items-start gap-3 p-3 cursor-pointer select-none transition-all duration-150 border-l-[3px] border-transparent hover:bg-[#1a1a1a] has-[:checked]:bg-[#171717] has-[:checked]:border-[#FFA344]">
+<div class="mt-0.5">
+<input class="custom-radio relative h-4 w-4 appearance-none rounded-full border border-[#222225] bg-transparent focus:ring-0 focus:ring-offset-0 focus:outline-none cursor-pointer" name="ai-model" type="radio" value="opus"/>
+</div>
+<div class="flex flex-col">
+<span class="text-white text-[14px] font-medium leading-tight mb-0.5">Opus</span>
+<span class="text-[#8b8b94] text-[13px] font-normal leading-tight">Most capable</span>
+</div>
+</label>
+<!-- Option 2: Sonnet -->
+<label class="group/item relative flex items-start gap-3 p-3 cursor-pointer select-none transition-all duration-150 border-l-[3px] border-transparent hover:bg-[#1a1a1a] has-[:checked]:bg-[#171717] has-[:checked]:border-[#FFA344]">
+<div class="mt-0.5">
+<input checked="" class="custom-radio relative h-4 w-4 appearance-none rounded-full border border-[#222225] bg-transparent focus:ring-0 focus:ring-offset-0 focus:outline-none cursor-pointer" name="ai-model" type="radio" value="sonnet"/>
+</div>
+<div class="flex flex-col">
+<span class="text-white text-[14px] font-medium leading-tight mb-0.5">Sonnet</span>
+<span class="text-[#8b8b94] text-[13px] font-normal leading-tight">Fast &amp; capable</span>
+</div>
+</label>
+<!-- Option 3: Default -->
+<label class="group/item relative flex items-start gap-3 p-3 cursor-pointer select-none transition-all duration-150 border-l-[3px] border-transparent hover:bg-[#1a1a1a] has-[:checked]:bg-[#171717] has-[:checked]:border-[#FFA344]">
+<div class="mt-0.5">
+<input class="custom-radio relative h-4 w-4 appearance-none rounded-full border border-[#222225] bg-transparent focus:ring-0 focus:ring-offset-0 focus:outline-none cursor-pointer" name="ai-model" type="radio" value="default"/>
+</div>
+<div class="flex flex-col">
+<span class="text-white text-[14px] font-medium leading-tight mb-0.5">Default</span>
+<div class="flex flex-wrap gap-1 text-[13px] leading-tight">
+<span class="text-[#8b8b94] font-normal">Your configured model</span>
+<!-- Used span here to simulate link inside label to avoid HTML nesting issues, JS would handle the click -->
+<button class="text-[#FFA344] hover:text-[#ffb366] hover:underline font-normal bg-transparent border-0 p-0 cursor-pointer z-10" onclick="event.stopPropagation(); console.log('Configure clicked')" type="button">
+                                Configure
+                            </button>
+</div>
+</div>
+</label>
+</div>
+<!-- Bottom Spacer if needed for visual balance, though prompt implies tight list -->
+<div class="pb-2"></div>
+</div>
+<!-- Background image hint (abstract pattern) to ensure data-alt compliance if we had one, 
+             but here the request is purely UI components. Adding a subtle texture div just in case 
+             to enrich the "Modern" feel without violating the prompt. -->
+<div class="absolute inset-0 pointer-events-none opacity-20 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay" data-alt="Subtle noise texture overlay"></div>
+</div>
+</body></html>

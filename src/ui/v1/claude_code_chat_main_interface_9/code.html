@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Claude Code Chat</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "bg-main": "#09090b",
+                        "bg-panel": "#0f0f0f",
+                        "bg-input": "#171717",
+                        "bg-input-hover": "#1f1f1f",
+                        "border-subtle": "#222225",
+                        "text-primary": "#fafafa",
+                        "text-muted": "#8b8b94",
+                        "text-dim": "#52525b",
+                        "accent": "#FFA344",
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"],
+                    },
+                    animation: {
+                        'shake': 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both',
+                        'success': 'success-pulse 0.6s ease-out forwards',
+                        'tooltip': 'tooltip-fade 100ms ease-out forwards',
+                    },
+                    keyframes: {
+                        shake: {
+                            '0%, 100%': { transform: 'translateX(0)' },
+                            '20%': { transform: 'translateX(-2px)' },
+                            '40%': { transform: 'translateX(2px)' },
+                            '60%': { transform: 'translateX(-1px)' },
+                            '80%': { transform: 'translateX(1px)' },
+                        },
+                        'success-pulse': {
+                            '0%': { borderColor: '#FFA344', boxShadow: '0 0 0 0 rgba(255, 163, 68, 0.4)' },
+                            '50%': { borderColor: '#FFA344', boxShadow: '0 0 0 4px rgba(255, 163, 68, 0)' },
+                            '100%': { borderColor: '#222225', boxShadow: '0 0 0 0 rgba(255, 163, 68, 0)' },
+                        },
+                        'tooltip-fade': {
+                            '0%': { opacity: '0', transform: 'translate(-50%, -4px)' },
+                            '100%': { opacity: '1', transform: 'translate(-50%, 0)' },
+                        }
+                    }
+                },
+            },
+        }
+    </script>
+<style>::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #09090b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #222225; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #333336; 
+        }
+        .material-symbols-outlined {
+            font-size: 20px;
+        }.tooltip-arrow {
+            position: absolute;
+            top: -4px;
+            left: 50%;
+            transform: translateX(-50%) rotate(45deg);
+            width: 8px;
+            height: 8px;
+            background-color: #171717;
+            border-left: 1px solid #222225;
+            border-top: 1px solid #222225;
+        }.input-error {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+            border-color: #ef4444 !important;
+        }
+        .input-success {
+            animation: success-pulse 0.6s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-bg-main text-text-primary h-screen flex flex-col font-sans overflow-hidden antialiased selection:bg-[#FFA344]/20 selection:text-text-primary">
+<header class="h-12 bg-bg-panel border-b border-border-subtle flex items-center justify-between px-3 shrink-0 z-20">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-accent">terminal</span>
+<h1 class="text-text-primary text-sm font-semibold tracking-tight">Claude Code Chat</h1>
+</div>
+<div class="flex items-center gap-2">
+<button class="group relative flex items-center justify-center size-8 rounded hover:bg-white/5 text-text-muted hover:text-text-primary hover:brightness-110 active:scale-[0.97] transition-all duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-panel">
+<span class="material-symbols-outlined">settings</span>
+<div class="absolute top-full mt-2 left-1/2 -translate-x-1/2 hidden group-hover:block z-50 pointer-events-none">
+<div class="relative bg-bg-input text-text-primary text-[11px] px-2 py-1.5 border border-border-subtle shadow-xl whitespace-nowrap animate-tooltip rounded-none">
+<div class="tooltip-arrow"></div>
+                        Settings
+                    </div>
+</div>
+</button>
+<button class="group relative flex items-center justify-center size-8 rounded hover:bg-white/5 text-text-muted hover:text-text-primary hover:brightness-110 active:scale-[0.97] transition-all duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-panel">
+<span class="material-symbols-outlined">history</span>
+<div class="absolute top-full mt-2 left-1/2 -translate-x-1/2 hidden group-hover:block z-50 pointer-events-none">
+<div class="relative bg-bg-input text-text-primary text-[11px] px-2 py-1.5 border border-border-subtle shadow-xl whitespace-nowrap animate-tooltip rounded-none">
+<div class="tooltip-arrow"></div>
+                        History
+                    </div>
+</div>
+</button>
+<button class="h-7 px-3 bg-accent hover:bg-accent/90 hover:brightness-110 text-bg-panel text-xs font-bold rounded-full flex items-center gap-1 transition-all duration-150 ease-out active:scale-[0.97] ml-2 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-panel">
+<span class="material-symbols-outlined !text-[16px] font-bold">add</span>
+<span>New</span>
+</button>
+</div>
+</header>
+<main class="flex-1 flex flex-col items-center justify-center relative overflow-y-auto w-full max-w-4xl mx-auto px-4">
+<div class="flex flex-col items-center gap-2 animate-fade-in opacity-100 transition-opacity duration-500">
+<h2 class="text-text-primary text-2xl font-bold tracking-tight">Ready</h2>
+<p class="text-text-muted text-sm font-normal">Type a message below</p>
+</div>
+</main>
+<div class="w-full bg-bg-panel border-t border-border-subtle p-3 shrink-0">
+<div class="max-w-4xl mx-auto flex flex-col gap-3">
+<div class="relative group">
+<textarea class="w-full bg-bg-input hover:bg-bg-input-hover text-text-primary placeholder-text-dim text-sm border border-border-subtle focus:border-accent focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-panel p-3 min-h-[56px] resize-none outline-none transition-all duration-150 ease-out font-mono rounded-none" placeholder="Describe your code task..."></textarea>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<button class="group flex items-center gap-1.5 px-3 h-7 rounded-full bg-bg-input hover:bg-bg-input-hover border border-border-subtle hover:border-accent/50 text-text-muted hover:text-text-primary transition-all duration-150 ease-out active:scale-[0.97] cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-panel">
+<div class="size-2 rounded-full bg-text-dim group-hover:bg-accent transition-colors"></div>
+<span class="text-xs font-medium">Plan</span>
+</button>
+<button class="group flex items-center gap-1.5 px-3 h-7 rounded-full bg-bg-input hover:bg-bg-input-hover border border-border-subtle hover:border-accent/50 text-text-muted hover:text-text-primary transition-all duration-150 ease-out active:scale-[0.97] cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-panel">
+<div class="size-2 rounded-full bg-text-dim group-hover:bg-accent transition-colors"></div>
+<span class="text-xs font-medium">Think</span>
+</button>
+</div>
+<button class="size-8 rounded-full bg-accent hover:bg-accent/90 hover:brightness-110 text-bg-panel flex items-center justify-center transition-all duration-150 ease-out active:scale-[0.97] shadow-lg shadow-accent/10 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-panel">
+<span class="material-symbols-outlined !text-[18px] font-bold">arrow_upward</span>
+</button>
+</div>
+</div>
+</div>
+<footer class="h-7 bg-bg-main border-t border-border-subtle flex items-center justify-between px-3 shrink-0 text-[10px] font-mono tracking-wider select-none">
+<div class="flex items-center gap-2 text-text-dim">
+<span class="size-1.5 rounded-full bg-emerald-500/50"></span>
+<span>ASK BEFORE EDITS</span>
+</div>
+<div class="text-text-dim">
+            78% CONTEXT
+        </div>
+</footer>
+
+</body></html>

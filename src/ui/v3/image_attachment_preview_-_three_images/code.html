@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Image Attachment Preview - Three Images</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f27f0d",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#221910",
+                        "preview-bg": "#09090b",
+                        "preview-border": "#222225",
+                        "remove-btn": "#FF7369",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .remove-icon {
+            font-size: 10px !important;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="bg-preview-bg min-h-screen flex items-center justify-center font-display">
+<!-- Isolated Component Container -->
+<div class="flex flex-row gap-[6px]">
+<!-- Thumbnail 1 -->
+<div class="relative group cursor-pointer w-[48px] h-[48px]">
+<!-- Image Area -->
+<div class="w-full h-full border border-preview-border bg-cover bg-center transition-all duration-100 ease-out group-hover:border-[rgba(255,163,68,0.5)] group-hover:brightness-105" data-alt="Abstract dark grey gradient pattern" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA0oXgiSyHGKxTRYB91BzMIq9mTHd5ohRUT3_XQI2oifQxcv1LRrTrRdHIdUPB_fijdaVOC3UPGKpMLvPMmJmfk3gxRRZ8ZurDwaCXqgcRb9wR9W4N7b5KDYd9i-7XFN7F3oavBgk6btfFVd8kdwSF5AEfvnUvvOdJzygJjccB4lE1LM-20uJBtqG5u4q1aynIrECecAgVoLMpGR1lOMUr3bIXCyW01HEbAS628V9ZePWfGxLB_MqjZcjD6pBYlyosaMltiTGFJ-ZI');"></div>
+<!-- Remove Button -->
+<button aria-label="Remove image" class="absolute -top-[6px] -right-[6px] w-[16px] h-[16px] bg-remove-btn rounded-full flex items-center justify-center shadow-sm z-10 transition-filter duration-100 hover:brightness-110 focus:outline-none">
+<span class="material-symbols-outlined text-white remove-icon" data-icon="close">close</span>
+</button>
+</div>
+<!-- Thumbnail 2 -->
+<div class="relative group cursor-pointer w-[48px] h-[48px]">
+<!-- Image Area -->
+<div class="w-full h-full border border-preview-border bg-cover bg-center transition-all duration-100 ease-out group-hover:border-[rgba(255,163,68,0.5)] group-hover:brightness-105" data-alt="Abstract medium grey texture" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCcorMQfiLHD3IukiPPukZBlqTBtS37tGxfnRAlymtH5K2iF_OSGKZtiCX4bWp8y0Slq4oX95Omc0sZoa9HsyYEChOkTN5u7jSUXp_rYP_UJRPZoFZHL4aZ9pqpZAcTq4sLpsidbc56a6aNSlcCg-0vc4poeNFA7AoDOAC3tpF0Lp4-yo97qFyyEUgXgrduR765FEnXFylxcCZb1lITUC7e0i2k1gQEMnGioCvDJvXjrNy_AJhxK19tmo5K2zG-F5pEyW509UuO3nU');"></div>
+<!-- Remove Button -->
+<button aria-label="Remove image" class="absolute -top-[6px] -right-[6px] w-[16px] h-[16px] bg-remove-btn rounded-full flex items-center justify-center shadow-sm z-10 transition-filter duration-100 hover:brightness-110 focus:outline-none">
+<span class="material-symbols-outlined text-white remove-icon" data-icon="close">close</span>
+</button>
+</div>
+<!-- Thumbnail 3 -->
+<div class="relative group cursor-pointer w-[48px] h-[48px]">
+<!-- Image Area -->
+<div class="w-full h-full border border-preview-border bg-cover bg-center transition-all duration-100 ease-out group-hover:border-[rgba(255,163,68,0.5)] group-hover:brightness-105" data-alt="Abstract subtle noise pattern" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCZJLT90peFF03k1kBWG81t0wyzllAriow64Dn4izpeEwaQiNqptg-5kiQEvY0po34gTJrJS1eWThtijjm9hSSycBacupLlmGOluv1q_sSwt5Dcoc6osFRR_cj0ROhOlMn7Ww7EkrHwqVA1O1GMYpjaCf_IUOc3Nl7QvmGLLhKnon6QMEEu-HAgqbxJ4gjJhmq0CihIRs7nWJZbip42TjEERsiJlgc656lSyaRRcQHAuMf0eKrWoNW9cViLoXM6OXFIdnosy-ZnkdY');"></div>
+<!-- Remove Button -->
+<button aria-label="Remove image" class="absolute -top-[6px] -right-[6px] w-[16px] h-[16px] bg-remove-btn rounded-full flex items-center justify-center shadow-sm z-10 transition-filter duration-100 hover:brightness-110 focus:outline-none">
+<span class="material-symbols-outlined text-white remove-icon" data-icon="close">close</span>
+</button>
+</div>
+</div>
+</body></html>

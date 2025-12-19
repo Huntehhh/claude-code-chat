@@ -23,6 +23,10 @@ code --install-extension claude-code-chat-1.1.0.vsix --force
 
 ---
 
+## Writing Rules
+
+Whenever a user asks for "high-level documentation" Markdown Document, you shall always attempt to write with brevity, be succinct, and economical with your word choice; But still very detail-oriented and specific. Use visual diagrams to describe the problem from a high level when necessary,  And always keep it around 50 to 100 lines unless told otherwise. . 
+
 ## Git Commit Rules
 
 **IMPORTANT:** Commit frequently to prevent code loss.
@@ -30,6 +34,7 @@ code --install-extension claude-code-chat-1.1.0.vsix --force
 ### Auto-Commit Triggers
 
 Commit when:
+
 - Every ~5 chat turns during active development
 - User says "save", "backup", "checkpoint"
 - User mentions "continue later" or "stopping"
@@ -44,13 +49,4 @@ git add . && git commit -m "Description of changes"
 
 ### Before Ending Session
 
-Always ask: *"Want me to commit these changes before we stop?"*
-
----
-
-## Reference Docs
-
-- `UI-COMPONENT-REFERENCE.md` - Complete UI spec
-- `CONTINUATION-PROMPT.md` - Pending fixes
-- `RECOVERY-PLAN.md` - Lost features to rebuild
-- `BACKUP-STRATEGY.md` - Backup setup guide
+Always ask: *"Want me to commit these changes before we stop?"

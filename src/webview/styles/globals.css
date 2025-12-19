@@ -63,3 +63,439 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--primary));
 }
+
+/* ============================================
+   Stitch Design System - Markdown Styles
+   Based on STITCH-PROMPTS-WARP-LINEAR.md
+   Style: Warp Terminal × Linear App × Claude.ai
+   ============================================ */
+
+/* Theme Colors Reference:
+   --stitch-bg-canvas: #09090b (OLED black)
+   --stitch-bg-surface: #0f0f0f (panels, modals)
+   --stitch-bg-card: #171717 (inputs, hover)
+   --stitch-bg-inline-code: #1c1c1f
+   --stitch-border: #222225
+   --stitch-border-inline-code: #2d2d30
+   --stitch-text-primary: #fafafa
+   --stitch-text-body: #e4e4e7
+   --stitch-text-secondary: #a1a1a1
+   --stitch-text-muted: #8b8b94
+   --stitch-text-dim: #52525b
+   --stitch-accent-amber: #FFA344
+   --stitch-accent-coral: #FF7369
+*/
+
+/* Markdown content wrapper */
+.markdown-content {
+  font-family: -apple-system, 'Inter', 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #e4e4e7;
+}
+
+.markdown-content p {
+  margin: 0 0 1em;
+}
+
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin: 0 0 1em;
+  padding-left: 1.5em;
+}
+
+.markdown-content li {
+  margin-bottom: 0.25em;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4 {
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: #fafafa;
+  margin: 1.5em 0 0.5em;
+}
+
+.markdown-content h1:first-child,
+.markdown-content h2:first-child,
+.markdown-content h3:first-child {
+  margin-top: 0;
+}
+
+.markdown-content h1 { font-size: 1.5em; }
+.markdown-content h2 { font-size: 1.25em; }
+.markdown-content h3 { font-size: 1.1em; }
+.markdown-content h4 { font-size: 1em; }
+
+.markdown-content blockquote {
+  margin: 0 0 1em;
+  padding-left: 1em;
+  border-left: 2px solid #FFA344;
+  color: #8b8b94;
+  font-style: italic;
+}
+
+.markdown-content hr {
+  border: none;
+  border-top: 1px solid #222225;
+  margin: 1.5em 0;
+}
+
+/* Markdown links */
+.markdown-link {
+  color: #FFA344;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.markdown-link:hover {
+  color: #FFB366;
+  text-decoration: underline;
+}
+
+/* Inline code: #1c1c1f bg, #2d2d30 border */
+.inline-code {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: 0.875em;
+  padding: 0.125em 0.375em;
+  background-color: #1c1c1f;
+  border: 1px solid #2d2d30;
+  border-radius: 0; /* Sharp corners per Stitch spec */
+  color: #fafafa;
+}
+
+/* File reference pills (amber) */
+.file-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125em 0.5em;
+  background-color: rgba(255, 163, 68, 0.15);
+  border: 1px solid rgba(255, 163, 68, 0.3);
+  border-radius: 9999px; /* Full rounded for pills */
+  color: #FFA344;
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: 0.875em;
+  font-weight: 500;
+}
+
+/* Code block container: dark #0f0f0f, sharp corners */
+.code-block-container {
+  margin: 1em 0;
+  background-color: #0f0f0f;
+  border: 1px solid #222225;
+  border-radius: 0; /* Sharp corners per Stitch spec */
+  overflow: hidden;
+}
+
+/* Code block header: language label + copy button */
+.code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: #0f0f0f;
+  border-bottom: 1px solid #222225;
+}
+
+.code-block-lang {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: 11px;
+  color: #8b8b94;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.code-block-copy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: transparent;
+  border: none;
+  color: #52525b;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 150ms ease, color 150ms ease;
+}
+
+.code-block-container:hover .code-block-copy,
+.code-block-copy:focus {
+  opacity: 1;
+}
+
+.code-block-copy:hover {
+  color: #fafafa;
+}
+
+.code-block-copy:active {
+  transform: scale(0.95);
+}
+
+/* Code block pre and code */
+.code-block-pre {
+  margin: 0;
+  padding: 12px;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  tab-size: 2;
+}
+
+.code-block-code {
+  display: block;
+}
+
+/* Line numbers */
+.code-block-line-number {
+  display: inline-block;
+  width: 32px;
+  padding-right: 12px;
+  color: #52525b;
+  text-align: right;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.code-block-line-content {
+  flex: 1;
+}
+
+/* Tables */
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 13px;
+}
+
+.markdown-content th,
+.markdown-content td {
+  padding: 8px 12px;
+  border: 1px solid #222225;
+  text-align: left;
+}
+
+.markdown-content th {
+  background-color: #171717;
+  color: #fafafa;
+  font-weight: 500;
+}
+
+.markdown-content td {
+  background-color: #0f0f0f;
+}
+
+.markdown-content tr:hover td {
+  background-color: #171717;
+}
+
+/* ============================================
+   Modal Animations
+   ============================================ */
+@keyframes modalEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-modal-enter {
+  animation: modalEnter 150ms ease-out forwards;
+}
+
+/* ============================================
+   Radio Button Custom Styling
+   ============================================ */
+.custom-radio {
+  position: relative;
+}
+
+.custom-radio:checked {
+  background-color: #FFA344;
+  border-color: #FFA344;
+}
+
+/* Inner dot for checked radio */
+.custom-radio:checked::after {
+  content: '';
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #0f0f0f;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* ============================================
+   Loading/Tinkering Animation
+   ============================================ */
+@keyframes tinkeringSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-tinkering {
+  animation: tinkeringSpin 2s linear infinite;
+}
+
+/* ============================================
+   Status Indicator Pulse
+   ============================================ */
+@keyframes statusPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.animate-status-pulse {
+  animation: statusPulse 1.5s ease-in-out infinite;
+}
+
+/* ============================================
+   Checkmark Draw Animation (Install Success)
+   ============================================ */
+@keyframes checkmarkDraw {
+  0% {
+    stroke-dashoffset: 100;
+    opacity: 0;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.animate-checkmark .checkmark-path {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: checkmarkDraw 0.6s ease-out forwards;
+  animation-delay: 0.2s;
+}
+
+/* ============================================
+   Slide-in Panel Animation
+   ============================================ */
+@keyframes slideFromRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slideFromRight 0.2s ease-out forwards;
+}
+
+/* ============================================
+   Thinking Overlay Pulse Animation
+   ============================================ */
+@keyframes thinkingPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+.animate-thinking-pulse {
+  animation: thinkingPulse 1.5s ease-in-out infinite;
+}
+
+/* ============================================
+   8-bit Pixel Wave Animation (Retro Loader)
+   ============================================ */
+@keyframes pixelWave {
+  0%, 100% {
+    background-color: #171717;
+    box-shadow: none;
+  }
+  25% {
+    background-color: rgba(255, 163, 68, 0.5);
+    box-shadow: none;
+  }
+  50% {
+    background-color: var(--pixel-color, #FFA344);
+    box-shadow: var(--pixel-glow, 0 0 6px rgba(255, 163, 68, 0.4));
+  }
+  75% {
+    background-color: rgba(255, 163, 68, 0.5);
+    box-shadow: none;
+  }
+}
+
+.animate-pixel-wave {
+  animation: pixelWave 1.5s ease-in-out infinite;
+}
+
+/* ============================================
+   Drag-Over Overlay Styling
+   ============================================ */
+.drag-over-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: rgba(255, 163, 68, 0.08);
+  border: 2px dashed #FFA344;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.drag-over-overlay-icon {
+  width: 32px;
+  height: 32px;
+  color: #FFA344;
+}
+
+.drag-over-overlay-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #FFA344;
+}
+
+/* ============================================
+   Subtle Pulse Animation (Running Card State)
+   ============================================ */
+@keyframes pulseSubtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulseSubtle 2s ease-in-out infinite;
+}

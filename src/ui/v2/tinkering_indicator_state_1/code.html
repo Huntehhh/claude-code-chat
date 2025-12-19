@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tinkering Indicator State 1</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ffa142", // Matching the #FFA344 request closely with theme primary
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#09090b", // Adjusted to match user request #09090b
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        /* Custom adjustment for exact color match requested */
+        .text-tinkering {
+            color: #FFA344;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen w-full flex items-center justify-center m-0 p-0 font-display text-base">
+<!-- 
+      Main Container: 
+      - Flex centered to place the indicator in the middle of the viewport.
+      - Uses the specific dark background requested via config.
+    -->
+<main class="relative flex flex-col items-center justify-center w-full h-screen overflow-hidden">
+<!-- Tinkering Indicator Component -->
+<!-- 
+           This element represents the '✳' symbol.
+           - Text size: 16px (text-base is usually 16px, or explicit text-[16px])
+           - Color: #FFA344 (custom class used for precision)
+           - Rotation: 0deg (default)
+        -->
+<div aria-label="Tinkering indicator" class="flex items-center justify-center">
+<span class="text-tinkering text-[16px] leading-none select-none transform rotate-0 origin-center transition-transform duration-700 ease-linear">
+                ✳
+            </span>
+</div>
+<!-- Optional: Context label for the viewer (hidden in production use, but helpful for context here) -->
+<!-- <p class="absolute bottom-10 text-neutral-500 text-xs font-mono opacity-20">State 1: 0deg</p> -->
+</main>
+</body></html>

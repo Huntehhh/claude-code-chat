@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Conversation History Panel</title>
+<!-- Material Symbols Link -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ffa142",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#0f0f0f", // Updated to match request
+                        "panel-border": "#222225",
+                        "panel-hover": "#171717",
+                        "text-muted": "#8b8b94",
+                        "text-placeholder": "#52525b",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"],
+                    },
+                    boxShadow: {
+                        "panel": "-4px 0 16px rgba(0,0,0,0.3), inset 1px 0 0 0 rgba(255,255,255,0.03)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for dark theme matching VS Code style */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f0f0f; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2b2b2b; 
+            border-radius: 5px;
+            border: 2px solid #0f0f0f;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3f3f3f; 
+        }
+        
+        .slide-in {
+            animation: slideFromRight 0.2s ease-out forwards;
+        }
+        
+        @keyframes slideFromRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white font-display overflow-hidden">
+<!-- Main wrapper acting as the full screen overlay/context -->
+<div class="relative flex h-screen w-full justify-end bg-black/50 backdrop-blur-sm">
+<!-- The History Panel -->
+<div class="slide-in flex flex-col w-[320px] h-full bg-background-dark border-l border-panel-border shadow-panel">
+<!-- Header Section -->
+<div class="flex items-center justify-between px-4 py-3 shrink-0 border-b border-panel-border">
+<h2 class="text-[16px] font-semibold text-white tracking-tight">History</h2>
+<button class="flex items-center justify-center size-8 rounded hover:bg-panel-hover text-text-muted transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-[20px] group-hover:text-white transition-colors">close</span>
+</button>
+</div>
+<!-- Search Section -->
+<div class="px-3 py-3 shrink-0">
+<div class="flex items-center w-full h-9 bg-[#171717] rounded border border-panel-border focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
+<span class="material-symbols-outlined text-text-muted pl-2.5 text-[18px]">search</span>
+<input class="w-full bg-transparent border-none text-[13px] text-white placeholder-text-placeholder focus:ring-0 h-full py-1 pl-2 pr-3" placeholder="Search conversations..." type="text"/>
+</div>
+</div>
+<!-- Scrollable List Area -->
+<div class="flex-1 overflow-y-auto">
+<!-- Item 1: Active with expanded checkpoints -->
+<div class="flex flex-col border-l-2 border-primary bg-panel-hover/50">
+<!-- Main Conversation Row -->
+<div class="group/item relative px-3 py-3 hover:bg-panel-hover cursor-pointer transition-colors">
+<div class="flex justify-between items-start mb-1.5">
+<h3 class="text-[14px] font-medium text-white truncate pr-2">Refactoring AuthController...</h3>
+</div>
+<div class="flex items-center gap-2 mb-1.5 flex-wrap">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#FFA344]/15 text-[#FFA344] border border-[#FFA344]/20">
+                                Chat
+                            </span>
+<span class="text-[11px] text-text-muted">2h ago</span>
+<span class="text-[11px] text-text-muted">•</span>
+<span class="flex items-center gap-0.5 text-[11px] text-text-muted">
+<span class="material-symbols-outlined text-[12px]">chat_bubble_outline</span> 12
+                            </span>
+</div>
+<p class="text-[12px] text-text-muted line-clamp-2 leading-tight">
+                            Here is the updated logic for the middleware authenticator we discussed earlier...
+                        </p>
+</div>
+<!-- Checkpoint Browser (Active State) -->
+<div class="pb-2">
+<details class="group/accordion" open="">
+<summary class="flex items-center justify-between px-3 py-1.5 cursor-pointer hover:bg-panel-hover select-none list-none">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-muted text-[16px] group-open/accordion:rotate-90 transition-transform duration-200">chevron_right</span>
+<span class="text-[11px] font-medium text-text-muted uppercase tracking-wider">Checkpoints</span>
+<span class="flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-[#27272a] text-[10px] text-text-muted font-mono">3</span>
+</div>
+</summary>
+<!-- Checkpoint List -->
+<div class="flex flex-col mt-1">
+<!-- Checkpoint Item 1 -->
+<div class="group/checkpoint relative flex items-center gap-3 py-1.5 px-3 pl-[34px] hover:bg-panel-hover cursor-pointer">
+<span class="font-mono text-[11px] text-text-muted">a1b2c3d</span>
+<div class="flex-1 min-w-0 flex flex-col">
+<span class="text-[12px] text-gray-300 truncate">Update login logic</span>
+<span class="text-[10px] text-text-placeholder">10m ago</span>
+</div>
+<!-- Hover Action -->
+<button class="opacity-0 group-hover/checkpoint:opacity-100 absolute right-2 bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-medium px-2 py-0.5 rounded border border-primary/20 transition-all">
+                                        Restore
+                                    </button>
+</div>
+<!-- Checkpoint Item 2 -->
+<div class="group/checkpoint relative flex items-center gap-3 py-1.5 px-3 pl-[34px] hover:bg-panel-hover cursor-pointer">
+<span class="font-mono text-[11px] text-text-muted">e5f6g7h</span>
+<div class="flex-1 min-w-0 flex flex-col">
+<span class="text-[12px] text-gray-300 truncate">Fix type errors in schema</span>
+<span class="text-[10px] text-text-placeholder">45m ago</span>
+</div>
+<button class="opacity-0 group-hover/checkpoint:opacity-100 absolute right-2 bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-medium px-2 py-0.5 rounded border border-primary/20 transition-all">
+                                        Restore
+                                    </button>
+</div>
+<!-- Checkpoint Item 3 -->
+<div class="group/checkpoint relative flex items-center gap-3 py-1.5 px-3 pl-[34px] hover:bg-panel-hover cursor-pointer">
+<span class="font-mono text-[11px] text-text-muted">9j8k7l6</span>
+<div class="flex-1 min-w-0 flex flex-col">
+<span class="text-[12px] text-gray-300 truncate">Initial commit</span>
+<span class="text-[10px] text-text-placeholder">2h ago</span>
+</div>
+<button class="opacity-0 group-hover/checkpoint:opacity-100 absolute right-2 bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-medium px-2 py-0.5 rounded border border-primary/20 transition-all">
+                                        Restore
+                                    </button>
+</div>
+</div>
+</details>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="flex flex-col border-l-2 border-transparent">
+<div class="group/item relative px-3 py-3 hover:bg-panel-hover cursor-pointer transition-colors border-t border-panel-border/30">
+<div class="flex justify-between items-start mb-1.5">
+<h3 class="text-[14px] font-medium text-gray-200 truncate pr-2 group-hover/item:text-white">Debug CLI Error</h3>
+</div>
+<div class="flex items-center gap-2 mb-1.5 flex-wrap">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#9A6DD7]/15 text-[#9A6DD7] border border-[#9A6DD7]/20">
+                                CLI
+                            </span>
+<span class="text-[11px] text-text-muted">1d ago</span>
+<span class="text-[11px] text-text-muted">•</span>
+<span class="flex items-center gap-0.5 text-[11px] text-text-muted">
+<span class="material-symbols-outlined text-[12px]">terminal</span> 4
+                            </span>
+</div>
+<p class="text-[12px] text-text-muted line-clamp-2 leading-tight">
+                            The error suggests a missing environment variable in the build pipeline configuration...
+                        </p>
+</div>
+<!-- Checkpoint Browser (Collapsed) -->
+<div class="pb-0">
+<details class="group/accordion">
+<summary class="flex items-center justify-between px-3 py-1.5 cursor-pointer hover:bg-panel-hover select-none list-none">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-muted text-[16px] group-open/accordion:rotate-90 transition-transform duration-200">chevron_right</span>
+<span class="text-[11px] font-medium text-text-muted uppercase tracking-wider">Checkpoints</span>
+<span class="flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-[#27272a] text-[10px] text-text-muted font-mono">1</span>
+</div>
+</summary>
+<div class="flex flex-col mt-1 pb-2">
+<div class="group/checkpoint relative flex items-center gap-3 py-1.5 px-3 pl-[34px] hover:bg-panel-hover cursor-pointer">
+<span class="font-mono text-[11px] text-text-muted">f1g2h3j</span>
+<div class="flex-1 min-w-0 flex flex-col">
+<span class="text-[12px] text-gray-300 truncate">Patch env var</span>
+<span class="text-[10px] text-text-placeholder">1d ago</span>
+</div>
+<button class="opacity-0 group-hover/checkpoint:opacity-100 absolute right-2 bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-medium px-2 py-0.5 rounded border border-primary/20 transition-all">
+                                        Restore
+                                    </button>
+</div>
+</div>
+</details>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="flex flex-col border-l-2 border-transparent">
+<div class="group/item relative px-3 py-3 hover:bg-panel-hover cursor-pointer transition-colors border-t border-panel-border/30">
+<div class="flex justify-between items-start mb-1.5">
+<h3 class="text-[14px] font-medium text-gray-200 truncate pr-2 group-hover/item:text-white">Explain React Hooks</h3>
+</div>
+<div class="flex items-center gap-2 mb-1.5 flex-wrap">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#FFA344]/15 text-[#FFA344] border border-[#FFA344]/20">
+                                Chat
+                            </span>
+<span class="text-[11px] text-text-muted">3d ago</span>
+<span class="text-[11px] text-text-muted">•</span>
+<span class="flex items-center gap-0.5 text-[11px] text-text-muted">
+<span class="material-symbols-outlined text-[12px]">chat_bubble_outline</span> 2
+                            </span>
+</div>
+<p class="text-[12px] text-text-muted line-clamp-2 leading-tight">
+                            Can you explain how useEffect dependency array works when dealing with objects?
+                        </p>
+</div>
+<!-- Checkpoint Browser (Empty State) -->
+<div>
+<details class="group/accordion">
+<summary class="flex items-center justify-between px-3 py-1.5 cursor-pointer hover:bg-panel-hover select-none list-none">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-muted text-[16px] group-open/accordion:rotate-90 transition-transform duration-200">chevron_right</span>
+<span class="text-[11px] font-medium text-text-muted uppercase tracking-wider">Checkpoints</span>
+<span class="flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-[#27272a] text-[10px] text-text-muted font-mono">0</span>
+</div>
+</summary>
+<div class="flex flex-col mt-1 pb-2">
+<div class="px-3 pl-[34px] py-1">
+<span class="text-[11px] text-text-placeholder italic">No checkpoints yet</span>
+</div>
+</div>
+</details>
+</div>
+</div>
+<!-- Item 4 -->
+<div class="flex flex-col border-l-2 border-transparent">
+<div class="group/item relative px-3 py-3 hover:bg-panel-hover cursor-pointer transition-colors border-t border-panel-border/30">
+<div class="flex justify-between items-start mb-1.5">
+<h3 class="text-[14px] font-medium text-gray-200 truncate pr-2 group-hover/item:text-white">Optimize SQL Query</h3>
+</div>
+<div class="flex items-center gap-2 mb-1.5 flex-wrap">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#9A6DD7]/15 text-[#9A6DD7] border border-[#9A6DD7]/20">
+                                CLI
+                            </span>
+<span class="text-[11px] text-text-muted">1w ago</span>
+<span class="text-[11px] text-text-muted">•</span>
+<span class="flex items-center gap-0.5 text-[11px] text-text-muted">
+<span class="material-symbols-outlined text-[12px]">database</span> 8
+                            </span>
+</div>
+<p class="text-[12px] text-text-muted line-clamp-2 leading-tight">
+                            Analyze this slow query on the users table and suggest indexes.
+                        </p>
+</div>
+<!-- Checkpoint Browser (Empty State) -->
+<div>
+<details class="group/accordion">
+<summary class="flex items-center justify-between px-3 py-1.5 cursor-pointer hover:bg-panel-hover select-none list-none">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-muted text-[16px] group-open/accordion:rotate-90 transition-transform duration-200">chevron_right</span>
+<span class="text-[11px] font-medium text-text-muted uppercase tracking-wider">Checkpoints</span>
+<span class="flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-[#27272a] text-[10px] text-text-muted font-mono">0</span>
+</div>
+</summary>
+<div class="flex flex-col mt-1 pb-2">
+<div class="px-3 pl-[34px] py-1">
+<span class="text-[11px] text-text-placeholder italic">No checkpoints yet</span>
+</div>
+</div>
+</details>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

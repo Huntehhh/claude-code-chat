@@ -224,10 +224,11 @@ SETTINGS MODAL (340px wide, max 80vh):
 - "Enable YOLO Mode" toggle at bottom (warning: #FF7369 tint when on)
 
 "Display" section:
-- Three toggle rows:
-  - "Compact tool output"
-  - "Hide MCP tool calls"
-  - "Show Tasks panel"
+- "Compact tool output" toggle + number input beside it:
+  - Number input: 60px wide, label "Preview height", suffix "px"
+  - Sets how tall compacted previews are before truncation (e.g., 150px)
+- "Compact MCP tool calls" toggle (semi-compact, click to expand fully)
+- "Show to-do list" toggle
 
 MCP SERVERS MODAL (340px wide):
 - Header: "MCP Servers"
@@ -244,6 +245,11 @@ MCP SERVERS MODAL (340px wide):
   - Each: Emoji (24px) + Name + Description (11px)
   - Cards: 📚 Context7, 🧠 Memory, 🔗 Sequential, 🎭 Puppeteer, 🌐 Fetch, 📁 Filesystem
   - Click to auto-add
+- "Config Files" section at bottom:
+  - 2x2 grid of ghost link buttons (#8b8b94 text, hover #fafafa)
+  - "Local MCP Config" | "Global MCP Config"
+  - "Local Settings" | "Global Settings"
+  - Each opens respective JSON config file
 
 MODEL SELECTOR MODAL (300px wide):
 - Header: "Select Model"
@@ -327,40 +333,46 @@ FILE PICKER MODAL (320px wide):
 
 ---
 
-## PROMPT 6: Permission System & Install
+## PROMPT 6: Permission Dialog & Install Modal
 
 ```
-Design permission and install components.
+Design three NEW components (not the status bar - these are separate UI elements).
 
-PERMISSION REQUEST DIALOG (inline in message flow, not modal):
+---
+
+COMPONENT 1: PERMISSION REQUEST DIALOG
+
+This is an INLINE CARD that appears INSIDE THE CHAT MESSAGE AREA when Claude needs permission to run a tool. It is NOT the "ASK BEFORE EDITS" status text - this is a separate popup card.
+
+Container:
+- Appears inline between messages in the chat
 - Margin: 8px 0 12px
-- Background: rgba(255,163,68,0.06)
+- Background: rgba(255,163,68,0.06) (subtle amber tint)
 - Border: 1px rgba(255,163,68,0.2)
 - Border-radius: 8px
 - Padding: 14px
-- Slide-up animation on appear
 
 Header row:
-- ⚠️ Warning icon (#FFA344)
-- "Permission needed" (14px, weight 500)
-- "⋯" menu button (right side)
-- Menu options: "🚀 Enable YOLO Mode", "📋 Copy command"
+- Left: ⚠️ Warning icon (#FFA344) + "Permission needed" text (14px, weight 500)
+- Right: "⋯" menu button (opens dropdown with "🚀 Enable YOLO Mode", "📋 Copy command")
 
-Content:
-- Tool badge: uppercase pill (#171717 bg, #FFA344 text, full radius)
-- Command display: monospace, #0f0f0f bg, 1px #222225 border, padding 8px 10px, SHARP corners
+Content area:
+- Tool badge: uppercase pill (e.g., "BASH"), #171717 bg, #FFA344 text, full rounded
+- Command preview: monospace text showing the command (e.g., "npm install lodash"), #0f0f0f bg, 1px #222225 border, SHARP corners
 
-Actions row (right-aligned, gap 8px):
-- "Deny" button (ghost, #FF7369 text)
+Action buttons (row, right-aligned, gap 8px):
+- "Deny" button (ghost style, #FF7369 text)
 - "Allow" button (#171717 bg, #fafafa text)
 - "Always Allow" button (#FFA344 bg, white text)
 
-Decided states (150ms fade transition):
-- Approved: background rgba(255,163,68,0.08), "✓ Allowed" badge
-- Denied: background rgba(255,115,105,0.08), "✗ Denied" badge
-- Expired: 50% opacity, gray tint
+Show TWO states:
+1. PENDING state: As described above with all three buttons
+2. APPROVED state: Background rgba(255,163,68,0.08), shows "✓ Allowed" badge instead of buttons
 
-THINKING INTENSITY MODAL (300px wide):
+---
+
+COMPONENT 2: THINKING INTENSITY MODAL (300px wide)
+
 - Header: "Thinking Depth"
 - Description: "Higher = deeper reasoning, more tokens" (12px, #8b8b94)
 - Horizontal slider:
@@ -370,12 +382,14 @@ THINKING INTENSITY MODAL (300px wide):
   - 4 stop positions (0-3)
 - Labels below track (evenly spaced):
   - "Think" | "Hard" | "Harder" | "Ultra"
-  - Active: #fafafa, weight 500
-  - Inactive: #8b8b94
+  - Active label: #fafafa, weight 500
+  - Inactive labels: #8b8b94
   - Labels are clickable
 - Footer: "Confirm" button (full width, #FFA344 background, SHARP corners)
 
-INSTALL MODAL (300px wide, centered):
+---
+
+COMPONENT 3: INSTALL MODAL (300px wide, centered)
 - Close X button top-right (#8b8b94)
 
 Initial state:
@@ -396,14 +410,18 @@ Success state:
 - "Start chatting" (13px, #8b8b94)
 ```
 
-**Checkpoint:** Permission dialog states, thinking slider, install modal states.
+**Checkpoint:** Permission dialog (pending + approved states), thinking intensity modal, install modal (initial + progress + success states).
 
 ---
 
 ## PROMPT 7: Diff Viewer, Todo Panel & Loading States
 
 ```
-Final components for visual polish.
+IMPORTANT: Use the ORIGINAL "Claude Code Chat Main Interface" from Prompts 1-2.
+DO NOT create a new layout. NO left sidebar, NO workspace tree, NO "RECENT" section.
+The original design has: header bar, black main area, input at bottom, status bar.
+
+Final components for visual polish - add these to the ORIGINAL interface:
 
 DIFF VIEWER (inside messages, for file changes):
 - Container: background #0f0f0f, border 1px #222225, SHARP corners
@@ -419,16 +437,16 @@ DIFF VIEWER (inside messages, for file changes):
 - Collapsible: "Show X more lines" button for hidden context
 - Max height 300px, then scroll
 
-TODO PANEL (collapsible, above input area when enabled):
+TO-DO LIST PANEL (collapsible, above input area when enabled):
 - Container: background #0f0f0f, border 1px #222225, SHARP corners
 - Margin: 0 12px 8px
 - Header (clickable to collapse):
   - 📋 icon
-  - "Tasks" label (13px, weight 500)
+  - "To-do" label (13px, weight 500)
   - Count badge (pill, #171717 bg, #FFA344 text, full radius)
   - Chevron ▼ (rotates to ▶ when collapsed)
 - Content (max-height 150px, scroll):
-  - Todo items as list
+  - To-do items as list
   - Each: Status icon + Task text (13px)
   - Status icons:
     - ⏳ Pending (#8b8b94)
@@ -470,7 +488,7 @@ MICRO-INTERACTIONS:
 - Selection highlight: rgba(255,163,68,0.2) background
 ```
 
-**Checkpoint:** Diff viewer with +/- lines, todo panel states, all loading animations.
+**Checkpoint:** Diff viewer with +/- lines, to-do list panel states, all loading animations.
 
 ---
 

@@ -208,6 +208,16 @@
           "type": "boolean",
           "default": false,
           "description": "Enable Yolo Mode to skip all permission checks. Use with caution as Claude can execute any command without asking."
+        },
+        "claudeCodeChat.compact.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Compact tool output with expandable previews"
+        },
+        "claudeCodeChat.compact.previewHeight": {
+          "type": "number",
+          "default": 150,
+          "description": "Height in pixels for compacted tool previews"
         }
       }
     }
@@ -247,6 +257,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.462.0",
+    "markdown-to-jsx": "^9.4.2",
+    "prism-react-renderer": "^2.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwind-merge": "^2.6.0",

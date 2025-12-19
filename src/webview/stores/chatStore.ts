@@ -1,46 +1,237 @@
 import { create } from 'zustand';
+import type {
+  CommitInfo,
+  ConversationListItem,
+  WorkspaceFile,
+} from '../../types/messages';
+
+// =============================================================================
+// Message Types
+// =============================================================================
 
 export interface Message {
-  type: 'user' | 'claude' | 'tool-use' | 'tool-result' | 'permission' | 'error' | 'thinking';
+  type: 'user' | 'claude' | 'tool-use' | 'tool-result' | 'permission' | 'error' | 'thinking' | 'system';
   content: string;
   timestamp: number;
   toolName?: string;
   permissionId?: string;
   isError?: boolean;
+  // Tool use additional data
+  toolInput?: Record<string, unknown>;
+  rawInput?: Record<string, unknown>;
+  // For permission requests
+  permissionSuggestions?: string[];
+  decisionReason?: string;
+  // For file operations
+  filePath?: string;
+  oldContent?: string;
+  newContent?: string;
 }
 
+export interface PermissionRequest {
+  id: string;
+  tool: string;
+  input: Record<string, unknown>;
+  suggestions?: string[];
+  decisionReason?: string;
+  status: 'pending' | 'approved' | 'denied';
+}
+
+export interface TodoItem {
+  id: string;
+  content: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  activeForm?: string;
+}
+
+// Extended conversation with checkpoints
+export interface Conversation extends ConversationListItem {
+  messageCount?: number;
+  preview?: string;
+  checkpoints?: CommitInfo[];
+}
+
+// =============================================================================
+// Store Interface
+// =============================================================================
+
 interface ChatState {
+  // Messages
   messages: Message[];
   isProcessing: boolean;
   sessionId: string | null;
   chatName: string;
+
+  // Tokens & Cost
   totalTokensInput: number;
   totalTokensOutput: number;
+  totalCost: number;
+  requestCount: number;
+  subscriptionType: string | null;
 
+  // Permissions
+  pendingPermissions: PermissionRequest[];
+
+  // Conversations & History
+  conversations: Conversation[];
+  activeConversationId: string | null;
+
+  // Workspace Files (for file picker)
+  workspaceFiles: WorkspaceFile[];
+
+  // Checkpoints/Commits
+  commits: CommitInfo[];
+
+  // Todos (from Claude)
+  todos: TodoItem[];
+
+  // Draft message (auto-saved input)
+  draftMessage: string;
+
+  // Clipboard text (from VSCode)
+  clipboardText: string;
+
+  // =========================================================================
+  // Actions
+  // =========================================================================
+
+  // Messages
   addMessage: (message: Message) => void;
+  updateLastMessage: (content: string) => void;
   clearMessages: () => void;
   setProcessing: (processing: boolean) => void;
+
+  // Tokens & Cost
   updateTokens: (input: number, output: number) => void;
+  setTotalCost: (cost: number) => void;
+  setRequestCount: (count: number) => void;
+  setSubscriptionType: (type: string | null) => void;
+
+  // Session
   setChatName: (name: string) => void;
   setSessionId: (id: string | null) => void;
+
+  // Permissions
+  addPendingPermission: (permission: PermissionRequest) => void;
+  updatePermissionStatus: (id: string, status: 'approved' | 'denied') => void;
+  removePendingPermission: (id: string) => void;
+  clearPendingPermissions: () => void;
+
+  // Conversations
+  setConversations: (conversations: Conversation[]) => void;
+  setActiveConversationId: (id: string | null) => void;
+
+  // Workspace Files
+  setWorkspaceFiles: (files: WorkspaceFile[]) => void;
+
+  // Commits
+  setCommits: (commits: CommitInfo[]) => void;
+  addCommit: (commit: CommitInfo) => void;
+
+  // Todos
+  setTodos: (todos: TodoItem[]) => void;
+
+  // Draft & Clipboard
+  setDraftMessage: (text: string) => void;
+  setClipboardText: (text: string) => void;
 }
 
+// =============================================================================
+// Store Implementation
+// =============================================================================
+
 export const useChatStore = create<ChatState>((set) => ({
+  // Initial state
   messages: [],
   isProcessing: false,
   sessionId: null,
   chatName: 'Claude Code Chat',
   totalTokensInput: 0,
   totalTokensOutput: 0,
+  totalCost: 0,
+  requestCount: 0,
+  subscriptionType: null,
+  pendingPermissions: [],
+  conversations: [],
+  activeConversationId: null,
+  workspaceFiles: [],
+  commits: [],
+  todos: [],
+  draftMessage: '',
+  clipboardText: '',
 
+  // Message actions
   addMessage: (message) => set((s) => ({ messages: [...s.messages, message] })),
-  clearMessages: () => set({ messages: [], totalTokensInput: 0, totalTokensOutput: 0 }),
+
+  updateLastMessage: (content) => set((s) => {
+    const messages = [...s.messages];
+    if (messages.length > 0) {
+      messages[messages.length - 1] = {
+        ...messages[messages.length - 1],
+        content,
+      };
+    }
+    return { messages };
+  }),
+
+  clearMessages: () => set({
+    messages: [],
+    totalTokensInput: 0,
+    totalTokensOutput: 0,
+    totalCost: 0,
+    requestCount: 0,
+    pendingPermissions: [],
+    todos: [],
+  }),
+
   setProcessing: (processing) => set({ isProcessing: processing }),
+
+  // Token & cost actions
   updateTokens: (input, output) =>
     set((s) => ({
       totalTokensInput: s.totalTokensInput + input,
       totalTokensOutput: s.totalTokensOutput + output,
     })),
+  setTotalCost: (cost) => set({ totalCost: cost }),
+  setRequestCount: (count) => set({ requestCount: count }),
+  setSubscriptionType: (type) => set({ subscriptionType: type }),
+
+  // Session actions
   setChatName: (name) => set({ chatName: name }),
   setSessionId: (id) => set({ sessionId: id }),
+
+  // Permission actions
+  addPendingPermission: (permission) => set((s) => ({
+    pendingPermissions: [...s.pendingPermissions, permission],
+  })),
+
+  updatePermissionStatus: (id, status) => set((s) => ({
+    pendingPermissions: s.pendingPermissions.map((p) =>
+      p.id === id ? { ...p, status } : p
+    ),
+  })),
+
+  removePendingPermission: (id) => set((s) => ({
+    pendingPermissions: s.pendingPermissions.filter((p) => p.id !== id),
+  })),
+
+  clearPendingPermissions: () => set({ pendingPermissions: [] }),
+
+  // Conversation actions
+  setConversations: (conversations) => set({ conversations }),
+  setActiveConversationId: (id) => set({ activeConversationId: id }),
+
+  // Workspace files actions
+  setWorkspaceFiles: (files) => set({ workspaceFiles: files }),
+
+  // Commits actions
+  setCommits: (commits) => set({ commits }),
+  addCommit: (commit) => set((s) => ({ commits: [commit, ...s.commits] })),
+
+  // Todos actions
+  setTodos: (todos) => set({ todos }),
+
+  // Draft & clipboard actions
+  setDraftMessage: (text) => set({ draftMessage: text }),
+  setClipboardText: (text) => set({ clipboardText: text }),
 }));

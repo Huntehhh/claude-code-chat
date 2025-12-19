@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Slash Commands Modal</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ffa142",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#0f0f0f", /* Specific from prompt */
+                        "border-dark": "#222225",
+                        "text-muted": "#8b8b94",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"],
+                    },
+                    boxShadow: {
+                        "modal": "0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 0 rgba(255,255,255,0.05)",
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem", /* 2px - very sharp but slightly rounded for internal elements */
+                        "sm": "0.125rem",
+                        "md": "0.25rem",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for the CLI list */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #222225;
+            border-radius: 2px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #3a3a3e;
+        }
+        
+        /* Animation for modal entry */
+        @keyframes modalEnter {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        .animate-enter {
+            animation: modalEnter 150ms ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-black/50 backdrop-blur-[4px] h-screen w-full flex items-center justify-center font-display overflow-hidden select-none">
+<!-- Modal Shell -->
+<div class="animate-enter w-full max-w-[340px] bg-[#0f0f0f] border border-[#222225] shadow-modal flex flex-col max-h-[85vh] text-white">
+<!-- Header -->
+<header class="flex items-center justify-between px-4 py-3 border-b border-[#222225] shrink-0">
+<h2 class="text-[16px] font-medium leading-none tracking-tight">Commands</h2>
+<button class="text-[#8b8b94] hover:text-white transition-colors flex items-center justify-center rounded-sm w-6 h-6 hover:bg-[#222225]">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</header>
+<!-- Sticky Search Input -->
+<div class="p-3 border-b border-[#222225] shrink-0 bg-[#0f0f0f] z-10 sticky top-0">
+<div class="relative flex items-center w-full group">
+<div class="absolute left-3 flex items-center justify-center w-5 h-5 rounded-sm bg-[#222225] text-[#8b8b94] text-xs font-mono font-bold">/</div>
+<input autofocus="" class="w-full bg-[#18181b] border border-[#222225] text-sm text-white rounded-sm py-2 pl-10 pr-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder-[#52525b] transition-all" placeholder="Search commands..." type="text"/>
+</div>
+</div>
+<!-- Scrollable Content -->
+<div class="overflow-y-auto custom-scrollbar flex-1 flex flex-col pb-4">
+<!-- Custom Commands Section -->
+<div class="px-3 pt-4">
+<h3 class="text-[#8b8b94] text-[11px] uppercase tracking-wider font-semibold mb-2 px-1">Custom Commands</h3>
+<div class="flex flex-wrap gap-2 mb-2">
+<button class="group flex items-center gap-1.5 bg-[#18181b] hover:bg-[#222225] border border-[#222225] hover:border-[#3a3a3e] rounded-sm px-2.5 py-1.5 transition-all">
+<span class="font-mono text-xs text-primary">/lint</span>
+<span class="text-xs text-[#d4d4d8]">Fix Lint</span>
+</button>
+<button class="group flex items-center gap-1.5 bg-[#18181b] hover:bg-[#222225] border border-[#222225] hover:border-[#3a3a3e] rounded-sm px-2.5 py-1.5 transition-all">
+<span class="font-mono text-xs text-primary">/unit</span>
+<span class="text-xs text-[#d4d4d8]">Gen Tests</span>
+</button>
+<!-- Add Button -->
+<button class="flex items-center gap-1.5 bg-transparent hover:bg-[#18181b] border border-dashed border-[#3a3a3e] hover:border-primary text-[#8b8b94] hover:text-primary rounded-sm px-2.5 py-1.5 transition-all">
+<span class="material-symbols-outlined text-[14px]">add</span>
+<span class="text-xs font-medium">Add</span>
+</button>
+</div>
+<!-- Add Form (Visually representative of 'expanded' state, currently hidden or collapsible in a real app, here showing a collapsed hint or could be the form itself. Following prompt, showing the 'Add' card above and implied form capability. Let's add a small form example below for completeness as requested by "Add form (when expanded)" context, I will render it as a hidden state or just below for demo purposes, let's keep it collapsed to 'Add' button for cleaner UI unless clicked, but prompt implies content includes form. I'll make the add button above the trigger and show a mock form below to showcase the design) -->
+<!-- Mock Expanded Form State (Commented out or distinct to show design capability) -->
+<div class="mt-2 p-3 bg-[#131315] border border-[#222225] rounded-sm hidden"> <!-- Removed 'hidden' class to preview if needed, keeping hidden for cleaner initial view as per common UX -->
+<div class="space-y-2">
+<input class="w-full bg-[#0f0f0f] border border-[#222225] text-xs px-2 py-1.5 rounded-sm focus:border-primary focus:ring-0 text-white" placeholder="Command name (e.g. /fix)" type="text"/>
+<textarea class="w-full bg-[#0f0f0f] border border-[#222225] text-xs px-2 py-1.5 rounded-sm focus:border-primary focus:ring-0 text-white resize-none" placeholder="Prompt..." rows="2"></textarea>
+<div class="flex gap-2 justify-end">
+<button class="text-xs text-[#8b8b94] hover:text-white px-2 py-1">Cancel</button>
+<button class="text-xs bg-primary text-black font-semibold px-3 py-1 rounded-sm hover:bg-opacity-90">Save</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Built-in Snippets Section -->
+<div class="px-3 pt-4">
+<h3 class="text-[#8b8b94] text-[11px] uppercase tracking-wider font-semibold mb-2 px-1">Snippets</h3>
+<div class="grid grid-cols-2 gap-2">
+<button class="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-[#18181b] group text-left transition-colors">
+<span class="text-base">⚡</span>
+<span class="text-xs font-medium text-[#d4d4d8] group-hover:text-white">Performance</span>
+</button>
+<button class="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-[#18181b] group text-left transition-colors">
+<span class="text-base">🔒</span>
+<span class="text-xs font-medium text-[#d4d4d8] group-hover:text-white">Security</span>
+</button>
+<button class="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-[#18181b] group text-left transition-colors">
+<span class="text-base">🔍</span>
+<span class="text-xs font-medium text-[#d4d4d8] group-hover:text-white">Review</span>
+</button>
+<button class="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-[#18181b] group text-left transition-colors">
+<span class="text-base">📖</span>
+<span class="text-xs font-medium text-[#d4d4d8] group-hover:text-white">Explain</span>
+</button>
+<button class="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-[#18181b] group text-left transition-colors">
+<span class="text-base">🐛</span>
+<span class="text-xs font-medium text-[#d4d4d8] group-hover:text-white">Debug</span>
+</button>
+<button class="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-[#18181b] group text-left transition-colors">
+<span class="text-base">🔄</span>
+<span class="text-xs font-medium text-[#d4d4d8] group-hover:text-white">Refactor</span>
+</button>
+<button class="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-[#18181b] group text-left transition-colors">
+<span class="text-base">🧪</span>
+<span class="text-xs font-medium text-[#d4d4d8] group-hover:text-white">Test</span>
+</button>
+<button class="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-[#18181b] group text-left transition-colors">
+<span class="text-base">📝</span>
+<span class="text-xs font-medium text-[#d4d4d8] group-hover:text-white">Document</span>
+</button>
+</div>
+</div>
+<!-- CLI Commands Section -->
+<div class="pt-4">
+<h3 class="text-[#8b8b94] text-[11px] uppercase tracking-wider font-semibold mb-2 px-4">CLI Commands</h3>
+<div class="flex flex-col">
+<!-- List Item -->
+<button class="flex items-center justify-between px-4 py-2 hover:bg-[#18181b] group transition-colors w-full text-left border-l-2 border-transparent hover:border-primary">
+<div class="flex items-center gap-3 min-w-0">
+<span class="text-lg w-5 text-center">🧹</span>
+<div class="flex flex-col truncate">
+<span class="text-sm font-mono text-[#e4e4e7] group-hover:text-primary">/clear</span>
+</div>
+</div>
+<span class="text-xs text-[#52525b] group-hover:text-[#a1a1aa]">Clear history</span>
+</button>
+<!-- List Item (Active State Example) -->
+<button class="flex items-center justify-between px-4 py-2 bg-[#18181b] group transition-colors w-full text-left border-l-2 border-primary">
+<div class="flex items-center gap-3 min-w-0">
+<span class="text-lg w-5 text-center">📦</span>
+<div class="flex flex-col truncate">
+<span class="text-sm font-mono text-primary">/compact</span>
+</div>
+</div>
+<span class="text-xs text-[#a1a1aa]">Compress context</span>
+</button>
+<!-- List Item -->
+<button class="flex items-center justify-between px-4 py-2 hover:bg-[#18181b] group transition-colors w-full text-left border-l-2 border-transparent hover:border-primary">
+<div class="flex items-center gap-3 min-w-0">
+<span class="text-lg w-5 text-center">⚙️</span>
+<div class="flex flex-col truncate">
+<span class="text-sm font-mono text-[#e4e4e7] group-hover:text-primary">/config</span>
+</div>
+</div>
+<span class="text-xs text-[#52525b] group-hover:text-[#a1a1aa]">Edit settings</span>
+</button>
+<!-- List Item -->
+<button class="flex items-center justify-between px-4 py-2 hover:bg-[#18181b] group transition-colors w-full text-left border-l-2 border-transparent hover:border-primary">
+<div class="flex items-center gap-3 min-w-0">
+<span class="text-lg w-5 text-center">💰</span>
+<div class="flex flex-col truncate">
+<span class="text-sm font-mono text-[#e4e4e7] group-hover:text-primary">/cost</span>
+</div>
+</div>
+<span class="text-xs text-[#52525b] group-hover:text-[#a1a1aa]">Show usage cost</span>
+</button>
+<!-- List Item -->
+<button class="flex items-center justify-between px-4 py-2 hover:bg-[#18181b] group transition-colors w-full text-left border-l-2 border-transparent hover:border-primary">
+<div class="flex items-center gap-3 min-w-0">
+<span class="text-lg w-5 text-center">🩺</span>
+<div class="flex flex-col truncate">
+<span class="text-sm font-mono text-[#e4e4e7] group-hover:text-primary">/doctor</span>
+</div>
+</div>
+<span class="text-xs text-[#52525b] group-hover:text-[#a1a1aa]">Check health</span>
+</button>
+<!-- List Item -->
+<button class="flex items-center justify-between px-4 py-2 hover:bg-[#18181b] group transition-colors w-full text-left border-l-2 border-transparent hover:border-primary">
+<div class="flex items-center gap-3 min-w-0">
+<span class="text-lg w-5 text-center">❓</span>
+<div class="flex flex-col truncate">
+<span class="text-sm font-mono text-[#e4e4e7] group-hover:text-primary">/help</span>
+</div>
+</div>
+<span class="text-xs text-[#52525b] group-hover:text-[#a1a1aa]">Show commands</span>
+</button>
+<!-- List Item -->
+<button class="flex items-center justify-between px-4 py-2 hover:bg-[#18181b] group transition-colors w-full text-left border-l-2 border-transparent hover:border-primary">
+<div class="flex items-center gap-3 min-w-0">
+<span class="text-lg w-5 text-center">🚀</span>
+<div class="flex flex-col truncate">
+<span class="text-sm font-mono text-[#e4e4e7] group-hover:text-primary">/init</span>
+</div>
+</div>
+<span class="text-xs text-[#52525b] group-hover:text-[#a1a1aa]">Initialize project</span>
+</button>
+<!-- List Item -->
+<button class="flex items-center justify-between px-4 py-2 hover:bg-[#18181b] group transition-colors w-full text-left border-l-2 border-transparent hover:border-primary">
+<div class="flex items-center gap-3 min-w-0">
+<span class="text-lg w-5 text-center">🔑</span>
+<div class="flex flex-col truncate">
+<span class="text-sm font-mono text-[#e4e4e7] group-hover:text-primary">/login</span>
+</div>
+</div>
+<span class="text-xs text-[#52525b] group-hover:text-[#a1a1aa]">Auth provider</span>
+</button>
+<!-- List Item -->
+<button class="flex items-center justify-between px-4 py-2 hover:bg-[#18181b] group transition-colors w-full text-left border-l-2 border-transparent hover:border-primary">
+<div class="flex items-center gap-3 min-w-0">
+<span class="text-lg w-5 text-center">🧠</span>
+<div class="flex flex-col truncate">
+<span class="text-sm font-mono text-[#e4e4e7] group-hover:text-primary">/memory</span>
+</div>
+</div>
+<span class="text-xs text-[#52525b] group-hover:text-[#a1a1aa]">Context dump</span>
+</button>
+<!-- List Item -->
+<button class="flex items-center justify-between px-4 py-2 hover:bg-[#18181b] group transition-colors w-full text-left border-l-2 border-transparent hover:border-primary">
+<div class="flex items-center gap-3 min-w-0">
+<span class="text-lg w-5 text-center">🤖</span>
+<div class="flex flex-col truncate">
+<span class="text-sm font-mono text-[#e4e4e7] group-hover:text-primary">/model</span>
+</div>
+</div>
+<span class="text-xs text-[#52525b] group-hover:text-[#a1a1aa]">Switch LLM</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Footer / Shortcuts hint -->
+<div class="px-4 py-2 border-t border-[#222225] bg-[#0f0f0f] flex items-center justify-between text-[10px] text-[#52525b]">
+<div class="flex gap-3">
+<span class="flex items-center gap-1"><kbd class="bg-[#222225] text-[#8b8b94] px-1 rounded-[2px] font-mono">↑↓</kbd> Navigate</span>
+<span class="flex items-center gap-1"><kbd class="bg-[#222225] text-[#8b8b94] px-1 rounded-[2px] font-mono">↵</kbd> Select</span>
+</div>
+<span>v1.0.4</span>
+</div>
+</div>
+</body></html>

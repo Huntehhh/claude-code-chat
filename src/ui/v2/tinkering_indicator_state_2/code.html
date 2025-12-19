@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tinkering Indicator State 2</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Configuration -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ffa142",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#09090b", 
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen w-full flex flex-col overflow-hidden font-display antialiased selection:bg-primary/30 selection:text-primary">
+<!-- 
+      Main Container: 
+      - Flex layout to center content perfectly.
+      - Full viewport height (h-screen) to ensure vertical centering.
+      - Background color set to dark theme variable as requested (#09090b via config).
+    -->
+<main class="relative flex h-screen w-full items-center justify-center">
+<!-- 
+          Tinkering Indicator:
+          - Symbol: Asterisk (✳)
+          - Color: Primary Amber (#ffa142)
+          - Size: 16px (text-base or explicit size)
+          - Rotation: 90 degrees clockwise (rotate-90)
+          - Accessibility: Added aria-label for screen readers.
+        -->
+<div class="flex items-center justify-center">
+<span aria-label="Tinkering..." class="text-primary text-base transform rotate-90 select-none leading-none" role="status">
+                ✳
+            </span>
+</div>
+</main>
+</body></html>

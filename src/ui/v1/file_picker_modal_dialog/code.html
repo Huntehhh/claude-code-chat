@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>File Picker Modal</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#faa147",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#23190f",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for the file list */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #333;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: #444;
+        }
+        
+        /* Animation for modal entrance */
+        @keyframes modal-enter {
+            0% { opacity: 0; transform: scale(0.95); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .animate-modal-enter {
+            animation: modal-enter 0.15s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display antialiased overflow-hidden h-screen w-full relative">
+<!-- Background Content (Simulating the AI Coding Assistant Interface underneath) -->
+<div class="absolute inset-0 flex flex-col pointer-events-none opacity-20 blur-[2px]">
+<div class="h-12 border-b border-white/10 flex items-center px-4 gap-4 bg-[#1e1e1e]">
+<div class="w-3 h-3 rounded-full bg-red-500"></div>
+<div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+<div class="w-3 h-3 rounded-full bg-green-500"></div>
+</div>
+<div class="flex flex-1">
+<div class="w-64 border-r border-white/10 bg-[#181818] p-4">
+<div class="h-4 w-24 bg-white/10 rounded mb-4"></div>
+<div class="h-3 w-full bg-white/5 rounded mb-2"></div>
+<div class="h-3 w-3/4 bg-white/5 rounded mb-2"></div>
+<div class="h-3 w-1/2 bg-white/5 rounded mb-2"></div>
+</div>
+<div class="flex-1 bg-[#1e1e1e] p-8">
+<div class="h-6 w-48 bg-white/10 rounded mb-6"></div>
+<div class="space-y-3">
+<div class="h-4 w-full bg-white/5 rounded"></div>
+<div class="h-4 w-5/6 bg-white/5 rounded"></div>
+<div class="h-4 w-4/6 bg-white/5 rounded"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Modal Backdrop -->
+<!-- rgba(0,0,0,0.7) backdrop with blur(4px) as requested -->
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-[4px] p-4">
+<!-- Modal Shell -->
+<!-- max-w-[320px], centered, #0f0f0f bg, 1px #222225 border, SHARP corners (rounded-none) -->
+<!-- Shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 0 rgba(255,255,255,0.05) -->
+<div class="w-full max-w-[320px] bg-[#0f0f0f] border border-[#222225] rounded-none shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.05)] flex flex-col animate-modal-enter overflow-hidden">
+<!-- Header -->
+<div class="flex items-center justify-between px-4 py-3 border-b border-[#222225]">
+<h2 class="text-[#E4E4E7] text-base font-medium leading-none tracking-tight">Select File</h2>
+<button class="text-[#8b8b94] hover:text-white transition-colors flex items-center justify-center rounded-sm outline-none focus:ring-1 focus:ring-primary/50">
+<span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+</button>
+</div>
+<!-- Search Area -->
+<div class="relative w-full border-b border-[#222225]">
+<div class="flex items-center px-3 py-3">
+<span class="material-symbols-outlined text-[#8b8b94] mr-2" style="font-size: 20px;">search</span>
+<input autofocus="" class="w-full bg-transparent border-none p-0 text-[#E4E4E7] placeholder-[#52525b] text-sm focus:ring-0 leading-normal" placeholder="Search files..." type="text"/>
+</div>
+</div>
+<!-- File List -->
+<!-- Supports keyboard navigation styling logic -->
+<ul class="flex flex-col max-h-[320px] overflow-y-auto custom-scrollbar py-1">
+<!-- Item 1: Active State (Selected) -->
+<!-- Highlighting with primary color tint and border indicator -->
+<li class="group relative flex items-center gap-3 px-3 py-2 cursor-pointer bg-primary/10">
+<!-- Active Indicator Line -->
+<div class="absolute left-0 top-0 bottom-0 w-[2px] bg-primary"></div>
+<!-- Icon: TS (Blue) -->
+<div class="flex items-center justify-center shrink-0 w-8 h-8 rounded bg-[#1e1e1e] border border-[#222225]">
+<span class="material-symbols-outlined text-blue-400" style="font-size: 20px;">code</span>
+</div>
+<!-- Content -->
+<div class="flex flex-col min-w-0 flex-1">
+<span class="text-white text-[14px] font-medium leading-tight truncate">script.ts</span>
+<span class="text-[#52525b] text-[12px] leading-tight truncate">src/utils/</span>
+</div>
+</li>
+<!-- Item 2: CSS -->
+<li class="group relative flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-[#18181b] transition-colors">
+<!-- Icon: Hash/Style (Blue/Cyan) -->
+<div class="flex items-center justify-center shrink-0 w-8 h-8 rounded bg-[#1e1e1e] border border-[#222225]">
+<span class="material-symbols-outlined text-cyan-400" style="font-size: 20px;">css</span>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<span class="text-[#E4E4E7] text-[14px] font-medium leading-tight truncate">styles.css</span>
+<span class="text-[#52525b] text-[12px] leading-tight truncate">src/assets/css/</span>
+</div>
+</li>
+<!-- Item 3: JS -->
+<li class="group relative flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-[#18181b] transition-colors">
+<!-- Icon: JS (Yellow) -->
+<div class="flex items-center justify-center shrink-0 w-8 h-8 rounded bg-[#1e1e1e] border border-[#222225]">
+<span class="material-symbols-outlined text-yellow-400" style="font-size: 20px;">javascript</span>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<span class="text-[#E4E4E7] text-[14px] font-medium leading-tight truncate">app.js</span>
+<span class="text-[#52525b] text-[12px] leading-tight truncate">src/</span>
+</div>
+</li>
+<!-- Item 4: Image Thumbnail -->
+<li class="group relative flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-[#18181b] transition-colors">
+<!-- Icon: Image Thumbnail (32px) -->
+<div class="shrink-0 w-8 h-8 rounded bg-[#1e1e1e] border border-[#222225] overflow-hidden">
+<img alt="Small thumbnail preview of the logo file showing a gradient" class="w-full h-full object-cover opacity-80 group-hover:opacity-100" data-alt="Small thumbnail preview of the logo file showing a gradient" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4sYhD0VrW2tOvLe8A8641NjmdhNU-1ym_KNfD83DuM44UfshSDw-4H4R0vmiLZJuDgRgLdWXT1_PCts01A6-dzQMOer-TQCRFAIfLG65AtpCJnaIS5gBNJiGqXcSWMr5HiFoHbmvZ7Ago-9uQTrpIykp1lXQPxXc4VGFgkz5H7y24uEY8kya8VHltxgG1AuwoE2MKCtlQaXXL1gjfoFd2NbHEhj8cFir0kd2xkih4lfraI7HevmWqXnd63b40Xs7abq4IcHVHlgQ"/>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<span class="text-[#E4E4E7] text-[14px] font-medium leading-tight truncate">logo_brand.png</span>
+<span class="text-[#52525b] text-[12px] leading-tight truncate">public/images/</span>
+</div>
+</li>
+<!-- Item 5: Python -->
+<li class="group relative flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-[#18181b] transition-colors">
+<!-- Icon: Python (Green) -->
+<div class="flex items-center justify-center shrink-0 w-8 h-8 rounded bg-[#1e1e1e] border border-[#222225]">
+<span class="material-symbols-outlined text-green-500" style="font-size: 20px;">terminal</span>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<span class="text-[#E4E4E7] text-[14px] font-medium leading-tight truncate">backend_api.py</span>
+<span class="text-[#52525b] text-[12px] leading-tight truncate">server/api/</span>
+</div>
+</li>
+<!-- Item 6: Markdown -->
+<li class="group relative flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-[#18181b] transition-colors">
+<!-- Icon: Markdown (Gray) -->
+<div class="flex items-center justify-center shrink-0 w-8 h-8 rounded bg-[#1e1e1e] border border-[#222225]">
+<span class="material-symbols-outlined text-gray-400" style="font-size: 20px;">info</span>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<span class="text-[#E4E4E7] text-[14px] font-medium leading-tight truncate">README.md</span>
+<span class="text-[#52525b] text-[12px] leading-tight truncate">/</span>
+</div>
+</li>
+</ul>
+<!-- Footer / Shortcuts Hint -->
+<div class="px-3 py-2 border-t border-[#222225] bg-[#0f0f0f] flex justify-between items-center text-[10px] text-[#52525b]">
+<div class="flex gap-2">
+<span class="flex items-center gap-1"><kbd class="bg-[#1e1e1e] border border-[#222225] rounded px-1 min-w-[16px] text-center font-sans">↵</kbd> select</span>
+<span class="flex items-center gap-1"><kbd class="bg-[#1e1e1e] border border-[#222225] rounded px-1 min-w-[16px] text-center font-sans">↑↓</kbd> nav</span>
+</div>
+<div>
+<span class="flex items-center gap-1"><kbd class="bg-[#1e1e1e] border border-[#222225] rounded px-1 min-w-[16px] text-center font-sans">esc</kbd> close</span>
+</div>
+</div>
+</div>
+</div>
+</body></html>

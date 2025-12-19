@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Thinking Overlay - Alternative Text</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Theme Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#faa447",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#23190f",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    animation: {
+                        'pulse-glow': 'pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        'pulse-glow': {
+                            '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+                            '50%': { opacity: '0.7', transform: 'scale(0.9)' },
+                        }
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: "Space Grotesk", sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body class="bg-[#09090b] min-h-screen flex items-center justify-center overflow-hidden">
+<!-- Main Container -->
+<div class="relative flex flex-col items-center justify-center w-full h-full p-4">
+<!-- Thinking Overlay Panel -->
+<!-- Fixed dimensions 400x300 as requested -->
+<!-- Specific colors and borders as requested -->
+<div class="w-[400px] h-[300px] flex flex-col items-center justify-center bg-[rgba(9,9,11,0.85)] backdrop-blur-[2px] border border-[#222225] rounded-none shadow-2xl gap-3">
+<!-- Pulsing Amber Asterisk -->
+<!-- Using custom animation defined in tailwind config -->
+<div class="flex items-center justify-center mb-1">
+<span class="text-[#FFA344] text-[32px] animate-pulse-glow drop-shadow-[0_0_8px_rgba(255,163,68,0.3)] leading-none select-none">
+                    ✳
+                </span>
+</div>
+<!-- Primary Status Text -->
+<h2 class="text-[#fafafa] text-[14px] font-medium tracking-wide text-center">
+                Processing your request...
+            </h2>
+<!-- Secondary Support Text -->
+<p class="text-[#8b8b94] text-[12px] font-normal text-center">
+                This may take a moment
+            </p>
+</div>
+</div>
+</body></html>

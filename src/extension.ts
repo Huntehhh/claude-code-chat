@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as util from 'util';
 import * as path from 'path';
-import getHtml from './ui';
+import getHtml from './ui-react';
 
 const exec = util.promisify(cp.exec);
 
@@ -125,6 +125,7 @@ class ClaudeChatProvider {
 	private _currentSessionId: string | undefined;
 	private _backupRepoPath: string | undefined;
 	private _commits: Array<{ id: string, sha: string, message: string, timestamp: string }> = [];
+	private _currentTodos: Array<{ content: string; status: string; activeForm?: string }> = [];
 	private _conversationsPath: string | undefined;
 	// Pending permission requests from stdio control_request messages
 	private _pendingPermissionRequests: Map<string, {
@@ -394,6 +395,15 @@ class ClaudeChatProvider {
 				return;
 			case 'saveInputText':
 				this._saveInputText(message.text);
+				return;
+			case 'getCheckpoints':
+				this._sendCheckpoints();
+				return;
+			case 'getTodos':
+				this._postMessage({
+					type: 'todosUpdated',
+					data: this._currentTodos
+				});
 				return;
 		}
 	}
@@ -877,11 +887,22 @@ class ClaudeChatProvider {
 							if (content.input) {
 								// Special formatting for TodoWrite to make it more readable
 								if (content.name === 'TodoWrite' && content.input.todos) {
+									// Store current todos for panel display
+									this._currentTodos = content.input.todos.map((todo: any) => ({
+										content: todo.content,
+										status: todo.status,
+										activeForm: todo.activeForm
+									}));
+									// Send todos update to UI for panel
+									this._postMessage({
+										type: 'todosUpdated',
+										data: this._currentTodos
+									});
 									toolInput = '\nTodo List Update:';
 									for (const todo of content.input.todos) {
 										const status = todo.status === 'completed' ? '✅' :
 											todo.status === 'in_progress' ? '🔄' : '⏳';
-										toolInput += `\n${status} ${todo.content} (priority: ${todo.priority})`;
+										toolInput += `\n${status} ${todo.content}`;
 									}
 								} else {
 									// Send raw input to UI for formatting
@@ -1325,6 +1346,19 @@ class ClaudeChatProvider {
 				data: `Failed to restore: ${error.message}`
 			});
 		}
+	}
+
+	private _sendCheckpoints(): void {
+		this._postMessage({
+			type: 'checkpoints',
+			data: this._commits.map(c => ({
+				sha: c.sha.substring(0, 7),
+				fullSha: c.sha,
+				message: c.message,
+				timestamp: c.timestamp,
+				id: c.id
+			}))
+		});
 	}
 
 	private async _initializeConversations(): Promise<void> {
@@ -2542,10 +2576,13 @@ class ClaudeChatProvider {
 
 			let fileList = files.map(file => {
 				const relativePath = vscode.workspace.asRelativePath(file);
+				const fileName = file.path.split('/').pop() || '';
+				const extMatch = fileName.match(/\.([^.]+)$/);
 				return {
-					name: file.path.split('/').pop() || '',
+					name: fileName,
 					path: relativePath,
-					fsPath: file.fsPath
+					fsPath: file.fsPath,
+					extension: extMatch ? extMatch[1].toLowerCase() : ''
 				};
 			});
 
@@ -2915,7 +2952,11 @@ class ClaudeChatProvider {
 	}
 
 	private _getHtmlForWebview(): string {
-		return getHtml(vscode.env?.isTelemetryEnabled);
+		const webview = this._panel?.webview ?? this._webview;
+		if (!webview) {
+			throw new Error('No webview available');
+		}
+		return getHtml(webview, this._extensionUri, vscode.env?.isTelemetryEnabled ?? false);
 	}
 
 	private _sendCurrentSettings(): void {
@@ -2926,7 +2967,9 @@ class ClaudeChatProvider {
 			'wsl.distro': config.get<string>('wsl.distro', 'Ubuntu'),
 			'wsl.nodePath': config.get<string>('wsl.nodePath', '/usr/bin/node'),
 			'wsl.claudePath': config.get<string>('wsl.claudePath', '/usr/local/bin/claude'),
-			'permissions.yoloMode': config.get<boolean>('permissions.yoloMode', false)
+			'permissions.yoloMode': config.get<boolean>('permissions.yoloMode', false),
+			'compact.enabled': config.get<boolean>('compact.enabled', false),
+			'compact.previewHeight': config.get<number>('compact.previewHeight', 150)
 		};
 
 		this._postMessage({

@@ -1,83 +1,477 @@
-import React, { useEffect } from 'react';
+'use client';
+
+import React, { useEffect, useState, useCallback } from 'react';
 import { useVSCodeMessaging, useVSCodeSender } from './hooks/useVSCodeMessaging';
 import { useChatStore } from './stores/chatStore';
 import { useSettingsStore } from './stores/settingsStore';
+import { useUIStore } from './stores/uiStore';
+
+// Layout Components
+import { AppHeader } from './components/organisms/app-header';
+import { ChatInput } from './components/organisms/chat-input';
+import { ThinkingOverlay } from './components/organisms/thinking-overlay';
+import { MessageList } from './containers/MessageList';
+import { TodoList } from './components/molecules/todo-list';
+
+// Modal Components
+import { SettingsModal } from './components/organisms/settings-modal';
+import { HistoryPanel, type Conversation } from './components/organisms/history-panel';
+import { McpServersModal, type McpServer as McpServerModal } from './components/organisms/mcp-servers-modal';
+import { ModelSelectorModal, type ModelOption } from './components/organisms/model-selector-modal';
+import { SlashCommandsModal, type CliCommand, type Snippet } from './components/organisms/slash-commands-modal';
+import { InstallModal, type InstallState } from './components/molecules/install-modal';
+
+// =============================================================================
+// App Component
+// =============================================================================
 
 export default function App() {
+  // Initialize message handling
   useVSCodeMessaging();
-  const { requestReady } = useVSCodeSender();
 
-  const { chatName, isProcessing, messages } = useChatStore();
-  const { planMode, thinkingMode, selectedModel } = useSettingsStore();
+  // Sender functions
+  const {
+    sendMessage,
+    stopProcess,
+    newSession,
+    requestReady,
+    saveInputText,
+    loadConversation,
+    requestConversations,
+    selectModel,
+    openModelTerminal,
+    loadMCPServers,
+    saveMCPServer,
+    deleteMCPServer,
+    executeSlashCommand,
+    runInstall,
+    enableYoloMode,
+    updateSettings: updateSettingsBackend,
+  } = useVSCodeSender();
 
+  // Chat state
+  const {
+    chatName,
+    isProcessing,
+    draftMessage,
+    setDraftMessage,
+    todos,
+    conversations,
+    activeConversationId,
+  } = useChatStore();
+
+  // Settings state
+  const {
+    planMode,
+    thinkingMode,
+    showTodoList,
+    togglePlanMode,
+    toggleThinkingMode,
+    // WSL settings
+    wslEnabled,
+    wslDistribution,
+    nodePath,
+    claudePath,
+    setWslEnabled,
+    setWslDistribution,
+    setNodePath,
+    setClaudePath,
+    // Display settings
+    compactToolOutput,
+    previewHeight,
+    compactMcpCalls,
+    setCompactToolOutput,
+    setPreviewHeight,
+    setCompactMcpCalls,
+    setShowTodoList,
+    // YOLO mode
+    yoloMode,
+    setYoloMode,
+    // Model
+    selectedModel,
+    // MCP Servers
+    mcpServers,
+    permissions,
+  } = useSettingsStore();
+
+  // UI state
+  const {
+    activeModal,
+    isThinkingOverlayVisible,
+    openModal,
+    closeModal,
+    toggleModal,
+    historySearchTerm,
+    setHistorySearchTerm,
+    slashSearchTerm,
+    setSlashSearchTerm,
+  } = useUIStore();
+
+  // Local state
+  const [inputValue, setInputValue] = useState(draftMessage);
+  const [installState, setInstallState] = useState<InstallState>('initial');
+
+  // Sync draft message to input
+  useEffect(() => {
+    setInputValue(draftMessage);
+  }, [draftMessage]);
+
+  // Request ready state on mount
   useEffect(() => {
     requestReady();
+  }, [requestReady]);
+
+  // ==========================================================================
+  // Input Handlers
+  // ==========================================================================
+
+  const handleInputChange = useCallback((value: string) => {
+    setInputValue(value);
+    setDraftMessage(value);
+  }, [setDraftMessage]);
+
+  const handleSubmit = useCallback(() => {
+    if (!inputValue.trim() || isProcessing) return;
+    sendMessage(inputValue, planMode, thinkingMode);
+    setInputValue('');
+    setDraftMessage('');
+  }, [inputValue, isProcessing, planMode, thinkingMode, sendMessage, setDraftMessage]);
+
+  const handleStop = useCallback(() => {
+    stopProcess();
+  }, [stopProcess]);
+
+  const handleNewChat = useCallback(() => {
+    newSession();
+  }, [newSession]);
+
+  const handleFileDrop = useCallback((files: FileList) => {
+    // TODO: Handle file drop - integrate with selectImageFile sender
+    console.log('Files dropped:', files);
   }, []);
 
-  return (
-    <div className="flex h-full flex-col bg-background text-foreground">
-      {/* Header - placeholder for HeaderBar organism */}
-      <header className="flex items-center justify-between border-b border-border px-4 py-2">
-        <h1 className="text-lg font-semibold">{chatName}</h1>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>{selectedModel}</span>
-          {planMode && (
-            <span className="rounded bg-primary/20 px-2 py-0.5 text-xs text-primary">Plan</span>
-          )}
-          {thinkingMode && (
-            <span className="rounded bg-accent px-2 py-0.5 text-xs">Think</span>
-          )}
-        </div>
-      </header>
+  // ==========================================================================
+  // Header Handlers
+  // ==========================================================================
 
-      {/* Messages area - placeholder for MessageList organism */}
-      <main className="flex-1 overflow-auto p-4">
-        {messages.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-muted-foreground">
-            <p>Start a conversation with Claude</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`rounded-lg p-3 ${
-                  msg.type === 'user'
-                    ? 'ml-auto max-w-[80%] bg-primary text-primary-foreground'
-                    : msg.type === 'error'
-                      ? 'bg-destructive/20 text-destructive-foreground'
-                      : msg.type === 'thinking'
-                        ? 'bg-muted/50 italic text-muted-foreground'
-                        : 'bg-card text-card-foreground'
-                }`}
-              >
-                {msg.toolName && (
-                  <div className="mb-1 text-xs font-medium opacity-70">{msg.toolName}</div>
-                )}
-                <div className="whitespace-pre-wrap break-words">{msg.content}</div>
-              </div>
-            ))}
-          </div>
-        )}
+  const handleSettings = useCallback(() => {
+    openModal('settings');
+  }, [openModal]);
+
+  const handleHistory = useCallback(() => {
+    toggleModal('history');
+    requestConversations();
+  }, [toggleModal, requestConversations]);
+
+  // ==========================================================================
+  // Settings Modal Handlers
+  // ==========================================================================
+
+  const handleWslEnabledChange = useCallback((enabled: boolean) => {
+    setWslEnabled(enabled);
+    updateSettingsBackend({ wslEnabled: enabled });
+  }, [setWslEnabled, updateSettingsBackend]);
+
+  const handleWslDistributionChange = useCallback((value: string) => {
+    setWslDistribution(value);
+    updateSettingsBackend({ wslDistribution: value });
+  }, [setWslDistribution, updateSettingsBackend]);
+
+  const handleNodePathChange = useCallback((value: string) => {
+    setNodePath(value);
+    updateSettingsBackend({ nodePath: value });
+  }, [setNodePath, updateSettingsBackend]);
+
+  const handleClaudePathChange = useCallback((value: string) => {
+    setClaudePath(value);
+    updateSettingsBackend({ claudePath: value });
+  }, [setClaudePath, updateSettingsBackend]);
+
+  const handleYoloModeChange = useCallback((enabled: boolean) => {
+    setYoloMode(enabled);
+    if (enabled) {
+      enableYoloMode();
+    }
+  }, [setYoloMode, enableYoloMode]);
+
+  const handleCompactToolOutputChange = useCallback((enabled: boolean) => {
+    setCompactToolOutput(enabled);
+    updateSettingsBackend({ compactToolOutput: enabled });
+  }, [setCompactToolOutput, updateSettingsBackend]);
+
+  const handlePreviewHeightChange = useCallback((height: number) => {
+    setPreviewHeight(height);
+    updateSettingsBackend({ previewHeight: height });
+  }, [setPreviewHeight, updateSettingsBackend]);
+
+  const handleCompactMcpCallsChange = useCallback((enabled: boolean) => {
+    setCompactMcpCalls(enabled);
+    updateSettingsBackend({ compactMcpCalls: enabled });
+  }, [setCompactMcpCalls, updateSettingsBackend]);
+
+  const handleShowTodoListChange = useCallback((enabled: boolean) => {
+    setShowTodoList(enabled);
+    updateSettingsBackend({ showTodoList: enabled });
+  }, [setShowTodoList, updateSettingsBackend]);
+
+  // ==========================================================================
+  // History Panel Handlers
+  // ==========================================================================
+
+  const handleSelectConversation = useCallback((conversation: Conversation) => {
+    loadConversation(conversation.id, conversation.source as 'local' | 'claude');
+    closeModal();
+  }, [loadConversation, closeModal]);
+
+  const handleRestoreCheckpoint = useCallback((conversation: Conversation, checkpoint: { sha: string }) => {
+    // TODO: Implement checkpoint restore
+    console.log('Restore checkpoint:', conversation.id, checkpoint.sha);
+  }, []);
+
+  // Convert store conversations to HistoryPanel format
+  const historyConversations: Conversation[] = conversations.map((c) => ({
+    id: c.id,
+    title: c.name || 'Untitled',
+    source: (c.source as 'chat' | 'cli') || 'chat',
+    timestamp: c.lastModified || new Date().toISOString(),
+    messageCount: c.messageCount || 0,
+    preview: c.preview || '',
+    checkpoints: c.checkpoints,
+  }));
+
+  // ==========================================================================
+  // Model Selector Handlers
+  // ==========================================================================
+
+  const handleSelectModel = useCallback((model: ModelOption) => {
+    const modelMap: Record<ModelOption, string> = {
+      opus: 'Opus',
+      sonnet: 'Sonnet',
+      default: 'Default',
+    };
+    selectModel(modelMap[model]);
+    closeModal();
+  }, [selectModel, closeModal]);
+
+  const handleConfigureModel = useCallback(() => {
+    openModelTerminal();
+  }, [openModelTerminal]);
+
+  // Map selectedModel to ModelOption
+  const currentModelOption: ModelOption =
+    selectedModel.toLowerCase().includes('opus') ? 'opus' :
+    selectedModel.toLowerCase().includes('sonnet') ? 'sonnet' : 'default';
+
+  // ==========================================================================
+  // MCP Servers Modal Handlers
+  // ==========================================================================
+
+  const handleToggleMcpServer = useCallback((id: string, enabled: boolean) => {
+    // TODO: Update server enabled state via backend
+    console.log('Toggle MCP server:', id, enabled);
+  }, []);
+
+  const handleRemoveMcpServer = useCallback((id: string) => {
+    deleteMCPServer(id);
+  }, [deleteMCPServer]);
+
+  const handleAddMcpServer = useCallback((server: Omit<McpServerModal, 'id' | 'enabled'>) => {
+    saveMCPServer(server.name, {
+      type: server.type,
+      command: server.command,
+      args: server.args?.split(' '),
+      url: server.url,
+    });
+  }, [saveMCPServer]);
+
+  // Convert store MCP servers to modal format
+  const modalMcpServers: McpServerModal[] = mcpServers.map((s) => ({
+    id: s.id,
+    name: s.name,
+    type: s.type as 'http' | 'sse' | 'stdio',
+    enabled: s.enabled,
+    url: s.url,
+    command: s.command,
+    args: s.args?.join(' '),
+  }));
+
+  // ==========================================================================
+  // Slash Commands Modal Handlers
+  // ==========================================================================
+
+  const handleSelectCliCommand = useCallback((command: CliCommand) => {
+    executeSlashCommand(command.command);
+    closeModal();
+  }, [executeSlashCommand, closeModal]);
+
+  const handleSelectSnippet = useCallback((snippet: Snippet) => {
+    // Insert snippet into input
+    setInputValue((prev) => prev + ` ${snippet.label}`);
+    closeModal();
+  }, [closeModal]);
+
+  // ==========================================================================
+  // Install Modal Handlers
+  // ==========================================================================
+
+  const handleInstall = useCallback(() => {
+    setInstallState('installing');
+    runInstall();
+    // The installComplete message handler will update state
+  }, [runInstall]);
+
+  const handleViewDocs = useCallback(() => {
+    // Open documentation in browser
+    window.open('https://docs.anthropic.com/claude-code', '_blank');
+  }, []);
+
+  // ==========================================================================
+  // Todo Items
+  // ==========================================================================
+
+  const todoItems = todos.map((todo) => ({
+    id: todo.id,
+    content: todo.content,
+    status: todo.status,
+  }));
+
+  // ==========================================================================
+  // Render
+  // ==========================================================================
+
+  return (
+    <div className="flex h-full flex-col bg-[#09090b] text-[#fafafa]">
+      {/* Header */}
+      <AppHeader
+        title={chatName}
+        onSettings={handleSettings}
+        onHistory={handleHistory}
+        onNewChat={handleNewChat}
+      />
+
+      {/* Main content area */}
+      <main className="flex-1 overflow-hidden relative">
+        <MessageList className="h-full" />
       </main>
 
-      {/* Input area - placeholder for ChatInput organism */}
-      <footer className="border-t border-border p-4">
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            placeholder={isProcessing ? 'Processing...' : 'Type a message...'}
-            disabled={isProcessing}
-            className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+      {/* Todo List (conditional) */}
+      {showTodoList && todoItems.length > 0 && (
+        <TodoList
+          items={todoItems}
+          className="mx-3 mb-2 rounded-lg"
+        />
+      )}
+
+      {/* Chat Input */}
+      <ChatInput
+        value={inputValue}
+        onChange={handleInputChange}
+        onSubmit={handleSubmit}
+        onStop={handleStop}
+        onFileDrop={handleFileDrop}
+        isProcessing={isProcessing}
+        planMode={planMode}
+        thinkMode={thinkingMode}
+        onPlanModeChange={togglePlanMode}
+        onThinkModeChange={toggleThinkingMode}
+        placeholder="Describe your code task..."
+      />
+
+      {/* Thinking Overlay (fullscreen) */}
+      <ThinkingOverlay
+        variant="fullscreen"
+        open={isThinkingOverlayVisible}
+        message="Claude is thinking..."
+        secondaryMessage="This may take a moment"
+      />
+
+      {/* =================================================================
+          MODALS
+          ================================================================= */}
+
+      {/* Settings Modal */}
+      <SettingsModal
+        open={activeModal === 'settings'}
+        onClose={closeModal}
+        // WSL Settings
+        wslEnabled={wslEnabled}
+        onWslEnabledChange={handleWslEnabledChange}
+        wslDistribution={wslDistribution}
+        onWslDistributionChange={handleWslDistributionChange}
+        nodePath={nodePath}
+        onNodePathChange={handleNodePathChange}
+        claudePath={claudePath}
+        onClaudePathChange={handleClaudePathChange}
+        // Permissions
+        yoloMode={yoloMode}
+        onYoloModeChange={handleYoloModeChange}
+        // Display
+        compactToolOutput={compactToolOutput}
+        onCompactToolOutputChange={handleCompactToolOutputChange}
+        previewHeight={previewHeight}
+        onPreviewHeightChange={handlePreviewHeightChange}
+        compactMcpCalls={compactMcpCalls}
+        onCompactMcpCallsChange={handleCompactMcpCallsChange}
+        showTodoList={showTodoList}
+        onShowTodoListChange={handleShowTodoListChange}
+      />
+
+      {/* History Panel */}
+      <HistoryPanel
+        open={activeModal === 'history'}
+        onClose={closeModal}
+        conversations={historyConversations}
+        activeConversationId={activeConversationId || undefined}
+        onSelectConversation={handleSelectConversation}
+        onRestoreCheckpoint={handleRestoreCheckpoint}
+        searchValue={historySearchTerm}
+        onSearchChange={setHistorySearchTerm}
+      />
+
+      {/* MCP Servers Modal */}
+      <McpServersModal
+        open={activeModal === 'mcpServers'}
+        onClose={closeModal}
+        servers={modalMcpServers}
+        onToggleServer={handleToggleMcpServer}
+        onRemoveServer={handleRemoveMcpServer}
+        onAddServer={handleAddMcpServer}
+      />
+
+      {/* Model Selector Modal */}
+      <ModelSelectorModal
+        open={activeModal === 'modelSelector'}
+        onClose={closeModal}
+        selectedModel={currentModelOption}
+        onSelectModel={handleSelectModel}
+        onConfigure={handleConfigureModel}
+      />
+
+      {/* Slash Commands Modal */}
+      <SlashCommandsModal
+        open={activeModal === 'slashCommands'}
+        onClose={closeModal}
+        searchValue={slashSearchTerm}
+        onSearchChange={setSlashSearchTerm}
+        onSelectCliCommand={handleSelectCliCommand}
+        onSelectSnippet={handleSelectSnippet}
+      />
+
+      {/* Install Modal (centered overlay) */}
+      {activeModal === 'install' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={closeModal}
           />
-          <button
-            disabled={isProcessing}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            {isProcessing ? 'Stop' : 'Send'}
-          </button>
+          <InstallModal
+            state={installState}
+            onInstall={handleInstall}
+            onClose={closeModal}
+            onViewDocs={handleViewDocs}
+          />
         </div>
-      </footer>
+      )}
     </div>
   );
 }

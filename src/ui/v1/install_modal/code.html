@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Install Modal</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#faa147",
+                        "primary-hover": "#fbaf60",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#18181b", /* Zinc 900 */
+                        "surface-dark": "#27272a", /* Zinc 800 */
+                        "text-secondary": "#8b8b94",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom Keyframe Animations */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes draw {
+            0% { stroke-dashoffset: 100; opacity: 0; }
+            100% { stroke-dashoffset: 0; opacity: 1; }
+        }
+        .animate-draw path {
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            animation: draw 0.6s ease-out forwards;
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display min-h-screen flex items-center justify-center relative overflow-hidden">
+<!-- Background Pattern/Image (Abstract dark tech) -->
+<div class="absolute inset-0 z-0 opacity-20 pointer-events-none" data-alt="Abstract dark grid pattern background" style="background-image: radial-gradient(#3a3027 1px, transparent 1px); background-size: 24px 24px;">
+</div>
+<!-- Main Container to hold the 3 states side-by-side for demonstration purposes, 
+         In a real app, these would be switched dynamically. 
+         I will use a flex container to show them spaced out as requested by 'single page design' logic 
+         but visually distinct. -->
+<div class="z-10 flex flex-wrap gap-12 justify-center items-start p-10 w-full max-w-5xl">
+<!-- STATE 1: INITIAL STATE -->
+<div class="relative w-[300px] bg-[#1c1c1e] rounded-lg shadow-2xl border border-[#2c2c2e] flex flex-col overflow-hidden animate-fade-in">
+<!-- Close Button -->
+<button class="absolute top-3 right-3 text-[#8b8b94] hover:text-white transition-colors duration-200">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+<div class="flex flex-col items-center px-6 pt-10 pb-6 text-center">
+<!-- Icon -->
+<div class="mb-5 text-primary">
+<span class="material-symbols-outlined text-[40px] font-light">download</span>
+</div>
+<!-- Text -->
+<h2 class="text-white text-[18px] font-medium leading-tight mb-2">Install Claude Code</h2>
+<p class="text-[#8b8b94] text-[13px] leading-normal mb-8">Required for this extension</p>
+<!-- Action Button -->
+<button class="w-full h-[44px] bg-primary hover:bg-primary-hover text-[#18181b] font-bold text-sm tracking-wide rounded-none transition-colors duration-200 flex items-center justify-center">
+                    Install Now
+                </button>
+<!-- Link -->
+<a class="mt-4 text-[#8b8b94] hover:text-[#fafafa] text-[13px] underline decoration-[#8b8b94]/50 transition-colors duration-200" href="#">
+                    View documentation
+                </a>
+</div>
+</div>
+<!-- STATE 2: PROGRESS STATE -->
+<div class="relative w-[300px] bg-[#1c1c1e] rounded-lg shadow-2xl border border-[#2c2c2e] flex flex-col overflow-hidden animate-fade-in" style="animation-delay: 0.1s;">
+<!-- Close Button -->
+<button class="absolute top-3 right-3 text-[#8b8b94] hover:text-white transition-colors duration-200">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+<div class="flex flex-col items-center justify-center min-h-[240px] px-6 py-10 text-center">
+<!-- Animated Spinner -->
+<div class="mb-6 relative w-[40px] h-[40px]">
+<svg class="animate-spin-slow w-full h-full text-primary" fill="none" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+<path class="opacity-100" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+</svg>
+</div>
+<!-- Text -->
+<h2 class="text-white text-[14px] font-medium leading-tight mb-2">Installing...</h2>
+<p class="text-[#8b8b94] text-[12px] leading-normal">This may take a minute</p>
+</div>
+</div>
+<!-- STATE 3: SUCCESS STATE -->
+<div class="relative w-[300px] bg-[#1c1c1e] rounded-lg shadow-2xl border border-[#2c2c2e] flex flex-col overflow-hidden animate-fade-in" style="animation-delay: 0.2s;">
+<!-- Close Button -->
+<button class="absolute top-3 right-3 text-[#8b8b94] hover:text-white transition-colors duration-200">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+<div class="flex flex-col items-center justify-center min-h-[240px] px-6 py-10 text-center">
+<!-- Success Icon -->
+<div class="mb-5 text-primary animate-draw">
+<svg fill="none" height="40" viewbox="0 0 40 40" width="40" xmlns="http://www.w3.org/2000/svg">
+<circle class="opacity-100" cx="20" cy="20" r="18" stroke="currentColor" stroke-width="2.5"></circle>
+<path d="M11 20L17 26L29 14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path>
+</svg>
+</div>
+<!-- Text -->
+<h2 class="text-white text-[18px] font-medium leading-tight mb-2">Installation Complete</h2>
+<p class="text-[#8b8b94] text-[13px] leading-normal">Start chatting</p>
+</div>
+</div>
+</div>
+</body></html>

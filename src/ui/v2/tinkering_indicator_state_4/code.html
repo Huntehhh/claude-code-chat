@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tinkering Indicator State 4</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ffa142",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#23190f",
+                        "canvas-black": "#09090b", // Specific request color
+                        "amber-indicator": "#FFA344", // Specific request color
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Ensuring the asterisk is centered perfectly and rotation is applied cleanly */
+        .tinker-indicator {
+            transform: rotate(270deg);
+            line-height: 1;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="bg-canvas-black text-white h-screen w-screen overflow-hidden flex items-center justify-center font-display">
+<!-- Main Container representing the single frame view -->
+<div aria-label="AI processing indicator state 4" class="flex flex-col items-center justify-center w-full h-full" role="img">
+<!-- The Tinkering Indicator: Asterisk, 16px, Amber, Rotated 270deg -->
+<div class="tinker-indicator text-[16px] text-amber-indicator font-display font-medium select-none">
+            ✳
+        </div>
+</div>
+</body></html>

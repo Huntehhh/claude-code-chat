@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Settings Modal Dialog</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ffa142",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#23190f",
+                        "modal-bg": "#0f0f0f",
+                        "modal-border": "#222225",
+                        "text-muted": "#8b8b94",
+                        "text-subtle": "#52525b",
+                        "input-bg": "#18181b",
+                        "danger": "#FF7369",
+                        "badge-bg": "#171717",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "mono": ["monospace"], // Default monospace
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem", "sm": "0.125rem" },
+                    boxShadow: {
+                        "modal": "0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 0 rgba(255,255,255,0.05)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>.custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #333;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: #444;
+        }
+    </style>
+</head>
+<body class="bg-background-dark font-display text-white overflow-hidden h-screen w-screen relative">
+<div class="absolute inset-0 flex flex-col pointer-events-none select-none opacity-40">
+<header class="flex items-center justify-between border-b border-[#3a3027] bg-[#181410] px-4 py-2 h-12">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-white text-xl">menu</span>
+<span class="text-sm font-semibold">AI Assistant</span>
+</div>
+<div class="flex gap-2">
+<div class="w-24 h-6 bg-[#3a3027] rounded"></div>
+<div class="w-8 h-6 bg-[#3a3027] rounded"></div>
+</div>
+</header>
+<div class="flex flex-1">
+<div class="w-64 border-r border-[#3a3027] bg-[#1c1814] hidden md:block p-4 space-y-3">
+<div class="h-4 w-3/4 bg-[#3a3027] rounded"></div>
+<div class="h-4 w-1/2 bg-[#3a3027] rounded"></div>
+<div class="h-4 w-2/3 bg-[#3a3027] rounded"></div>
+</div>
+<div class="flex-1 bg-[#181410] p-8">
+<div class="h-32 w-full bg-[#231e19] rounded mb-4"></div>
+<div class="h-64 w-full bg-[#231e19] rounded"></div>
+</div>
+</div>
+</div>
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-[4px]">
+<div class="relative w-full max-w-[340px] max-h-[85vh] flex flex-col bg-modal-bg border border-modal-border shadow-modal rounded-none animate-[fadeIn_150ms_ease-out_forwards]">
+<div class="flex items-center justify-between px-3 py-3 border-b border-modal-border select-none shrink-0">
+<h2 class="text-[16px] font-medium text-white leading-none">Settings</h2>
+<button class="text-text-muted hover:text-white transition-colors flex items-center justify-center w-6 h-6 rounded hover:bg-white/5">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<div class="overflow-y-auto custom-scrollbar p-3 flex flex-col gap-6">
+<div class="flex flex-col gap-3">
+<h3 class="text-xs font-medium text-text-muted uppercase tracking-[0.5px]">WSL Configuration</h3>
+<div class="flex items-center justify-between">
+<span class="text-sm text-gray-200">Enable WSL</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-[#3a3027] peer-focus:outline-none peer-focus:ring-1 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="flex flex-col gap-3 pl-1 border-l-2 border-[#222225] ml-1">
+<div class="flex flex-col gap-1">
+<label class="text-[13px] text-gray-300">WSL Distribution</label>
+<input class="w-full bg-input-bg border border-modal-border text-white text-sm rounded-sm px-2 py-1.5 focus:border-primary focus:ring-0 placeholder-[#52525b]" placeholder="e.g. Ubuntu-20.04" type="text" value="Ubuntu-20.04"/>
+<span class="text-[11px] text-text-subtle">Target distribution for execution</span>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-[13px] text-gray-300">Node.js Path</label>
+<input class="w-full bg-input-bg border border-modal-border text-white text-sm rounded-sm px-2 py-1.5 focus:border-primary focus:ring-0 placeholder-[#52525b]" placeholder="/usr/bin/node" type="text"/>
+<span class="text-[11px] text-text-subtle">Absolute path to node executable</span>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-[13px] text-gray-300">Claude Path</label>
+<input class="w-full bg-input-bg border border-modal-border text-white text-sm rounded-sm px-2 py-1.5 focus:border-primary focus:ring-0 placeholder-[#52525b]" placeholder="~/.claude" type="text"/>
+<span class="text-[11px] text-text-subtle">Config directory location</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-3">
+<h3 class="text-xs font-medium text-text-muted uppercase tracking-[0.5px]">Permissions</h3>
+<div class="flex flex-col gap-2 max-h-[200px] overflow-y-auto pr-1">
+<div class="flex items-center justify-between group py-1">
+<div class="flex items-center gap-2 overflow-hidden">
+<span class="bg-badge-bg text-[10px] font-bold text-gray-400 px-1.5 py-0.5 rounded border border-[#2a2a2e] uppercase tracking-wider">Read</span>
+<span class="text-xs font-mono text-gray-300 truncate">/src*.ts</span>
+</div>
+<button class="text-text-subtle hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 p-1">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+</button>
+</div>
+<div class="flex items-center justify-between group py-1">
+<div class="flex items-center gap-2 overflow-hidden">
+<span class="bg-badge-bg text-[10px] font-bold text-gray-400 px-1.5 py-0.5 rounded border border-[#2a2a2e] uppercase tracking-wider">Exec</span>
+<span class="text-xs font-mono text-gray-300 truncate">npm install</span>
+</div>
+<button class="text-text-subtle hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 p-1">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+</button>
+</div>
+<div class="flex items-center justify-between group py-1">
+<div class="flex items-center gap-2 overflow-hidden">
+<span class="bg-badge-bg text-[10px] font-bold text-gray-400 px-1.5 py-0.5 rounded border border-[#2a2a2e] uppercase tracking-wider">Write</span>
+<span class="text-xs font-mono text-gray-300 truncate">./dist/*</span>
+</div>
+<button class="text-text-subtle hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 p-1">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+</button>
+</div>
+</div>
+<button class="flex items-center gap-1.5 text-primary text-xs font-medium hover:text-primary/80 transition-colors w-fit px-1 -ml-1 py-1 rounded hover:bg-primary/5">
+<span class="material-symbols-outlined text-[16px]">add</span>
+                        Add Rule
+                    </button>
+<div class="flex items-center justify-between pt-1">
+<div class="flex flex-col">
+<span class="text-sm text-gray-200">Enable YOLO Mode</span>
+<span class="text-[10px] text-text-subtle">Auto-approve all tool execution</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-[#3a3027] peer-focus:outline-none peer-focus:ring-1 peer-focus:ring-danger rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-danger"></div>
+</label>
+</div>
+</div>
+<div class="flex flex-col gap-3 pb-2">
+<h3 class="text-xs font-medium text-text-muted uppercase tracking-[0.5px]">Display</h3>
+<div class="flex items-center justify-between">
+<span class="text-sm text-gray-200">Compact tool output</span>
+<div class="flex items-end gap-3">
+<label class="relative inline-flex items-center cursor-pointer mb-0.5">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-[#3a3027] peer-focus:outline-none peer-focus:ring-1 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</label>
+<div class="flex flex-col items-start gap-1">
+<span class="text-[11px] text-[#8b8b94] leading-none">Preview height</span>
+<div class="flex items-center gap-1">
+<input class="w-[60px] bg-[#171717] border border-[#222225] text-[#fafafa] text-[12px] text-right rounded-none focus:outline-none focus:border-[#222225] h-6 px-1" type="number" value="150"/>
+<span class="text-[11px] text-[#52525b]">px</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-sm text-gray-200">Compact MCP tool calls</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-[#3a3027] peer-focus:outline-none peer-focus:ring-1 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-sm text-gray-200">Show to-do list</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-[#3a3027] peer-focus:outline-none peer-focus:ring-1 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</body></html>
