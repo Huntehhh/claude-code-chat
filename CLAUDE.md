@@ -43,15 +43,17 @@ Whenever a user asks for "high-level documentation" Markdown Document, you shall
 
 **At session start:**
 1. Check if already in a worktree: `git worktree list`
-2. If on `main`, create a worktree before doing ANY work:
+2. If on `main`, create a worktree using the helper script:
 ```bash
-git worktree add .worktrees/<feature> -b <feature-branch>
+./scripts/wt add <feature>      # Creates .worktrees/<feature> on feature/<feature>
 cd .worktrees/<feature>
 ```
 3. Rebase to get fresh code before any edits:
 ```bash
 git fetch origin && git rebase origin/main
 ```
+
+**Helper commands:** `wt add <name>` | `wt rm <name>` | `wt list`
 
 **Location:** Always inside `.worktrees/` folder within the project.
 
@@ -75,7 +77,7 @@ git merge <feature-branch>
 
 **After merging:** Cleanup immediately
 ```bash
-git worktree remove .worktrees/<feature> && git branch -d <branch>
+./scripts/wt rm <feature>
 ```
 
 **Conflict handling:**
