@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Git worktree helper - usage: wt add|rm|list [name]
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+DIR="$ROOT/.worktrees"
+
+case "${1:-list}" in
+  add)
+    [[ -z "${2:-}" ]] && echo "Usage: wt add <name>" && exit 1
+    mkdir -p "$DIR"
+    git worktree add "$DIR/$2" -b "feature/$2"
+    echo "Created: $DIR/$2 (branch: feature/$2)"
+    ;;
+  rm)
+    [[ -z "${2:-}" ]] && echo "Usage: wt rm <name>" && exit 1
+    git worktree remove "$DIR/$2" --force
+    git branch -d "feature/$2" 2>/dev/null || true
+    echo "Removed: $DIR/$2"
+    ;;
+  list)
+    git worktree list
+    ;;
+  *)
+    echo "Usage: wt {add|rm|list} [name]"
+    ;;
+esac
