@@ -14,3 +14,5 @@ export { PanelManager, type PanelState, type PanelProcessInfo, type PanelProcess
 export * from './CliSchemas';
 export { MessageDebouncer, type DebouncedMessage, type MessageSender } from './MessageDebouncer';
 export { MemoryMonitor, getMemoryMonitor, resetMemoryMonitor, type MemoryStats, type MemoryMonitorConfig, type MemoryAlertLevel } from './MemoryMonitor';
+export { StreamBuffer, LineBuffer, createStreamBuffer, createLineBuffer, type ParsedJSON } from './StreamBuffer';
+export { McpService, getMcpService, resetMcpService, type MCPServerConfig, type McpServiceCallbacks } from './McpService';
