@@ -191,6 +191,8 @@ class ClaudeChatProvider {
 		cliPath?: string  // Full path for CLI conversations
 	}> = [];
 	private _cliProjectsPath: string | undefined;  // Path to ~/.claude/projects/
+	private _cliParsedMessages: Array<{ type: string; data: any }> = [];  // Parsed CLI messages for pagination
+	private _cliMessagesSent: number = 0;  // How many CLI messages have been sent to UI
 	private _currentClaudeProcess: cp.ChildProcess | undefined;
 	private _abortController: AbortController | undefined;
 	private _isWslProcess: boolean = false;
@@ -292,6 +294,10 @@ class ClaudeChatProvider {
 		this._messageRouter.register('saveCustomSnippet', (msg: any) => this._saveCustomSnippet(msg.snippet));
 		this._messageRouter.register('deleteCustomSnippet', (msg: any) => this._deleteCustomSnippet(msg.snippetId));
 		this._messageRouter.register('enableYoloMode', () => this._enableYoloMode());
+		// Webview lifecycle messages - no-op handlers to prevent console warnings
+		this._messageRouter.register('ready', () => { /* Webview ready notification */ });
+		this._messageRouter.register('saveScrollPosition', (msg: any) => { /* Scroll position persisted in webview state */ });
+		this._messageRouter.register('loadMoreMessages', () => this._loadMoreCLIMessages());
 		this._messageRouter.register('saveInputText', (msg: any) => this._saveInputText(msg.text));
 		this._messageRouter.register('getCheckpoints', () => this._sendCheckpoints());
 		this._messageRouter.register('getTodos', () => {
@@ -300,6 +306,38 @@ class ClaudeChatProvider {
 				data: this._currentTodos
 			});
 		});
+		this._messageRouter.register('renameChat', (msg: any) => this._renameChat(msg.name));
+	}
+
+	/**
+	 * Rename the current chat and update all UI locations
+	 */
+	private _renameChat(newName: string): void {
+		if (!newName || typeof newName !== 'string') return;
+
+		this._chatName = newName.trim();
+
+		// Update active panel title
+		const panelState = this._activePanelId ? this._panels.get(this._activePanelId) : null;
+		if (panelState?.panel) {
+			panelState.panel.title = this._chatName;
+		}
+
+		// Also update legacy panel if exists
+		if (this._panel) {
+			this._panel.title = this._chatName;
+		}
+
+		// Send updated chat name to webview
+		this._postMessage({
+			type: 'chatNameUpdated',
+			data: { name: this._chatName }
+		});
+
+		// Refresh conversation list so history shows new name
+		this._sendConversationList();
+
+		console.log(`[Extension] Chat renamed to: ${this._chatName}`);
 	}
 
 	/**
@@ -2855,10 +2893,182 @@ class ClaudeChatProvider {
 
 			console.log(`[CLI Load] Processing ${lines.length} lines from ${filePath}`);
 
-			// Clear UI first
+			// Clear UI and reset pagination state
+			this._postMessage({ type: 'sessionCleared' });
+			this._cliParsedMessages = [];
+			this._cliMessagesSent = 0;
+
+			// Parse ALL lines into messages first
+			let parsedCount = 0;
+			let errorCount = 0;
+
+			for (const line of lines) {
+				try {
+					const obj = JSON.parse(line);
+					parsedCount++;
+					const messages = this._parseCliMessage(obj);
+					this._cliParsedMessages.push(...messages);
+				} catch (e) {
+					errorCount++;
+				}
+			}
+
+			console.log(`[CLI Load] Parsed ${parsedCount} lines into ${this._cliParsedMessages.length} messages (${errorCount} errors)`);
+
+			// Send only the NEWEST 100 messages (from the end) after a short delay
+			setTimeout(() => {
+				const PAGE_SIZE = 100;
+				const total = this._cliParsedMessages.length;
+				const startIdx = Math.max(0, total - PAGE_SIZE);
+				const newestMessages = this._cliParsedMessages.slice(startIdx);
+
+				console.log(`[CLI Load] Sending newest ${newestMessages.length} of ${total} messages`);
+
+				for (const msg of newestMessages) {
+					this._postMessage(msg);
+				}
+				this._cliMessagesSent = newestMessages.length;
+
+				// Tell UI if there are more messages available
+				if (startIdx > 0) {
+					this._postMessage({ type: 'hasMoreMessages', data: { remaining: startIdx } });
+				}
+
+				// Scroll to bottom after loading
+				this._postMessage({ type: 'scrollToBottom' });
+			}, 100);
+
+		} catch (error: any) {
+			console.error('Failed to load CLI conversation:', error.message);
+			this._postMessage({ type: 'error', data: `Failed to load conversation: ${error.message}` });
+		}
+	}
+
+	/**
+	 * Parse a single CLI JSONL object into webview messages
+	 */
+	private _parseCliMessage(obj: any): Array<{ type: string; data: any }> {
+		const messages: Array<{ type: string; data: any }> = [];
+
+		try {
+			switch (obj.type) {
+				case 'user':
+					if (obj.message?.content) {
+						let userContent = '';
+						const content = obj.message.content;
+
+						if (typeof content === 'string') {
+							userContent = content;
+						} else if (Array.isArray(content)) {
+							const textBlocks = content.filter((c: any) => c.type !== 'tool_result');
+							if (textBlocks.length > 0) {
+								userContent = textBlocks.map((c: any) => c.text || '').join('\n').trim();
+							}
+						}
+
+						if (userContent && userContent.toLowerCase() !== 'warmup') {
+							messages.push({ type: 'userInput', data: userContent });
+						}
+					}
+					break;
+
+				case 'assistant':
+					if (obj.message?.content) {
+						for (const block of obj.message.content) {
+							if (block.type === 'text' && block.text) {
+								messages.push({ type: 'output', data: block.text });
+							} else if (block.type === 'tool_use') {
+								const input = block.input || {};
+								let toolInfo = '';
+								let filePath = '';
+
+								if (['Read', 'read', 'Write', 'write', 'Edit', 'edit'].includes(block.name)) {
+									filePath = input.file_path || input.path || '';
+									toolInfo = filePath;
+								} else if (['Bash', 'bash'].includes(block.name)) {
+									toolInfo = input.command || input.description || '';
+								} else if (['Grep', 'grep'].includes(block.name)) {
+									toolInfo = `${input.pattern || ''} in ${input.path || input.include || '.'}`;
+								} else if (['Glob', 'glob'].includes(block.name)) {
+									toolInfo = input.pattern || '';
+								} else {
+									toolInfo = JSON.stringify(input).substring(0, 100);
+								}
+
+								messages.push({
+									type: 'toolUse',
+									data: { toolName: block.name, toolInfo, rawInput: input, filePath, toolUseId: block.id }
+								});
+							}
+						}
+					}
+					break;
+
+				case 'result':
+					if (obj.result) {
+						messages.push({
+							type: 'toolResult',
+							data: { toolName: obj.tool_name || 'unknown', result: typeof obj.result === 'string' ? obj.result : JSON.stringify(obj.result) }
+						});
+					}
+					break;
+
+				case 'summary':
+					if (obj.summary) {
+						messages.push({ type: 'system', data: `Session: ${obj.summary}` });
+					}
+					break;
+			}
+		} catch (e) {
+			// Ignore parsing errors for individual messages
+		}
+
+		return messages;
+	}
+
+	/**
+	 * Load more (older) CLI messages for infinite scroll
+	 */
+	private _loadMoreCLIMessages(): void {
+		const PAGE_SIZE = 100;
+		const total = this._cliParsedMessages.length;
+		const alreadySent = this._cliMessagesSent;
+		const remaining = total - alreadySent;
+
+		if (remaining <= 0) {
+			this._postMessage({ type: 'noMoreMessages' });
+			return;
+		}
+
+		// Calculate range for older messages (before what we've sent)
+		const endIdx = total - alreadySent;
+		const startIdx = Math.max(0, endIdx - PAGE_SIZE);
+		const olderMessages = this._cliParsedMessages.slice(startIdx, endIdx);
+
+		console.log(`[CLI Load More] Sending ${olderMessages.length} older messages (${startIdx}-${endIdx} of ${total})`);
+
+		// Send as prepend batch (UI will add to top)
+		this._postMessage({ type: 'prependMessages', data: olderMessages });
+		this._cliMessagesSent += olderMessages.length;
+
+		// Tell UI if there are still more
+		if (startIdx > 0) {
+			this._postMessage({ type: 'hasMoreMessages', data: { remaining: startIdx } });
+		} else {
+			this._postMessage({ type: 'noMoreMessages' });
+		}
+	}
+
+	// Legacy: Keep old inline parsing for reference but not used
+	private async _loadCLIConversation_OLD(filePath: string): Promise<void> {
+		try {
+			const fileUri = vscode.Uri.file(filePath);
+			const content = await vscode.workspace.fs.readFile(fileUri);
+			const text = new TextDecoder().decode(content);
+			const lines = text.trim().split('\n').filter(l => l.trim());
+
 			this._postMessage({ type: 'sessionCleared' });
 
-			// Parse JSONL and send messages (200ms delay to allow UI to clear)
 			setTimeout(() => {
 				let postedCount = 0;
 				let parsedCount = 0;

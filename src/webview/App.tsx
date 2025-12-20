@@ -370,7 +370,7 @@ export default function App() {
   // ==========================================================================
 
   return (
-    <div className="flex h-full flex-col bg-[#09090b] text-[#fafafa]">
+    <div className="flex h-full flex-col bg-[#09090b] text-[#fafafa] overflow-hidden">
       {/* Header */}
       <AppHeader
         title={chatName}
@@ -381,8 +381,8 @@ export default function App() {
       />
 
       {/* Main content area */}
-      <main className="flex-1 overflow-hidden relative">
-        <MessageList className="h-full" />
+      <main className="flex-1 overflow-hidden relative min-h-0">
+        <MessageList className="h-full overflow-x-hidden" />
       </main>
 
       {/* Todo List (conditional) */}

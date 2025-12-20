@@ -259,7 +259,7 @@ const ToolUseBlock = React.forwardRef<HTMLDivElement, ToolUseBlockProps>(
       return (
         <DiffView
           ref={ref}
-          className={cn('animate-fade-in', className)}
+          className={className}
           filename={headerFilePath || filePath || 'unknown'}
           lines={diffData.lines}
           additions={diffData.additions}

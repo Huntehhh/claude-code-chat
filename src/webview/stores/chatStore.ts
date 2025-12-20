@@ -99,12 +99,19 @@ interface ChatState {
   // Clipboard text (from VSCode)
   clipboardText: string;
 
+  // Pagination for infinite scroll
+  hasMoreMessages: boolean;
+  isLoadingMore: boolean;
+
   // =========================================================================
   // Actions
   // =========================================================================
 
   // Messages
   addMessage: (message: Message) => void;
+  prependMessages: (messages: Message[]) => void;
+  setHasMoreMessages: (has: boolean) => void;
+  setIsLoadingMore: (loading: boolean) => void;
   updateLastMessage: (content: string) => void;
   clearMessages: () => void;
   setProcessing: (processing: boolean) => void;
@@ -169,9 +176,14 @@ export const useChatStore = create<ChatState>((set) => ({
   draftMessage: '',
   scrollPosition: 0,
   clipboardText: '',
+  hasMoreMessages: false,
+  isLoadingMore: false,
 
   // Message actions
   addMessage: (message) => set((s) => ({ messages: [...s.messages, message] })),
+  prependMessages: (messages) => set((s) => ({ messages: [...messages, ...s.messages], isLoadingMore: false })),
+  setHasMoreMessages: (has) => set({ hasMoreMessages: has }),
+  setIsLoadingMore: (loading) => set({ isLoadingMore: loading }),
 
   updateLastMessage: (content) => set((s) => {
     const messages = [...s.messages];

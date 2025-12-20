@@ -109,24 +109,44 @@ export interface MessageListProps extends React.HTMLAttributes<HTMLDivElement> {
 const MessageList = React.forwardRef<HTMLDivElement, MessageListProps>(
   ({ className, showWelcome = true, ...props }, ref) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
-    const { messages, pendingPermissions, scrollPosition, setScrollPosition } = useChatStore();
+    const { messages, pendingPermissions, scrollPosition, setScrollPosition, hasMoreMessages, isLoadingMore } = useChatStore();
     const { compactToolOutput } = useSettingsStore();
-    const { respondToPermission, saveScrollPosition, openFile } = useVSCodeSender();
+    const { respondToPermission, saveScrollPosition, openFile, loadMoreMessages } = useVSCodeSender();
     const isRestoringScroll = React.useRef(false);
     const lastMessageCount = React.useRef(messages.length);
+    const prevScrollHeightRef = React.useRef<number>(0);
+    const wasLoadingMoreRef = React.useRef(false);
 
     // Debounced scroll position save (500ms delay to avoid excessive saves)
     const debouncedSaveScroll = useDebounce(saveScrollPosition, 500);
 
-    // Handle scroll events - track and save position
+    // Track scroll height before loading more messages (for prepend position preservation)
+    React.useEffect(() => {
+      if (isLoadingMore && !wasLoadingMoreRef.current) {
+        // Just started loading more - save current scroll height
+        const container = containerRef.current;
+        if (container) {
+          prevScrollHeightRef.current = container.scrollHeight;
+        }
+      }
+      wasLoadingMoreRef.current = isLoadingMore;
+    }, [isLoadingMore]);
+
+    // Handle scroll events - track position and trigger infinite scroll
     const handleScroll = React.useCallback(() => {
       const container = containerRef.current;
       if (container && !isRestoringScroll.current) {
         const position = container.scrollTop;
         setScrollPosition(position);
         debouncedSaveScroll(position);
+
+        // Infinite scroll: Load more when near top (within 100px)
+        if (position < 100 && hasMoreMessages && !isLoadingMore) {
+          console.log('[Infinite Scroll] Loading more messages...');
+          loadMoreMessages();
+        }
       }
-    }, [setScrollPosition, debouncedSaveScroll]);
+    }, [setScrollPosition, debouncedSaveScroll, hasMoreMessages, isLoadingMore, loadMoreMessages]);
 
     // Restore scroll position when messages are loaded and scrollPosition changes
     React.useEffect(() => {
@@ -147,19 +167,37 @@ const MessageList = React.forwardRef<HTMLDivElement, MessageListProps>(
       }
     }, [scrollPosition, messages.length]);
 
-    // Auto-scroll to bottom only when NEW messages arrive (not on initial load)
+    // Handle message count changes - scroll to bottom for NEW messages, preserve position for prepended
     React.useEffect(() => {
       const container = containerRef.current;
-      if (container && messages.length > lastMessageCount.current) {
-        // New message arrived - scroll to bottom
-        isRestoringScroll.current = true;
-        container.scrollTo({
-          top: container.scrollHeight,
-          behavior: 'smooth',
-        });
-        setTimeout(() => {
-          isRestoringScroll.current = false;
-        }, 500);
+      if (!container) return;
+
+      const messageCountDiff = messages.length - lastMessageCount.current;
+
+      if (messageCountDiff > 0) {
+        // More messages now than before
+        if (prevScrollHeightRef.current > 0) {
+          // Messages were prepended (loaded older messages)
+          // Adjust scroll position to maintain view of the same content
+          isRestoringScroll.current = true;
+          const heightDiff = container.scrollHeight - prevScrollHeightRef.current;
+          container.scrollTo({ top: heightDiff, behavior: 'instant' });
+          prevScrollHeightRef.current = 0; // Reset
+          setTimeout(() => {
+            isRestoringScroll.current = false;
+          }, 100);
+        } else {
+          // Messages were appended (new messages arrived at bottom)
+          // Scroll to bottom to show new content
+          isRestoringScroll.current = true;
+          container.scrollTo({
+            top: container.scrollHeight,
+            behavior: 'smooth',
+          });
+          setTimeout(() => {
+            isRestoringScroll.current = false;
+          }, 500);
+        }
       }
       lastMessageCount.current = messages.length;
     }, [messages.length]);
@@ -216,13 +254,24 @@ const MessageList = React.forwardRef<HTMLDivElement, MessageListProps>(
         }}
         onScroll={handleScroll}
         className={cn(
-          'flex flex-col gap-4 overflow-y-auto',
+          'flex flex-col gap-4 overflow-y-auto overflow-x-hidden',
           'px-4 py-6',
           'scrollbar-thin scrollbar-thumb-[#333] scrollbar-track-transparent',
           className
         )}
         {...props}
       >
+        {/* Loading indicator at top for infinite scroll */}
+        {isLoadingMore && (
+          <div className="flex items-center justify-center py-4 text-[#8b8b94] text-sm">
+            <span className="animate-pulse">Loading older messages...</span>
+          </div>
+        )}
+        {hasMoreMessages && !isLoadingMore && (
+          <div className="flex items-center justify-center py-2 text-[#52525b] text-xs">
+            <span>Scroll up for older messages</span>
+          </div>
+        )}
         {messages.map((msg, idx) => {
           // Handle permission messages specially
           if (msg.type === 'permission' && msg.permissionId) {

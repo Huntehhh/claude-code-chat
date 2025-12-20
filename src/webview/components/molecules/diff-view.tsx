@@ -3,7 +3,6 @@
 import * as React from 'react';
 import { cn } from '../../lib/utils';
 import { Icon } from '../ui/icon';
-import { Button } from '../ui/button';
 
 export interface DiffLine {
   type: 'context' | 'add' | 'remove';
@@ -29,120 +28,75 @@ const DiffView = React.forwardRef<HTMLDivElement, DiffViewProps>(
       <div
         ref={ref}
         className={cn(
-          'border border-[#222225] bg-[#0f0f0f] overflow-hidden w-full',
+          'border border-[#333] rounded-sm bg-[#1a1a1a] w-full',
           className
         )}
         {...props}
       >
-        <details className="group" open={defaultOpen}>
-          {/* Header */}
-          <summary className="flex items-center justify-between px-3 py-2.5 bg-[#171717]/30 cursor-pointer hover:bg-[#171717]/60 transition-colors select-none">
-            <div className="flex items-center gap-2.5 overflow-hidden">
-              <Icon name="edit" size="sm" className="text-[#8b8b94]" />
-              <span className="text-sm font-semibold text-[#8b8b94]">Edit</span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenFile?.(filename);
-                }}
-                className="font-mono text-xs text-[#FFA344] truncate hover:underline cursor-pointer bg-transparent border-none p-0"
-              >
-                {filename}
-              </button>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-[10px] font-medium text-[#52525b] uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">
-                Click to expand
-              </span>
-              <Icon
-                name="expand_more"
-                size="sm"
-                className="text-[#8b8b94] transition-transform group-open:rotate-180"
-              />
-            </div>
-          </summary>
-
-          <div className="border-t border-[#222225] font-mono text-xs">
-            {/* File path bar */}
-            <div className="bg-[#09090b] px-3 py-2 border-b border-[#222225] text-[#52525b] flex items-center gap-2 select-none">
-              <Icon name="description" size="xs" />
-              <button
-                type="button"
-                onClick={() => onOpenFile?.(filename)}
-                className="hover:text-[#FFA344] transition-colors cursor-pointer bg-transparent border-none p-0"
-              >
-                {filename}
-              </button>
-            </div>
-
-            {/* Diff lines */}
-            <div className="overflow-x-auto">
-              <div className="min-w-full">
-                {lines.map((line, index) => (
-                  <div
-                    key={index}
-                    className={cn(
-                      'flex',
-                      line.type === 'add' && 'bg-[rgba(74,222,128,0.1)] text-[#4ade80]',
-                      line.type === 'remove' && 'bg-[rgba(248,113,113,0.1)] text-[#f87171]',
-                      line.type === 'context' && 'text-[#52525b] opacity-60'
-                    )}
-                  >
-                    {/* Line number */}
-                    <div
-                      className={cn(
-                        'w-10 text-right pr-3 select-none border-r',
-                        line.type === 'add' && 'border-[#4ade80]/20 bg-[#171717] text-[#52525b]',
-                        line.type === 'remove' && 'border-[#f87171]/20 bg-[#171717] text-[#52525b]',
-                        line.type === 'context' && 'border-[#222225] bg-[#171717]/30'
-                      )}
-                    >
-                      {line.lineNumber || line.newLineNumber}
-                    </div>
-                    {/* Content */}
-                    <div className="px-4 py-0.5 whitespace-pre select-text">
-                      {line.type !== 'context' && (
-                        <span className="select-none inline-block w-3 -ml-3">
-                          {line.type === 'add' ? '+' : '-'}
-                        </span>
-                      )}
-                      {line.type === 'remove' && (
-                        <span className="line-through decoration-1">{line.content}</span>
-                      )}
-                      {line.type !== 'remove' && line.content}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Footer with stats */}
-            {(additions > 0 || deletions > 0 || onOpenDiff) && (
-              <div className="px-3 py-2 border-t border-[#222225] bg-[#09090b] flex items-center justify-between">
-                <div className="flex items-center gap-3 text-[10px]">
-                  {additions > 0 && (
-                    <span className="text-[#4ade80]">+{additions}</span>
-                  )}
-                  {deletions > 0 && (
-                    <span className="text-[#f87171]">-{deletions}</span>
-                  )}
-                </div>
-                {onOpenDiff && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-[#8b8b94] hover:text-[#fafafa]"
-                    onClick={onOpenDiff}
-                  >
-                    <Icon name="open_in_new" size="xs" />
-                    <span className="text-[10px] ml-1">Open Diff</span>
-                  </Button>
-                )}
-              </div>
-            )}
+        {/* Header - compact like official */}
+        <div className="flex items-center justify-between px-3 py-1.5 bg-[#1a1a1a] border-b border-[#333]">
+          <div className="flex items-center gap-2 min-w-0">
+            <Icon name="edit" size="xs" className="text-[#666] shrink-0" />
+            <button
+              type="button"
+              onClick={() => onOpenFile?.(filename)}
+              className="font-mono text-[11px] text-[#888] truncate hover:text-[#aaa] cursor-pointer bg-transparent border-none p-0"
+            >
+              {filename}
+            </button>
           </div>
-        </details>
+          <div className="flex items-center gap-2 text-[10px] shrink-0 ml-2">
+            {additions > 0 && <span className="text-[#3fb950]">+{additions}</span>}
+            {deletions > 0 && <span className="text-[#f85149]">-{deletions}</span>}
+          </div>
+        </div>
+
+        {/* Diff content - no scrollbars, compact lines */}
+        <div className="font-mono text-[11px] font-light leading-tight">
+          {lines.length === 0 && (
+            <div className="px-3 py-2 text-[#666]">No changes</div>
+          )}
+          {lines.map((line, index) => (
+            <div
+              key={index}
+              className={cn(
+                'flex',
+                // Muted green background for additions (like official)
+                line.type === 'add' && 'bg-[rgba(46,160,67,0.15)]',
+                // Darker red background for removals (like official)
+                line.type === 'remove' && 'bg-[rgba(248,81,73,0.15)]',
+                line.type === 'context' && 'bg-transparent'
+              )}
+            >
+              {/* Line number - narrower */}
+              <div className={cn(
+                'w-8 text-right pr-1.5 select-none text-[#484848] text-[10px] shrink-0',
+                line.type === 'add' && 'bg-[rgba(46,160,67,0.25)]',
+                line.type === 'remove' && 'bg-[rgba(248,81,73,0.25)]'
+              )}>
+                {line.lineNumber || line.newLineNumber || ''}
+              </div>
+              {/* +/- indicator - narrower */}
+              <div className={cn(
+                'w-4 text-center select-none shrink-0 text-[10px]',
+                line.type === 'add' && 'text-[#3fb950]',
+                line.type === 'remove' && 'text-[#f85149]'
+              )}>
+                {line.type === 'add' && '+'}
+                {line.type === 'remove' && '-'}
+              </div>
+              {/* Content - compact, no extra padding */}
+              <div className={cn(
+                'pl-1 pr-2 py-px whitespace-pre select-text flex-1',
+                line.type === 'add' && 'text-[#3fb950]',
+                line.type === 'remove' && 'text-[#f85149]',
+                line.type === 'context' && 'text-[#8b949e]'
+              )}>
+                {line.content || ' '}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

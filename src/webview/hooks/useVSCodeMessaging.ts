@@ -13,6 +13,48 @@ import type {
 } from '../../types/messages';
 
 // =============================================================================
+// Helper: Convert raw backend message to Message type
+// =============================================================================
+
+import type { Message } from '../stores/chatStore';
+
+function convertRawToMessage(raw: { type: string; data: any }): Message | null {
+  const timestamp = Date.now();
+  switch (raw.type) {
+    case 'userInput':
+      return { type: 'user', content: raw.data, timestamp };
+    case 'output':
+      return { type: 'claude', content: raw.data, timestamp };
+    case 'toolUse': {
+      const d = raw.data;
+      return {
+        type: 'tool-use',
+        content: d.toolInfo || '',
+        toolName: d.toolName,
+        toolInput: d.rawInput,
+        rawInput: d.rawInput,
+        filePath: d.filePath,
+        timestamp,
+      };
+    }
+    case 'toolResult': {
+      const d = raw.data;
+      return {
+        type: 'tool-result',
+        content: d.result || d.content || '',
+        toolName: d.toolName,
+        isError: d.isError,
+        timestamp,
+      };
+    }
+    case 'system':
+      return { type: 'system', content: raw.data, timestamp };
+    default:
+      return null;
+  }
+}
+
+// =============================================================================
 // Message Handler Hook
 // =============================================================================
 
@@ -209,17 +251,16 @@ export function useVSCodeMessaging() {
             toolInfo: string;
             rawInput?: Record<string, unknown>;
             filePath?: string;
-            oldContent?: string;
-            newContent?: string;
+            fileContentBefore?: string; // Backend sends fileContentBefore, not oldContent
           };
           addMessage({
             type: 'tool-use',
             content: data.toolInfo,
             toolName: data.toolName,
             toolInput: data.rawInput,
-            filePath: data.filePath,
-            oldContent: data.oldContent,
-            newContent: data.newContent,
+            rawInput: data.rawInput, // Also store as rawInput for fallback
+            filePath: data.filePath || (data.rawInput?.file_path as string),
+            oldContent: data.fileContentBefore, // Map backend name to frontend name
             timestamp: Date.now(),
           });
           break;
@@ -229,13 +270,19 @@ export function useVSCodeMessaging() {
           const data = msg.data as {
             toolName: string;
             result: string;
+            content?: string; // Backend may send 'content' instead of 'result'
             isError?: boolean;
+            fileContentAfter?: string; // For Edit/Write tools
+            hidden?: boolean;
           };
+          // Skip hidden results (Read tool success, TodoWrite success)
+          if (data.hidden) break;
           addMessage({
             type: 'tool-result',
-            content: data.result,
+            content: data.content || data.result || '',
             toolName: data.toolName,
             isError: data.isError,
+            newContent: data.fileContentAfter, // Map backend name to frontend name
             timestamp: Date.now(),
           });
           break;
@@ -468,8 +515,10 @@ export function useVSCodeMessaging() {
         // Model Selection
         // =================================================================
         case 'modelSelected': {
-          const data = msg.data as { model: string };
-          setModel(data.model);
+          const data = msg.data as { model: string } | undefined;
+          if (data?.model) {
+            setModel(data.model);
+          }
           break;
         }
 
@@ -488,6 +537,36 @@ export function useVSCodeMessaging() {
         case 'clearLoading': {
           setProcessing(false);
           hideThinkingOverlay();
+          break;
+        }
+
+        // =================================================================
+        // Pagination / Infinite Scroll
+        // =================================================================
+        case 'hasMoreMessages': {
+          const data = msg.data as { remaining: number };
+          console.log(`[Pagination] ${data.remaining} more messages available`);
+          useChatStore.getState().setHasMoreMessages(true);
+          break;
+        }
+
+        case 'noMoreMessages': {
+          console.log('[Pagination] No more messages');
+          useChatStore.getState().setHasMoreMessages(false);
+          useChatStore.getState().setIsLoadingMore(false);
+          break;
+        }
+
+        case 'prependMessages': {
+          const rawMessages = msg.data as Array<{ type: string; data: any }>;
+          console.log(`[Pagination] Prepending ${rawMessages.length} older messages`);
+          // Convert raw messages to Message format and prepend
+          const messages: Message[] = [];
+          for (const raw of rawMessages) {
+            const converted = convertRawToMessage(raw);
+            if (converted) messages.push(converted);
+          }
+          useChatStore.getState().prependMessages(messages);
           break;
         }
 
@@ -562,6 +641,14 @@ export function useVSCodeMessaging() {
         case 'imagePath': {
           // TODO: Handle image path response
           console.log('[Image Path]', msg.data);
+          break;
+        }
+
+        case 'chatNameUpdated': {
+          const data = msg.data as { name: string };
+          if (data?.name) {
+            setChatName(data.name);
+          }
           break;
         }
 
@@ -668,6 +755,11 @@ export const useVSCodeSender = () => {
 
   const requestConversations = useCallback(() => {
     vscode.postMessage({ type: 'getConversationList' });
+  }, []);
+
+  const loadMoreMessages = useCallback(() => {
+    useChatStore.getState().setIsLoadingMore(true);
+    vscode.postMessage({ type: 'loadMoreMessages' });
   }, []);
 
   const restoreToCommit = useCallback((sha: string) => {
@@ -839,6 +931,7 @@ export const useVSCodeSender = () => {
     // Conversations & History
     loadConversation,
     requestConversations,
+    loadMoreMessages,
     restoreToCommit,
 
     // Files & Workspace
