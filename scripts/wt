@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Git worktree helper - usage: wt add|rm|list [name]
+# Git worktree helper with sparse checkout
+# Usage: wt add <name> <files...>  |  wt rm <name>  |  wt list
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
@@ -7,10 +8,33 @@ DIR="$ROOT/.worktrees"
 
 case "${1:-list}" in
   add)
-    [[ -z "${2:-}" ]] && echo "Usage: wt add <name>" && exit 1
+    [[ -z "${2:-}" ]] && echo "Usage: wt add <name> <file1> [file2...]" && exit 1
+    NAME="$2"
+    shift 2
+    FILES=("$@")
+
+    [[ ${#FILES[@]} -eq 0 ]] && echo "Error: Specify files/folders to work on" && exit 1
+
     mkdir -p "$DIR"
-    git worktree add "$DIR/$2" -b "feature/$2"
-    echo "Created: $DIR/$2 (branch: feature/$2)"
+
+    # Create worktree without checkout
+    git worktree add --no-checkout "$DIR/$NAME" -b "feature/$NAME"
+    cd "$DIR/$NAME"
+
+    # Enable sparse checkout
+    git sparse-checkout init --no-cone
+    git sparse-checkout set "${FILES[@]}"
+
+    # Checkout the files
+    git checkout
+
+    echo ""
+    echo "Created sparse worktree: $DIR/$NAME"
+    echo "Branch: feature/$NAME"
+    echo "Files:"
+    for f in "${FILES[@]}"; do echo "  - $f"; done
+    echo ""
+    echo "Next: cd $DIR/$NAME"
     ;;
   rm)
     [[ -z "${2:-}" ]] && echo "Usage: wt rm <name>" && exit 1
@@ -21,7 +45,21 @@ case "${1:-list}" in
   list)
     git worktree list
     ;;
+  files)
+    # Show what files are in current sparse checkout
+    [[ -z "${2:-}" ]] && git sparse-checkout list 2>/dev/null || echo "Not in a sparse checkout"
+    [[ -n "${2:-}" ]] && cat "$DIR/$2/.git/info/sparse-checkout" 2>/dev/null || true
+    ;;
   *)
-    echo "Usage: wt {add|rm|list} [name]"
+    echo "Usage:"
+    echo "  wt add <name> <file1> [file2...]  # Create sparse worktree"
+    echo "  wt rm <name>                       # Remove worktree"
+    echo "  wt list                            # List all worktrees"
+    echo "  wt files [name]                    # Show files in sparse checkout"
+    echo ""
+    echo "Examples:"
+    echo "  wt add ui-work src/ui.ts src/ui-styles.ts"
+    echo "  wt add backend src/extension.ts"
+    echo "  wt add docs docs/ CLAUDE.md"
     ;;
 esac
