@@ -15,7 +15,7 @@ export const ContentBlockSchema = z.object({
   type: z.string(),
   text: z.string().optional(),
   name: z.string().optional(),
-  input: z.record(z.unknown()).optional(),
+  input: z.record(z.string(), z.unknown()).optional(),
   tool_use_id: z.string().optional(),
   content: z.union([z.string(), z.array(z.unknown())]).optional(),
 });
@@ -53,7 +53,7 @@ export const AssistantMessageSchema = z.object({
       type: z.string(),
       text: z.string().optional(),
       name: z.string().optional(),
-      input: z.record(z.unknown()).optional(),
+      input: z.record(z.string(), z.unknown()).optional(),
     })).optional(),
   }).optional(),
 });
@@ -68,7 +68,7 @@ export const ToolUseSchema = z.object({
   type: z.literal('tool_use'),
   name: z.string(),
   id: z.string().optional(),
-  input: z.record(z.unknown()),
+  input: z.record(z.string(), z.unknown()),
 });
 
 export type ToolUse = z.infer<typeof ToolUseSchema>;
@@ -96,7 +96,7 @@ export const ControlRequestSchema = z.object({
   request_id: z.string(),
   tool_name: z.string(),
   tool_use_id: z.string().optional(),
-  input: z.record(z.unknown()),
+  input: z.record(z.string(), z.unknown()),
   suggestions: z.array(z.unknown()).optional(),
 });
 
@@ -157,7 +157,7 @@ export type SystemMessage = z.infer<typeof SystemMessageSchema>;
 export const CliMessageSchema = z.discriminatedUnion('type', [
   UserMessageSchema,
   AssistantMessageSchema,
-  z.object({ type: z.literal('tool_use'), name: z.string(), id: z.string().optional(), input: z.record(z.unknown()) }),
+  z.object({ type: z.literal('tool_use'), name: z.string(), id: z.string().optional(), input: z.record(z.string(), z.unknown()) }),
   z.object({ type: z.literal('tool_result'), name: z.string().optional(), tool_use_id: z.string().optional(), is_error: z.boolean().optional(), content: z.union([z.string(), z.array(z.unknown())]).optional() }),
   ControlRequestSchema,
   SessionInfoSchema,
