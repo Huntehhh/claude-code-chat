@@ -1,22 +1,52 @@
 import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../../lib/utils';
 
-export interface FormFieldProps extends React.HTMLAttributes<HTMLDivElement> {
+const formFieldVariants = cva('flex flex-col', {
+  variants: {
+    spacing: {
+      default: 'gap-1',
+      compact: 'gap-0.5',
+      spacious: 'gap-2',
+    },
+  },
+  defaultVariants: {
+    spacing: 'default',
+  },
+});
+
+const labelVariants = cva('', {
+  variants: {
+    variant: {
+      default: 'text-[13px] text-gray-300',
+      uppercase: 'text-[11px] font-semibold text-[#52525b] uppercase tracking-wider',
+    },
+  },
+  defaultVariants: {
+    variant: 'default',
+  },
+});
+
+export interface FormFieldProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof formFieldVariants> {
   label?: string;
   helper?: string;
   error?: string;
+  /** Label style variant */
+  labelVariant?: 'default' | 'uppercase';
 }
 
 const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
-  ({ className, label, helper, error, children, ...props }, ref) => {
+  ({ className, spacing, label, helper, error, labelVariant = 'default', children, ...props }, ref) => {
     return (
       <div
         ref={ref}
-        className={cn('flex flex-col gap-1', className)}
+        className={cn(formFieldVariants({ spacing }), className)}
         {...props}
       >
         {label && (
-          <label className="text-[13px] text-gray-300">{label}</label>
+          <label className={labelVariants({ variant: labelVariant })}>{label}</label>
         )}
         {children}
         {helper && !error && (
@@ -31,4 +61,4 @@ const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
 );
 FormField.displayName = 'FormField';
 
-export { FormField };
+export { FormField, formFieldVariants, labelVariants };
