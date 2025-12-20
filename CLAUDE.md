@@ -74,7 +74,13 @@ This protects user's work — if Claude breaks something, `git reset HEAD~1` und
 ```bash
 git fetch origin && git rebase origin/main
 ```
-2. Check what files you're about to change:
+2. After rebase, check what was auto-merged:
+```bash
+git diff HEAD@{1} --name-only
+```
+If files you edited were also changed by others, review them for lost code.
+
+3. Check what files you're about to change vs main:
 ```bash
 git diff main --name-only
 ```
