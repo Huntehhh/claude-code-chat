@@ -274,6 +274,22 @@ class ClaudeChatProvider {
 	}
 
 	/**
+	 * Build a ProcessConfig snapshot from current settings.
+	 */
+	private _buildProcessConfig(): ProcessConfig {
+		const config = vscode.workspace.getConfiguration('claudeCodeChat');
+		return {
+			model: this._selectedModel,
+			yoloMode: this._context.workspaceState.get('claude.yoloMode', false),
+			mcpConfigPath: config.get<string>('mcpConfigPath'),
+			wslEnabled: config.get<boolean>('wsl.enabled', false),
+			wslDistro: config.get<string>('wsl.distro', 'Ubuntu'),
+			planMode: false,
+			thinkingMode: true
+		};
+	}
+
+	/**
 	 * Dispose a specific panel and clean up its resources.
 	 */
 	private _disposePanel(panelId: string) {
@@ -311,6 +327,205 @@ class ClaudeChatProvider {
 		}
 
 		console.log(`Panel ${panelId} disposed. Remaining panels: ${this._panels.size}`);
+	}
+
+	/**
+	 * Check if the process config has changed in a way that requires restart.
+	 */
+	private _hasConfigChanged(oldConfig: ProcessConfig | undefined, newConfig: ProcessConfig): boolean {
+		if (!oldConfig) return true;
+		return oldConfig.model !== newConfig.model ||
+			oldConfig.yoloMode !== newConfig.yoloMode ||
+			oldConfig.mcpConfigPath !== newConfig.mcpConfigPath ||
+			oldConfig.wslEnabled !== newConfig.wslEnabled ||
+			oldConfig.wslDistro !== newConfig.wslDistro;
+	}
+
+	/**
+	 * Ensure a persistent process exists for the given panel, spawning if needed.
+	 * Returns the process info or undefined if spawn fails.
+	 */
+	private async _ensurePanelProcess(panelId: string): Promise<PanelProcessInfo | undefined> {
+		const existing = this._panelProcesses.get(panelId);
+		const currentConfig = this._buildProcessConfig();
+
+		// If process exists and config hasn't changed, reuse it
+		if (existing && existing.process && !existing.process.killed) {
+			if (!this._hasConfigChanged(existing.config, currentConfig)) {
+				return existing;
+			}
+			// Config changed - kill old process
+			await this._killPanelProcess(panelId);
+		}
+
+		// Spawn new process
+		return this._spawnPanelProcess(panelId, currentConfig);
+	}
+
+	/**
+	 * Spawn a new persistent process for a panel.
+	 */
+	private async _spawnPanelProcess(panelId: string, config: ProcessConfig): Promise<PanelProcessInfo | undefined> {
+		try {
+			const panelState = this._panels.get(panelId);
+			const abortController = new AbortController();
+
+			// Build command args
+			const args = ['--output-format', 'stream-json'];
+
+			if (config.model !== 'default') {
+				args.push('--model', config.model);
+			}
+
+			if (config.yoloMode) {
+				args.push('--dangerously-skip-permissions');
+			}
+
+			if (config.mcpConfigPath) {
+				args.push('--mcp-config', config.mcpConfigPath);
+			}
+
+			// Resume session if available
+			if (panelState?.sessionId) {
+				args.push('--resume', panelState.sessionId);
+			}
+
+			// Determine spawn command based on WSL config
+			let command: string;
+			let spawnArgs: string[];
+			const spawnOptions: cp.SpawnOptions = {
+				cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
+				env: { ...process.env },
+				stdio: ['pipe', 'pipe', 'pipe']
+			};
+
+			if (config.wslEnabled && process.platform === 'win32') {
+				command = 'wsl';
+				spawnArgs = ['-d', config.wslDistro, 'claude', ...args];
+			} else {
+				command = 'claude';
+				spawnArgs = args;
+			}
+
+			console.log(`[Panel ${panelId}] Spawning Claude process: ${command} ${spawnArgs.join(' ')}`);
+
+			const proc = cp.spawn(command, spawnArgs, spawnOptions);
+
+			const processInfo: PanelProcessInfo = {
+				process: proc,
+				config: config,
+				rawOutput: '',
+				abortController: abortController
+			};
+
+			this._panelProcesses.set(panelId, processInfo);
+
+			// Set up handlers
+			this._setupPanelProcessHandlers(panelId, proc, processInfo);
+
+			return processInfo;
+		} catch (error) {
+			console.error(`[Panel ${panelId}] Failed to spawn process:`, error);
+			return undefined;
+		}
+	}
+
+	/**
+	 * Set up event handlers for a panel's process.
+	 */
+	private _setupPanelProcessHandlers(panelId: string, proc: cp.ChildProcess, processInfo: PanelProcessInfo): void {
+		proc.stdout?.on('data', (data: Buffer) => {
+			const chunk = data.toString();
+			processInfo.rawOutput += chunk;
+
+			// Parse JSON lines
+			const lines = processInfo.rawOutput.split('\n');
+			processInfo.rawOutput = lines.pop() || ''; // Keep incomplete line
+
+			for (const line of lines) {
+				if (line.trim()) {
+					try {
+						const jsonData = JSON.parse(line);
+						this._handlePanelProcessMessage(panelId, jsonData);
+					} catch (e) {
+						console.log(`[Panel ${panelId}] Non-JSON output:`, line);
+					}
+				}
+			}
+		});
+
+		proc.stderr?.on('data', (data: Buffer) => {
+			console.error(`[Panel ${panelId}] stderr:`, data.toString());
+		});
+
+		proc.on('close', (code) => {
+			console.log(`[Panel ${panelId}] Process exited with code ${code}`);
+			this._panelProcesses.delete(panelId);
+		});
+
+		proc.on('error', (error) => {
+			console.error(`[Panel ${panelId}] Process error:`, error);
+			this._panelProcesses.delete(panelId);
+		});
+	}
+
+	/**
+	 * Handle a message from a panel's process.
+	 */
+	private _handlePanelProcessMessage(panelId: string, jsonData: any): void {
+		const panelState = this._panels.get(panelId);
+		if (!panelState) return;
+
+		// Route message to the correct panel's webview
+		this._postMessageToPanel(panelId, jsonData);
+
+		// Update session ID if present
+		if (jsonData.session_id) {
+			panelState.sessionId = jsonData.session_id;
+			this._currentSessionId = jsonData.session_id;
+		}
+
+		// Handle result type - message complete
+		if (jsonData.type === 'result') {
+			panelState.isProcessing = false;
+			this._isProcessing = false;
+		}
+	}
+
+	/**
+	 * Post a message to a specific panel's webview.
+	 */
+	private _postMessageToPanel(panelId: string, message: any): void {
+		const panelState = this._panels.get(panelId);
+		if (panelState?.panel.webview) {
+			panelState.panel.webview.postMessage(message);
+		} else if (this._webview) {
+			// Fallback to sidebar
+			this._webview.postMessage(message);
+		}
+	}
+
+	/**
+	 * Kill a panel's persistent process.
+	 */
+	private async _killPanelProcess(panelId: string): Promise<void> {
+		const processInfo = this._panelProcesses.get(panelId);
+		if (processInfo?.process && !processInfo.process.killed) {
+			console.log(`[Panel ${panelId}] Killing process`);
+			processInfo.abortController.abort();
+			processInfo.process.kill('SIGTERM');
+		}
+		this._panelProcesses.delete(panelId);
+	}
+
+	/**
+	 * Kill all persistent processes (for dispose).
+	 */
+	private async _killAllPanelProcesses(): Promise<void> {
+		const killPromises = Array.from(this._panelProcesses.keys()).map(
+			panelId => this._killPanelProcess(panelId)
+		);
+		await Promise.all(killPromises);
 	}
 
 	public show(column: vscode.ViewColumn | vscode.Uri = vscode.ViewColumn.Two) {
@@ -3648,9 +3863,27 @@ class ClaudeChatProvider {
 	}
 
 	public dispose() {
+		// Kill all persistent processes
+		this._killAllPanelProcesses();
+
+		// Dispose main panel
 		if (this._panel) {
 			this._panel.dispose();
 			this._panel = undefined;
+		}
+
+		// Dispose all multi-window panels
+		for (const [panelId, panelState] of this._panels) {
+			panelState.panel.dispose();
+		}
+		this._panels.clear();
+		this._panelProcesses.clear();
+		this._activePanelId = undefined;
+
+		// Clear restart timer
+		if (this._restartDebounceTimer) {
+			clearTimeout(this._restartDebounceTimer);
+			this._restartDebounceTimer = undefined;
 		}
 
 		// Dispose message handler if it exists
