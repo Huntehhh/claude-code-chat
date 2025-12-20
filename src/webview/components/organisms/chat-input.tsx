@@ -7,6 +7,7 @@ import { Button } from '../ui/button';
 import { Icon } from '../ui/icon';
 import { ModeToggle } from '../molecules/mode-toggle';
 import { StatusIndicator } from '../ui/status-indicator';
+import { TokenDisplay } from '../ui/token-display';
 
 export interface ChatInputProps extends React.HTMLAttributes<HTMLDivElement> {
   value?: string;
@@ -22,6 +23,12 @@ export interface ChatInputProps extends React.HTMLAttributes<HTMLDivElement> {
   status?: 'ready' | 'processing' | 'error';
   contextUsage?: number;
   placeholder?: string;
+  /** Total input tokens for display */
+  inputTokens?: number;
+  /** Total output tokens for display */
+  outputTokens?: number;
+  /** Total cost in USD for display */
+  totalCost?: number;
 }
 
 const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
@@ -40,6 +47,9 @@ const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
     status = 'ready',
     contextUsage,
     placeholder = 'Describe your code task...',
+    inputTokens,
+    outputTokens,
+    totalCost,
     ...props
   }, ref) => {
     const textareaRef = React.useRef<HTMLTextAreaElement>(null);
@@ -153,8 +163,16 @@ const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
               />
             </div>
 
-            {/* Right side: Context usage + Send button */}
+            {/* Right side: Token display + Context usage + Send button */}
             <div className="flex items-center gap-3">
+              {inputTokens !== undefined && outputTokens !== undefined && (
+                <TokenDisplay
+                  inputTokens={inputTokens}
+                  outputTokens={outputTokens}
+                  totalCost={totalCost}
+                  isStreaming={isProcessing}
+                />
+              )}
               {contextUsage !== undefined && (
                 <span className="text-[11px] font-mono text-[#52525b] tracking-wider">
                   {contextUsage}%

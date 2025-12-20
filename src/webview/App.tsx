@@ -61,6 +61,9 @@ export default function App() {
     todos,
     conversations,
     activeConversationId,
+    totalTokensInput,
+    totalTokensOutput,
+    totalCost,
   } = useChatStore();
 
   // Settings state
@@ -397,6 +400,9 @@ export default function App() {
         onPlanModeChange={togglePlanMode}
         onThinkModeChange={toggleThinkingMode}
         placeholder="Describe your code task..."
+        inputTokens={totalTokensInput}
+        outputTokens={totalTokensOutput}
+        totalCost={totalCost}
       />
 
       {/* Thinking Overlay (fullscreen) */}
