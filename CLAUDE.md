@@ -52,11 +52,7 @@ cd .worktrees/<feature>
 ```bash
 git fetch origin && git rebase origin/main
 ```
-4. If uncommitted changes exist, commit them BEFORE making any edits:
-```bash
-git add . && git commit -m "chore: save uncommitted changes before edits"
-```
-This protects user's work — if Claude breaks something, `git reset HEAD~1` undoes only Claude's changes.
+4. If uncommitted changes exist, ask user to commit them first, or commit only YOUR files before making edits.
 
 **Helper commands:** `wt add <name>` | `wt rm <name>` | `wt list`
 
@@ -102,6 +98,17 @@ git merge <feature-branch>
 - If conflict is obvious (whitespace, import order): resolve automatically
 - If ANY uncertainty: stop and ask user before resolving
 - Show conflict context and propose resolution options
+
+### Commit Discipline
+
+**ONLY commit files YOU edited.** Never use `git add .` — it stages files you didn't touch.
+```bash
+# WRONG - stages everything including files you didn't edit
+git add .
+
+# RIGHT - only stage your specific files
+git add src/extension.ts src/ui.ts
+```
 
 ### Commit Format
 
