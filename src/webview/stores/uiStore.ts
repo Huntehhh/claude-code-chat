@@ -23,11 +23,18 @@ export interface ThinkingState {
   startTime: number | null;
 }
 
+export interface LightboxState {
+  isOpen: boolean;
+  imageSrc: string;
+  imageAlt: string;
+}
+
 interface UIState {
   activeModal: ModalType | null;
   thinking: ThinkingState;
   isThinkingOverlayVisible: boolean;
   toast: ToastState;
+  lightbox: LightboxState;
   todoCollapsed: boolean;
   fileSearchTerm: string;
   selectedFileIndex: number;
@@ -69,6 +76,8 @@ interface UIState {
   hideContextMenu: () => void;
   showToast: (message: string, duration?: number) => void;
   hideToast: () => void;
+  openLightbox: (src: string, alt?: string) => void;
+  closeLightbox: () => void;
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
@@ -77,6 +86,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   isThinkingOverlayVisible: false,
   todoCollapsed: false,
   toast: { message: '', visible: false, timeoutId: null },
+  lightbox: { isOpen: false, imageSrc: '', imageAlt: '' },
   fileSearchTerm: '',
   selectedFileIndex: 0,
   slashSearchTerm: '',
@@ -130,6 +140,8 @@ export const useUIStore = create<UIState>((set, get) => ({
     if (state.toast.timeoutId) clearTimeout(state.toast.timeoutId);
     set({ toast: { message: '', visible: false, timeoutId: null } });
   },
+  openLightbox: (src, alt = 'Image preview') => set({ lightbox: { isOpen: true, imageSrc: src, imageAlt: alt } }),
+  closeLightbox: () => set({ lightbox: { isOpen: false, imageSrc: '', imageAlt: '' } }),
 }));
 
 export const useIsModalOpen = (modal: ModalType) => useUIStore((s) => s.activeModal === modal);
@@ -146,3 +158,4 @@ export const useIsSlashCommandsOpen = () => useUIStore((s) => s.activeModal === 
 export const useIsModelSelectorOpen = () => useUIStore((s) => s.activeModal === 'modelSelector');
 export const useIsInstallModalOpen = () => useUIStore((s) => s.activeModal === 'install');
 export const useIsThinkingIntensityOpen = () => useUIStore((s) => s.activeModal === 'thinkingIntensity');
+export const useLightbox = () => useUIStore((s) => s.lightbox);

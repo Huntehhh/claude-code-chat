@@ -19,10 +19,12 @@ export interface DiffViewProps extends React.HTMLAttributes<HTMLDivElement> {
   deletions?: number;
   defaultOpen?: boolean;
   onOpenDiff?: () => void;
+  /** Callback when the filename is clicked */
+  onOpenFile?: (filePath: string) => void;
 }
 
 const DiffView = React.forwardRef<HTMLDivElement, DiffViewProps>(
-  ({ className, filename, lines, additions = 0, deletions = 0, defaultOpen = true, onOpenDiff, ...props }, ref) => {
+  ({ className, filename, lines, additions = 0, deletions = 0, defaultOpen = true, onOpenDiff, onOpenFile, ...props }, ref) => {
     return (
       <div
         ref={ref}
@@ -38,9 +40,16 @@ const DiffView = React.forwardRef<HTMLDivElement, DiffViewProps>(
             <div className="flex items-center gap-2.5 overflow-hidden">
               <Icon name="edit" size="sm" className="text-[#8b8b94]" />
               <span className="text-sm font-semibold text-[#8b8b94]">Edit</span>
-              <span className="font-mono text-xs text-[#FFA344] truncate hover:underline cursor-pointer">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenFile?.(filename);
+                }}
+                className="font-mono text-xs text-[#FFA344] truncate hover:underline cursor-pointer bg-transparent border-none p-0"
+              >
                 {filename}
-              </span>
+              </button>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <span className="text-[10px] font-medium text-[#52525b] uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">
@@ -58,9 +67,13 @@ const DiffView = React.forwardRef<HTMLDivElement, DiffViewProps>(
             {/* File path bar */}
             <div className="bg-[#09090b] px-3 py-2 border-b border-[#222225] text-[#52525b] flex items-center gap-2 select-none">
               <Icon name="description" size="xs" />
-              <span className="hover:text-[#FFA344] transition-colors cursor-pointer">
+              <button
+                type="button"
+                onClick={() => onOpenFile?.(filename)}
+                className="hover:text-[#FFA344] transition-colors cursor-pointer bg-transparent border-none p-0"
+              >
                 {filename}
-              </span>
+              </button>
             </div>
 
             {/* Diff lines */}
@@ -71,8 +84,8 @@ const DiffView = React.forwardRef<HTMLDivElement, DiffViewProps>(
                     key={index}
                     className={cn(
                       'flex',
-                      line.type === 'add' && 'bg-[rgba(255,163,68,0.1)] text-[#FFA344]',
-                      line.type === 'remove' && 'bg-[rgba(255,115,105,0.1)] text-[#FF7369]',
+                      line.type === 'add' && 'bg-[rgba(74,222,128,0.1)] text-[#4ade80]',
+                      line.type === 'remove' && 'bg-[rgba(248,113,113,0.1)] text-[#f87171]',
                       line.type === 'context' && 'text-[#52525b] opacity-60'
                     )}
                   >
@@ -80,8 +93,8 @@ const DiffView = React.forwardRef<HTMLDivElement, DiffViewProps>(
                     <div
                       className={cn(
                         'w-10 text-right pr-3 select-none border-r',
-                        line.type === 'add' && 'border-[#FFA344]/20 bg-[#171717] text-[#52525b]',
-                        line.type === 'remove' && 'border-[#FF7369]/20 bg-[#171717] text-[#52525b]',
+                        line.type === 'add' && 'border-[#4ade80]/20 bg-[#171717] text-[#52525b]',
+                        line.type === 'remove' && 'border-[#f87171]/20 bg-[#171717] text-[#52525b]',
                         line.type === 'context' && 'border-[#222225] bg-[#171717]/30'
                       )}
                     >
@@ -109,10 +122,10 @@ const DiffView = React.forwardRef<HTMLDivElement, DiffViewProps>(
               <div className="px-3 py-2 border-t border-[#222225] bg-[#09090b] flex items-center justify-between">
                 <div className="flex items-center gap-3 text-[10px]">
                   {additions > 0 && (
-                    <span className="text-[#FFA344]">+{additions}</span>
+                    <span className="text-[#4ade80]">+{additions}</span>
                   )}
                   {deletions > 0 && (
-                    <span className="text-[#FF7369]">-{deletions}</span>
+                    <span className="text-[#f87171]">-{deletions}</span>
                   )}
                 </div>
                 {onOpenDiff && (

@@ -7,6 +7,8 @@ import { MessageBlock, type MessageType, type ToolResult } from '../components/o
 import { ToolUseBlock } from '../components/molecules/tool-use-block';
 import { PermissionCard } from '../components/molecules/permission-card';
 import { WelcomeState } from '../components/molecules/welcome-state';
+import { TodoList, type TodoItem as TodoListItem, type TodoStatus } from '../components/molecules/todo-list';
+import { Badge } from '../components/ui/badge';
 import { useVSCodeSender } from '../hooks/useVSCodeMessaging';
 import { cn } from '../lib/utils';
 
@@ -109,7 +111,7 @@ const MessageList = React.forwardRef<HTMLDivElement, MessageListProps>(
     const containerRef = React.useRef<HTMLDivElement>(null);
     const { messages, pendingPermissions, scrollPosition, setScrollPosition } = useChatStore();
     const { compactToolOutput } = useSettingsStore();
-    const { respondToPermission, saveScrollPosition } = useVSCodeSender();
+    const { respondToPermission, saveScrollPosition, openFile } = useVSCodeSender();
     const isRestoringScroll = React.useRef(false);
     const lastMessageCount = React.useRef(messages.length);
 
@@ -249,6 +251,40 @@ const MessageList = React.forwardRef<HTMLDivElement, MessageListProps>(
 
           // Tool use/result messages - use ToolUseBlock
           if (msg.type === 'tool-use' || msg.type === 'tool-result') {
+            // Special handling for TodoWrite - render as a proper todo list
+            if (msg.toolName === 'TodoWrite' && msg.toolInput) {
+              const rawTodos = (msg.toolInput as Record<string, unknown>).todos;
+              if (Array.isArray(rawTodos) && rawTodos.length > 0) {
+                const todoItems: TodoListItem[] = rawTodos.map((t, i) => ({
+                  id: `todo-${idx}-${i}`,
+                  content: (t as { content?: string; activeForm?: string }).activeForm ||
+                           (t as { content?: string }).content || String(t),
+                  status: ((t as { status?: string }).status || 'pending') as TodoStatus,
+                }));
+                const pendingCount = todoItems.filter((t) => t.status !== 'completed').length;
+                return (
+                  <div key={`todowrite-${idx}-${msg.timestamp}`} className="flex gap-3 animate-fade-in ml-2">
+                    <div className="flex flex-col gap-1 pt-0.5 w-full min-w-0">
+                      {/* Header label with count */}
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[#FFA344] select-none">•</span>
+                        <span className="material-symbols-outlined text-[#8b8b94] !text-[16px]">assignment</span>
+                        <span className="text-[14px] font-medium text-[#fafafa]">Update Todos</span>
+                        <Badge variant="chat" className="min-w-[20px] text-center">
+                          {pendingCount}
+                        </Badge>
+                      </div>
+                      <TodoList
+                        items={todoItems}
+                        defaultOpen={true}
+                        className="ml-6"
+                      />
+                    </div>
+                  </div>
+                );
+              }
+            }
+
             return (
               <ToolUseBlock
                 key={`tool-${idx}-${msg.timestamp}`}
@@ -259,6 +295,7 @@ const MessageList = React.forwardRef<HTMLDivElement, MessageListProps>(
                 filePath={msg.filePath}
                 oldContent={msg.oldContent}
                 newContent={msg.newContent}
+                onOpenFile={openFile}
               />
             );
           }

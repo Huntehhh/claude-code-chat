@@ -7,6 +7,7 @@ import { FileMention } from '../ui/file-mention';
 import { CodeInline } from '../ui/code-inline';
 import { CollapsibleCard } from '../molecules/collapsible-card';
 import { MarkdownRenderer } from '../../lib/markdown';
+import { useUIStore } from '../../stores/uiStore';
 
 export type MessageType = 'user' | 'assistant' | 'thinking' | 'tool' | 'error';
 
@@ -40,6 +41,8 @@ const MessageBlock = React.forwardRef<HTMLDivElement, MessageBlockProps>(
     thinkingContent,
     ...props
   }, ref) => {
+    const { openLightbox } = useUIStore();
+
     // User message
     if (type === 'user') {
       return (
@@ -57,11 +60,17 @@ const MessageBlock = React.forwardRef<HTMLDivElement, MessageBlockProps>(
           </div>
           {imageUrl && (
             <div className="relative w-fit mt-1">
-              <img
-                src={imageUrl}
-                alt="User uploaded"
-                className="rounded border border-[#222225] hover:border-[#FFA344]/50 transition-colors cursor-pointer shadow-sm max-w-full"
-              />
+              <button
+                type="button"
+                onClick={() => openLightbox(imageUrl, 'User uploaded image')}
+                className="block rounded border border-[#222225] hover:border-[#FFA344]/50 transition-colors cursor-pointer shadow-sm overflow-hidden"
+              >
+                <img
+                  src={imageUrl}
+                  alt="User uploaded"
+                  className="max-w-[200px] max-h-[150px] object-cover"
+                />
+              </button>
             </div>
           )}
         </div>

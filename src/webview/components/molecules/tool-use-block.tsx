@@ -36,6 +36,33 @@ export interface ToolUseBlockProps extends React.HTMLAttributes<HTMLDivElement> 
   newContent?: string;
   /** Number of lines to show in preview (default: 2 for IN, 1 for OUT) */
   previewLines?: { in: number; out: number };
+  /** Callback when a file path is clicked */
+  onOpenFile?: (filePath: string) => void;
+}
+
+/**
+ * Get description label for tool (used as subtitle in header)
+ */
+function getToolDescription(toolName: string, input: Record<string, unknown> | string | undefined): string | undefined {
+  if (!input || typeof input === 'string') return undefined;
+
+  const lowerName = toolName.toLowerCase();
+
+  // Bash shows description as header label
+  if (lowerName === 'bash' && input.description) {
+    return input.description as string;
+  }
+
+  return undefined;
+}
+
+/**
+ * Check if this tool should hide the IN section
+ */
+function shouldHideInSection(toolName: string): boolean {
+  const lowerName = toolName.toLowerCase();
+  // Read tool shows file path in header only - no IN section needed
+  return lowerName === 'read';
 }
 
 /**
@@ -49,14 +76,20 @@ function formatInput(toolName: string, input: Record<string, unknown> | string |
   const lowerName = toolName.toLowerCase();
 
   if (lowerName === 'read') {
-    return input.file_path as string || input.path as string || JSON.stringify(input);
+    // Read tool - file path is shown in header, no IN content needed
+    return '';
   }
-  if (lowerName === 'write' || lowerName === 'edit') {
-    const filePath = input.file_path as string || input.path as string || '';
-    return filePath;
+  if (lowerName === 'write') {
+    // Write tool - show content being written (not the file path)
+    return input.content as string || '';
+  }
+  if (lowerName === 'edit') {
+    // Edit tool - handled separately with diff view
+    return '';
   }
   if (lowerName === 'bash') {
-    return input.command as string || input.description as string || JSON.stringify(input);
+    // Show command as the main input, description is shown as header label
+    return input.command as string || JSON.stringify(input);
   }
   if (lowerName === 'grep') {
     const pattern = input.pattern as string || '';
@@ -69,6 +102,20 @@ function formatInput(toolName: string, input: Record<string, unknown> | string |
 
   // MCP or other tools - show JSON
   return JSON.stringify(input, null, 2);
+}
+
+/**
+ * Get file path from tool input for header display
+ */
+function getFilePath(toolName: string, input: Record<string, unknown> | string | undefined, explicitFilePath?: string): string | undefined {
+  if (explicitFilePath) return explicitFilePath;
+  if (!input || typeof input === 'string') return undefined;
+
+  const lowerName = toolName.toLowerCase();
+  if (lowerName === 'read' || lowerName === 'write' || lowerName === 'edit') {
+    return input.file_path as string || input.path as string || undefined;
+  }
+  return undefined;
 }
 
 /**
@@ -152,6 +199,7 @@ const ToolUseBlock = React.forwardRef<HTMLDivElement, ToolUseBlockProps>(
     oldContent,
     newContent,
     previewLines = { in: 2, out: 1 },
+    onOpenFile,
     ...props
   }, ref) => {
     const [inExpanded, setInExpanded] = React.useState(false);
@@ -161,18 +209,43 @@ const ToolUseBlock = React.forwardRef<HTMLDivElement, ToolUseBlockProps>(
     const icon = toolIcons[toolName] || toolIcons.default;
 
     // Check if this is an Edit tool with diff data
-    const isEditWithDiff = (toolName.toLowerCase() === 'edit' || toolName.toLowerCase() === 'multiedit')
-      && oldContent !== undefined && newContent !== undefined && oldContent !== newContent;
+    const isEditTool = toolName.toLowerCase() === 'edit' || toolName.toLowerCase() === 'multiedit';
+    const hasFullDiff = oldContent !== undefined && newContent !== undefined && oldContent !== newContent;
 
-    // Compute diff if needed
+    // Extract old_string/new_string from rawInput for inline diff display
+    const editOldString = isEditTool && input && typeof input === 'object'
+      ? (input as Record<string, unknown>).old_string as string | undefined
+      : undefined;
+    const editNewString = isEditTool && input && typeof input === 'object'
+      ? (input as Record<string, unknown>).new_string as string | undefined
+      : undefined;
+    const hasInlineDiff = isEditTool && editOldString !== undefined && editNewString !== undefined;
+
+    const isEditWithDiff = hasFullDiff;
+
+    // Compute diff if needed - use full file diff or inline strings
     const diffData = React.useMemo(() => {
-      if (!isEditWithDiff) return null;
-      return computeDiffLines(oldContent!, newContent!);
-    }, [isEditWithDiff, oldContent, newContent]);
+      if (hasFullDiff) {
+        return computeDiffLines(oldContent!, newContent!);
+      }
+      if (hasInlineDiff && editOldString && editNewString) {
+        return computeDiffLines(editOldString, editNewString);
+      }
+      return null;
+    }, [hasFullDiff, hasInlineDiff, oldContent, newContent, editOldString, editNewString]);
 
     // Format input for display
     const formattedInput = formatInput(toolName, input);
     const { text: inPreview, truncated: inTruncated } = truncateLines(formattedInput, previewLines.in);
+
+    // Get description label for header (e.g., Bash descriptions)
+    const descriptionLabel = getToolDescription(toolName, input);
+
+    // Get file path for header display (Read/Write/Edit tools)
+    const headerFilePath = getFilePath(toolName, input, filePath);
+
+    // Check if we should hide IN section (e.g., Read tool)
+    const hideInSection = shouldHideInSection(toolName);
 
     // Format output
     const outputText = output || '';
@@ -181,17 +254,18 @@ const ToolUseBlock = React.forwardRef<HTMLDivElement, ToolUseBlockProps>(
     // Check if this is an MCP tool
     const isMcp = toolName.startsWith('mcp_') || toolName.startsWith('mcp__');
 
-    // Render DiffView for Edit operations with diff data
-    if (isEditWithDiff && diffData) {
+    // Render DiffView for Edit operations with diff data (either full file or inline)
+    if ((isEditWithDiff || hasInlineDiff) && diffData) {
       return (
         <DiffView
           ref={ref}
           className={cn('animate-fade-in', className)}
-          filename={filePath || 'unknown'}
+          filename={headerFilePath || filePath || 'unknown'}
           lines={diffData.lines}
           additions={diffData.additions}
           deletions={diffData.deletions}
-          defaultOpen={false}
+          defaultOpen={true}
+          onOpenFile={onOpenFile}
           {...props}
         />
       );
@@ -203,27 +277,33 @@ const ToolUseBlock = React.forwardRef<HTMLDivElement, ToolUseBlockProps>(
         className={cn('flex gap-3 animate-fade-in', className)}
         {...props}
       >
-        {/* Accent bar */}
-        <div className="shrink-0 w-[2px] self-stretch bg-[#FFA344] rounded-full my-1 ml-0.5" />
-
         {/* Content */}
-        <div className="flex flex-col gap-1 pt-0.5 w-full min-w-0">
+        <div className="flex flex-col gap-1 pt-0.5 w-full min-w-0 ml-2">
           {/* Tool name header */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[#FFA344] select-none">•</span>
             <Icon name={isMcp ? 'memory' : icon} className="text-[#8b8b94] !text-[16px]" />
             <span className="text-[14px] font-medium text-[#fafafa]">
               {toolName}
             </span>
-            {filePath && (
-              <span className="text-[12px] text-[#8b8b94] truncate">
-                {filePath}
+            {descriptionLabel && (
+              <span className="text-[13px] text-[#e4e4e7]">
+                {descriptionLabel}
               </span>
+            )}
+            {headerFilePath && !descriptionLabel && (
+              <button
+                type="button"
+                onClick={() => onOpenFile?.(headerFilePath)}
+                className="text-[12px] text-[#FFA344] truncate hover:underline cursor-pointer bg-transparent border-none p-0"
+              >
+                {headerFilePath}
+              </button>
             )}
           </div>
 
-          {/* IN section */}
-          {formattedInput && (
+          {/* IN section - hidden for Read tool */}
+          {formattedInput && !hideInSection && (
             <div className="ml-6 mt-1">
               <button
                 type="button"

@@ -184,6 +184,49 @@ interface MarkdownRendererProps {
 }
 
 /**
+ * Strip ANSI escape codes from text
+ */
+function stripAnsi(text: string): string {
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '');
+}
+
+/**
+ * Pre-process content to handle special Claude CLI tags
+ */
+function preprocessContent(content: string): string {
+  let processed = content;
+
+  // Strip ANSI escape codes
+  processed = stripAnsi(processed);
+
+  // Parse <command-name>/xxx</command-name> -> render as command pill
+  processed = processed.replace(
+    /<command-name>([^<]+)<\/command-name>/g,
+    '\n\n`$1`\n\n'
+  );
+
+  // Remove <command-message> and <command-args> tags (they duplicate info)
+  processed = processed.replace(/<command-message>[^<]*<\/command-message>/g, '');
+  processed = processed.replace(/<command-args>[^<]*<\/command-args>/g, '');
+
+  // Parse <local-command-stdout>...</local-command-stdout> -> render as muted text
+  processed = processed.replace(
+    /<local-command-stdout>([^<]*)<\/local-command-stdout>/g,
+    (_, stdout) => {
+      const cleanStdout = stripAnsi(stdout).trim();
+      if (!cleanStdout) return '';
+      return `\n\n*${cleanStdout}*\n\n`;
+    }
+  );
+
+  // Clean up excessive newlines
+  processed = processed.replace(/\n{3,}/g, '\n\n');
+
+  return processed.trim();
+}
+
+/**
  * MarkdownRenderer component - renders markdown with custom components
  *
  * Features:
@@ -193,6 +236,8 @@ interface MarkdownRendererProps {
  * - All styling aligned with Stitch design spec
  */
 export function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
+  const processedContent = preprocessContent(content);
+
   return (
     <div className={`markdown-content ${className}`}>
       <Markdown
@@ -230,7 +275,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
           forceBlock: true,
         }}
       >
-        {content}
+        {processedContent}
       </Markdown>
     </div>
   );

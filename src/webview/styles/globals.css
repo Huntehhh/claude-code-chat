@@ -108,6 +108,20 @@
   padding-left: 1.5em;
 }
 
+.markdown-content ol {
+  list-style-type: decimal;
+  padding-left: 2em;
+}
+
+.markdown-content ol li::marker {
+  color: #8b8b94;
+  font-weight: 500;
+}
+
+.markdown-content ul {
+  list-style-type: disc;
+}
+
 .markdown-content li {
   margin-bottom: 0.25em;
 }
@@ -159,15 +173,15 @@
   text-decoration: underline;
 }
 
-/* Inline code: #1c1c1f bg, #2d2d30 border */
+/* Inline code: amber-tinted background and border */
 .inline-code {
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
   font-size: 0.875em;
   padding: 0.125em 0.375em;
-  background-color: #1c1c1f;
-  border: 1px solid #2d2d30;
-  border-radius: 0; /* Sharp corners per Stitch spec */
-  color: #fafafa;
+  background-color: rgba(255, 163, 68, 0.1);
+  border: 1px solid rgba(255, 163, 68, 0.25);
+  border-radius: 3px;
+  color: #FFA344;
 }
 
 /* File reference pills (amber) */
@@ -184,11 +198,11 @@
   font-weight: 500;
 }
 
-/* Code block container: dark #0f0f0f, sharp corners */
+/* Code block container: dark #0f0f0f, sharp corners, amber accent */
 .code-block-container {
   margin: 1em 0;
   background-color: #0f0f0f;
-  border: 1px solid #222225;
+  border: 1px solid rgba(255, 163, 68, 0.2);
   border-radius: 0; /* Sharp corners per Stitch spec */
   overflow: hidden;
 }
@@ -199,16 +213,17 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background-color: #0f0f0f;
-  border-bottom: 1px solid #222225;
+  background-color: rgba(255, 163, 68, 0.05);
+  border-bottom: 1px solid rgba(255, 163, 68, 0.15);
 }
 
 .code-block-lang {
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
   font-size: 11px;
-  color: #8b8b94;
+  color: #FFA344;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  font-weight: 500;
 }
 
 .code-block-copy {
@@ -230,7 +245,7 @@
 }
 
 .code-block-copy:hover {
-  color: #fafafa;
+  color: #FFA344;
 }
 
 .code-block-copy:active {

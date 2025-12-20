@@ -20,6 +20,7 @@ import { McpManagerPanel, type McpServer as McpServerPanel } from './components/
 import { ModelSelectorModal, type ModelOption } from './components/organisms/model-selector-modal';
 import { SlashCommandsModal, type CliCommand, type Snippet } from './components/organisms/slash-commands-modal';
 import { InstallModal, type InstallState } from './components/molecules/install-modal';
+import { ImageLightbox } from './components/molecules/image-lightbox';
 import { Toast } from './components/atoms/toast';
 
 // =============================================================================
@@ -111,6 +112,8 @@ export default function App() {
     setHistorySearchTerm,
     slashSearchTerm,
     setSlashSearchTerm,
+    lightbox,
+    closeLightbox,
   } = useUIStore();
 
   // Local state
@@ -235,14 +238,17 @@ export default function App() {
   // History Panel Handlers
   // ==========================================================================
 
-  const handleSelectConversation = useCallback((historyConv: { id: string; source: 'chat' | 'cli' }) => {
+  const handleSelectConversation = useCallback((historyConv: { id: string; source: 'chat' | 'cli'; title?: string }) => {
     // Find the original conversation data from the store
     const original = conversations.find((c) => c.sessionId === historyConv.id);
     if (original) {
+      // Set the chat name from the conversation title
+      const title = original.firstUserMessage || original.name || 'Claude Code Chat';
+      setChatName(title);
       loadConversation(original.filename, original.source, original.cliPath);
     }
     closeModal();
-  }, [conversations, loadConversation, closeModal]);
+  }, [conversations, loadConversation, closeModal, setChatName]);
 
   const handleRestoreCheckpoint = useCallback((conversation: Conversation, checkpoint: { sha: string }) => {
     // TODO: Implement checkpoint restore
@@ -504,6 +510,14 @@ export default function App() {
           />
         </div>
       )}
+
+      {/* Image Lightbox */}
+      <ImageLightbox
+        src={lightbox.imageSrc}
+        alt={lightbox.imageAlt}
+        open={lightbox.isOpen}
+        onClose={closeLightbox}
+      />
     </div>
   );
 }
