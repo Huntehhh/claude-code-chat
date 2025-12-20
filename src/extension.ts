@@ -73,6 +73,47 @@ interface ConversationData {
 	filename: string;
 }
 
+interface ProcessConfig {
+	model: string;
+	yoloMode: boolean;
+	mcpConfigPath: string | undefined;
+	wslEnabled: boolean;
+	wslDistro: string;
+	planMode: boolean;
+	thinkingMode: boolean;
+}
+
+// Multi-window support: per-panel state
+interface PanelState {
+	panel: vscode.WebviewPanel;
+	sessionId: string | undefined;
+	chatName: string;
+	conversation: Array<{ timestamp: string, messageType: string, data: any }>;
+	conversationStartTime: string | undefined;
+	totalCost: number;
+	totalTokensInput: number;
+	totalTokensOutput: number;
+	requestCount: number;
+	draftMessage: string;
+	scrollPosition: number;
+	isProcessing: boolean;
+	pendingPermissionRequests: Map<string, {
+		requestId: string;
+		toolName: string;
+		input: Record<string, unknown>;
+		suggestions?: any[];
+		toolUseId: string;
+	}>;
+}
+
+// Multi-window support: per-panel process info
+interface PanelProcessInfo {
+	process: cp.ChildProcess;
+	config: ProcessConfig;
+	rawOutput: string;
+	abortController: AbortController;
+}
+
 class ClaudeChatWebviewProvider implements vscode.WebviewViewProvider {
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
@@ -157,6 +198,21 @@ class ClaudeChatProvider {
 	private _selectedModel: string = 'default'; // Default model
 	private _isProcessing: boolean | undefined;
 	private _draftMessage: string = '';
+	private _scrollPosition: number = 0;
+	private _chatName: string = 'Claude Code Chat';
+
+	// Multi-window support: track all panels and their processes
+	private _panels: Map<string, PanelState> = new Map();
+	private _panelProcesses: Map<string, PanelProcessInfo> = new Map();
+	private _activePanelId: string | undefined;
+	private _panelCounter: number = 0;
+
+	// Persistent process mode state
+	private _persistentProcess: cp.ChildProcess | undefined;
+	private _processConfig: ProcessConfig | undefined;
+	private _restartPending: boolean = false;
+	private _restartDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+	private _persistentProcessRawOutput: string = '';
 
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
@@ -188,6 +244,75 @@ class ClaudeChatProvider {
 		this._currentSessionId = latestConversation?.sessionId;
 	}
 
+	/**
+	 * Generate a unique panel ID for multi-window support.
+	 */
+	private _generatePanelId(): string {
+		this._panelCounter++;
+		return `panel-${Date.now()}-${this._panelCounter}`;
+	}
+
+	/**
+	 * Create initial state for a new panel.
+	 */
+	private _createPanelState(panel: vscode.WebviewPanel): PanelState {
+		return {
+			panel,
+			sessionId: undefined,
+			chatName: 'Claude Code Chat',
+			conversation: [],
+			conversationStartTime: undefined,
+			totalCost: 0,
+			totalTokensInput: 0,
+			totalTokensOutput: 0,
+			requestCount: 0,
+			draftMessage: '',
+			scrollPosition: 0,
+			isProcessing: false,
+			pendingPermissionRequests: new Map(),
+		};
+	}
+
+	/**
+	 * Dispose a specific panel and clean up its resources.
+	 */
+	private _disposePanel(panelId: string) {
+		console.log(`Disposing panel: ${panelId}`);
+
+		// Clean up process for this panel
+		const processInfo = this._panelProcesses.get(panelId);
+		if (processInfo) {
+			try {
+				processInfo.abortController.abort();
+				if (!processInfo.process.killed) {
+					processInfo.process.kill('SIGTERM');
+				}
+			} catch (e) {
+				console.error(`Error killing process for panel ${panelId}:`, e);
+			}
+			this._panelProcesses.delete(panelId);
+		}
+
+		// Remove panel state
+		this._panels.delete(panelId);
+
+		// If this was the active panel, clear the active panel ID
+		if (this._activePanelId === panelId) {
+			this._activePanelId = undefined;
+			const remainingPanels = Array.from(this._panels.keys());
+			if (remainingPanels.length > 0) {
+				this._activePanelId = remainingPanels[0];
+			}
+		}
+
+		// Legacy compatibility: clear _panel if no panels left
+		if (this._panels.size === 0) {
+			this._panel = undefined;
+		}
+
+		console.log(`Panel ${panelId} disposed. Remaining panels: ${this._panels.size}`);
+	}
+
 	public show(column: vscode.ViewColumn | vscode.Uri = vscode.ViewColumn.Two) {
 		// Handle case where a URI is passed instead of ViewColumn
 		const actualColumn = column instanceof vscode.Uri ? vscode.ViewColumn.Two : column;
@@ -195,12 +320,10 @@ class ClaudeChatProvider {
 		// Close sidebar if it's open
 		this._closeSidebar();
 
-		if (this._panel) {
-			this._panel.reveal(actualColumn);
-			return;
-		}
+		// Generate unique panel ID for multi-window support
+		const panelId = this._generatePanelId();
 
-		this._panel = vscode.window.createWebviewPanel(
+		const panel = vscode.window.createWebviewPanel(
 			'claudeChat',
 			'Claude Code Chat',
 			actualColumn,
@@ -213,17 +336,35 @@ class ClaudeChatProvider {
 
 		// Set icon for the webview tab using URI path
 		const iconPath = vscode.Uri.joinPath(this._extensionUri, 'icon-bubble.png');
-		this._panel.iconPath = iconPath;
+		panel.iconPath = iconPath;
 
-		this._panel.webview.html = this._getHtmlForWebview();
+		// Create and store panel state
+		const panelState = this._createPanelState(panel);
+		this._panels.set(panelId, panelState);
+		this._activePanelId = panelId;
 
-		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+		// Legacy compatibility
+		this._panel = panel;
 
-		this._setupWebviewMessageHandler(this._panel.webview);
+		panel.webview.html = this._getHtmlForWebview();
+
+		// Set up panel-specific dispose handler
+		panel.onDidDispose(() => this._disposePanel(panelId), null, this._disposables);
+
+		// Track panel focus for active panel management
+		panel.onDidChangeViewState((e) => {
+			if (e.webviewPanel.active) {
+				this._activePanelId = panelId;
+			}
+		}, null, this._disposables);
+
+		// Set up message handler with panel context
+		this._setupPanelMessageHandler(panelId, panel.webview);
 		this._initializePermissions();
 
 		// Resume session from latest conversation
 		const latestConversation = this._getLatestConversation();
+		panelState.sessionId = latestConversation?.sessionId;
 		this._currentSessionId = latestConversation?.sessionId;
 
 		// Load latest conversation history if available
@@ -233,14 +374,51 @@ class ClaudeChatProvider {
 
 		// Send ready message immediately
 		setTimeout(() => {
-			// If no conversation to load, send ready immediately
 			if (!latestConversation) {
 				this._sendReadyMessage();
 			}
 		}, 100);
+
+		console.log(`Created new panel: ${panelId}. Total panels: ${this._panels.size}`);
 	}
 
-	private _postMessage(message: any) {
+	/**
+	 * Set up message handler for a specific panel.
+	 */
+	private _setupPanelMessageHandler(panelId: string, webview: vscode.Webview) {
+		webview.onDidReceiveMessage(
+			message => {
+				this._activePanelId = panelId;
+				this._handleWebviewMessage(message, panelId);
+			},
+			null,
+			this._disposables
+		);
+	}
+
+	/**
+	 * Post a message to a specific panel or the active panel/sidebar.
+	 */
+	private _postMessage(message: any, panelId?: string) {
+		// If panelId provided, post to that specific panel
+		if (panelId) {
+			const panelState = this._panels.get(panelId);
+			if (panelState?.panel?.webview) {
+				panelState.panel.webview.postMessage(message);
+				return;
+			}
+		}
+
+		// Fall back to active panel
+		if (this._activePanelId) {
+			const panelState = this._panels.get(this._activePanelId);
+			if (panelState?.panel?.webview) {
+				panelState.panel.webview.postMessage(message);
+				return;
+			}
+		}
+
+		// Legacy fallback
 		if (this._panel && this._panel.webview) {
 			this._panel.webview.postMessage(message);
 		} else if (this._webview) {
@@ -295,10 +473,10 @@ class ClaudeChatProvider {
 		}
 	}
 
-	private _handleWebviewMessage(message: any) {
+	private _handleWebviewMessage(message: any, panelId?: string) {
 		switch (message.type) {
 			case 'sendMessage':
-				this._sendMessageToClaude(message.text, message.planMode, message.thinkingMode);
+				this._sendMessageToClaude(message.text, message.planMode, message.thinkingMode, panelId);
 				return;
 			case 'newSession':
 				this._newSession();
