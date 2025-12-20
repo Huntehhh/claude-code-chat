@@ -69,10 +69,16 @@ This protects user's work — if Claude breaks something, `git reset HEAD~1` und
 - Commit only to current worktree's branch
 - After ~5 turns or completing a feature, ask: *"Ready to merge this to main?"*
 
-**Before merging:** Sync with latest main to reduce conflicts
+**Before merging:**
+1. Sync with latest main:
 ```bash
 git fetch origin && git rebase origin/main
 ```
+2. Check what files you're about to change:
+```bash
+git diff main --name-only
+```
+If you see files YOU didn't edit, **STOP** — another Claude may have changed them. Ask user before proceeding.
 
 **Merging to main:**
 ```bash
