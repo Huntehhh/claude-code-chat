@@ -3,6 +3,7 @@ import * as cp from 'child_process';
 import * as util from 'util';
 import * as path from 'path';
 import getHtml from './ui-react';
+import { MessageRouter, getMemoryMonitor } from './services';
 
 const exec = util.promisify(cp.exec);
 
@@ -138,11 +139,10 @@ class ClaudeChatWebviewProvider implements vscode.WebviewViewProvider {
 		// Handle visibility changes to reinitialize when sidebar reopens
 		webviewView.onDidChangeVisibility(() => {
 			if (webviewView.visible) {
-				// Close main panel when sidebar becomes visible
-				if (this._chatProvider._panel) {
-					console.log('Closing main panel because sidebar became visible');
-					this._chatProvider._panel.dispose();
-					this._chatProvider._panel = undefined;
+				// Close main panel(s) when sidebar becomes visible
+				if (this._chatProvider.hasPanels()) {
+					console.log('Closing main panel(s) because sidebar became visible');
+					this._chatProvider.closeAllPanels();
 				}
 				this._chatProvider.reinitializeWebview();
 			}
@@ -214,6 +214,9 @@ class ClaudeChatProvider {
 	private _restartDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 	private _persistentProcessRawOutput: string = '';
 
+	// Message routing for webview commands
+	private _messageRouter: MessageRouter = new MessageRouter();
+
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
 		private readonly _context: vscode.ExtensionContext
@@ -242,6 +245,61 @@ class ClaudeChatProvider {
 		// Resume session from latest conversation
 		const latestConversation = this._getLatestConversation();
 		this._currentSessionId = latestConversation?.sessionId;
+
+		// Initialize message routing and memory monitoring
+		this._initializeMessageRouter();
+		getMemoryMonitor().start();
+	}
+
+	/**
+	 * Initialize the message router with all webview message handlers.
+	 */
+	private _initializeMessageRouter(): void {
+		this._messageRouter.register('sendMessage', (msg: any, panelId?: string) => {
+			this._sendMessageToClaude(msg.text, msg.planMode, msg.thinkingMode, panelId);
+		});
+		this._messageRouter.register('newSession', () => this._newSession());
+		this._messageRouter.register('restoreCommit', (msg: any) => this._restoreToCommit(msg.commitSha));
+		this._messageRouter.register('getConversationList', () => this._sendConversationList());
+		this._messageRouter.register('getWorkspaceFiles', (msg: any) => this._sendWorkspaceFiles(msg.searchTerm));
+		this._messageRouter.register('selectImageFile', () => this._selectImageFile());
+		this._messageRouter.register('loadConversation', (msg: any) => {
+			console.log('[DEBUG] loadConversation message received:', JSON.stringify({ filename: msg.filename, source: msg.source, cliPath: msg.cliPath }));
+			this.loadConversation(msg.filename, msg.source, msg.cliPath);
+		});
+		this._messageRouter.register('stopRequest', () => this._stopClaudeProcess());
+		this._messageRouter.register('getSettings', () => this._sendCurrentSettings());
+		this._messageRouter.register('updateSettings', (msg: any) => this._updateSettings(msg.settings));
+		this._messageRouter.register('getClipboardText', () => this._getClipboardText());
+		this._messageRouter.register('selectModel', (msg: any) => this._setSelectedModel(msg.model));
+		this._messageRouter.register('openModelTerminal', () => this._openModelTerminal());
+		this._messageRouter.register('viewUsage', (msg: any) => this._openUsageTerminal(msg.usageType));
+		this._messageRouter.register('executeSlashCommand', (msg: any) => this._executeSlashCommand(msg.command));
+		this._messageRouter.register('dismissWSLAlert', () => this._dismissWSLAlert());
+		this._messageRouter.register('runInstallCommand', () => this._runInstallCommand());
+		this._messageRouter.register('openFile', (msg: any) => this._openFileInEditor(msg.filePath));
+		this._messageRouter.register('openDiff', (msg: any) => this._openDiffEditor(msg.oldContent, msg.newContent, msg.filePath));
+		this._messageRouter.register('openDiffByIndex', (msg: any) => this._openDiffByMessageIndex(msg.messageIndex));
+		this._messageRouter.register('createImageFile', (msg: any) => this._createImageFile(msg.imageData, msg.imageType));
+		this._messageRouter.register('permissionResponse', (msg: any) => this._handlePermissionResponse(msg.id, msg.approved, msg.alwaysAllow));
+		this._messageRouter.register('getPermissions', () => this._sendPermissions());
+		this._messageRouter.register('removePermission', (msg: any) => this._removePermission(msg.toolName, msg.command));
+		this._messageRouter.register('addPermission', (msg: any) => this._addPermission(msg.toolName, msg.command));
+		this._messageRouter.register('loadMCPServers', () => this._loadMCPServers());
+		this._messageRouter.register('saveMCPServer', (msg: any) => this._saveMCPServer(msg.name, msg.config));
+		this._messageRouter.register('deleteMCPServer', (msg: any) => this._deleteMCPServer(msg.name));
+		this._messageRouter.register('getCustomSnippets', () => this._sendCustomSnippets());
+		this._messageRouter.register('saveCustomSnippet', (msg: any) => this._saveCustomSnippet(msg.snippet));
+		this._messageRouter.register('deleteCustomSnippet', (msg: any) => this._deleteCustomSnippet(msg.snippetId));
+		this._messageRouter.register('enableYoloMode', () => this._enableYoloMode());
+		this._messageRouter.register('saveInputText', (msg: any) => this._saveInputText(msg.text));
+		this._messageRouter.register('getCheckpoints', () => this._sendCheckpoints());
+		this._messageRouter.register('getTodos', () => {
+			this._postMessage({
+				type: 'todosUpdated',
+				data: this._currentTodos
+			});
+		});
 	}
 
 	/**
@@ -327,6 +385,37 @@ class ClaudeChatProvider {
 		}
 
 		console.log(`Panel ${panelId} disposed. Remaining panels: ${this._panels.size}`);
+	}
+
+	/**
+	 * Check if any panels are open.
+	 */
+	public hasPanels(): boolean {
+		return this._panels.size > 0;
+	}
+
+	/**
+	 * Close all open panels.
+	 */
+	public closeAllPanels(): void {
+		for (const [panelId, panelState] of this._panels) {
+			panelState.panel.dispose();
+		}
+		this._panels.clear();
+		this._activePanelId = undefined;
+	}
+
+	/**
+	 * Get the active webview (from panels or sidebar).
+	 */
+	private _getActiveWebview(): vscode.Webview | undefined {
+		if (this._activePanelId) {
+			const panelState = this._panels.get(this._activePanelId);
+			if (panelState?.panel?.webview) {
+				return panelState.panel.webview;
+			}
+		}
+		return this._webview;
 	}
 
 	/**
@@ -624,20 +713,10 @@ class ClaudeChatProvider {
 			}
 		}
 
-		// Fall back to active panel
-		if (this._activePanelId) {
-			const panelState = this._panels.get(this._activePanelId);
-			if (panelState?.panel?.webview) {
-				panelState.panel.webview.postMessage(message);
-				return;
-			}
-		}
-
-		// Legacy fallback
-		if (this._panel && this._panel.webview) {
-			this._panel.webview.postMessage(message);
-		} else if (this._webview) {
-			this._webview.postMessage(message);
+		// Use active webview (panels or sidebar)
+		const webview = this._getActiveWebview();
+		if (webview) {
+			webview.postMessage(message);
 		}
 	}
 
@@ -689,117 +768,10 @@ class ClaudeChatProvider {
 	}
 
 	private _handleWebviewMessage(message: any, panelId?: string) {
-		switch (message.type) {
-			case 'sendMessage':
-				this._sendMessageToClaude(message.text, message.planMode, message.thinkingMode, panelId);
-				return;
-			case 'newSession':
-				this._newSession();
-				return;
-			case 'restoreCommit':
-				this._restoreToCommit(message.commitSha);
-				return;
-			case 'getConversationList':
-				this._sendConversationList();
-				return;
-			case 'getWorkspaceFiles':
-				this._sendWorkspaceFiles(message.searchTerm);
-				return;
-			case 'selectImageFile':
-				this._selectImageFile();
-				return;
-			case 'loadConversation':
-				console.log('[DEBUG] loadConversation message received:', JSON.stringify({ filename: message.filename, source: message.source, cliPath: message.cliPath }));
-				this.loadConversation(message.filename, message.source, message.cliPath);
-				return;
-			case 'stopRequest':
-				this._stopClaudeProcess();
-				return;
-			case 'getSettings':
-				this._sendCurrentSettings();
-				return;
-			case 'updateSettings':
-				this._updateSettings(message.settings);
-				return;
-			case 'getClipboardText':
-				this._getClipboardText();
-				return;
-			case 'selectModel':
-				this._setSelectedModel(message.model);
-				return;
-			case 'openModelTerminal':
-				this._openModelTerminal();
-				return;
-			case 'viewUsage':
-				this._openUsageTerminal(message.usageType);
-				return;
-			case 'executeSlashCommand':
-				this._executeSlashCommand(message.command);
-				return;
-			case 'dismissWSLAlert':
-				this._dismissWSLAlert();
-				return;
-			case 'runInstallCommand':
-				this._runInstallCommand();
-				return;
-			case 'openFile':
-				this._openFileInEditor(message.filePath);
-				return;
-			case 'openDiff':
-				this._openDiffEditor(message.oldContent, message.newContent, message.filePath);
-				return;
-			case 'openDiffByIndex':
-				this._openDiffByMessageIndex(message.messageIndex);
-				return;
-			case 'createImageFile':
-				this._createImageFile(message.imageData, message.imageType);
-				return;
-			case 'permissionResponse':
-				this._handlePermissionResponse(message.id, message.approved, message.alwaysAllow);
-				return;
-			case 'getPermissions':
-				this._sendPermissions();
-				return;
-			case 'removePermission':
-				this._removePermission(message.toolName, message.command);
-				return;
-			case 'addPermission':
-				this._addPermission(message.toolName, message.command);
-				return;
-			case 'loadMCPServers':
-				this._loadMCPServers();
-				return;
-			case 'saveMCPServer':
-				this._saveMCPServer(message.name, message.config);
-				return;
-			case 'deleteMCPServer':
-				this._deleteMCPServer(message.name);
-				return;
-			case 'getCustomSnippets':
-				this._sendCustomSnippets();
-				return;
-			case 'saveCustomSnippet':
-				this._saveCustomSnippet(message.snippet);
-				return;
-			case 'deleteCustomSnippet':
-				this._deleteCustomSnippet(message.snippetId);
-				return;
-			case 'enableYoloMode':
-				this._enableYoloMode();
-				return;
-			case 'saveInputText':
-				this._saveInputText(message.text);
-				return;
-			case 'getCheckpoints':
-				this._sendCheckpoints();
-				return;
-			case 'getTodos':
-				this._postMessage({
-					type: 'todosUpdated',
-					data: this._currentTodos
-				});
-				return;
-		}
+		// Route message through the message router
+		this._messageRouter.route(message, panelId).catch((error) => {
+			console.error('Error routing message:', error);
+		});
 	}
 
 	private _setupWebviewMessageHandler(webview: vscode.Webview) {
@@ -3868,6 +3840,9 @@ class ClaudeChatProvider {
 	}
 
 	public dispose() {
+		// Stop memory monitoring
+		getMemoryMonitor().stop();
+
 		// Kill all persistent processes
 		this._killAllPanelProcesses();
 
