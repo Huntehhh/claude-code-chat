@@ -56,10 +56,7 @@ Whenever a user asks for "high-level documentation" Markdown Document, you shall
 ./scripts/wt add <name> <file1> [file2...]
 cd .worktrees/<name>
 ```
-3. Rebase to get latest:
-```bash
-git fetch origin && git rebase origin/main
-```
+**Note:** Worktrees branch from local `main`. Never rebase from remote—local is source of truth.
 
 **Examples:**
 ```bash
@@ -78,16 +75,12 @@ wt add docs docs/ CLAUDE.md
 
 ### Merge Process
 
-1. Rebase to get latest versions of your files:
-```bash
-git fetch origin && git rebase origin/main
-```
-2. Go to main and merge:
+1. Go to main and merge:
 ```bash
 cd <main-repo>
 git merge feature/<name>
 ```
-3. Cleanup immediately:
+2. Cleanup immediately:
 ```bash
 ./scripts/wt rm <name>
 ```
