@@ -1940,6 +1940,12 @@ class ClaudeChatProvider {
 					// Use summary as title, or fallback to filename
 					const title = summary || `CLI Session ${sessionId.substring(0, 8)}`;
 
+					// Skip files with no actual messages (snapshot-only files)
+					if (messageCount === 0) {
+						console.log(`[CLI Scan] Skipping ${filename}: no user/assistant messages (snapshot-only)`);
+						continue;
+					}
+
 					cliConversations.push({
 						filename,
 						sessionId,
