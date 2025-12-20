@@ -709,6 +709,7 @@ class ClaudeChatProvider {
 				this._selectImageFile();
 				return;
 			case 'loadConversation':
+				console.log('[DEBUG] loadConversation message received:', JSON.stringify({ filename: message.filename, source: message.source, cliPath: message.cliPath }));
 				this.loadConversation(message.filename, message.source, message.cliPath);
 				return;
 			case 'stopRequest':
@@ -1910,9 +1911,10 @@ class ClaudeChatProvider {
 
 			const jsonlFiles = files
 				.filter(([name, type]) => type === vscode.FileType.File && name.endsWith('.jsonl'))
+				.filter(([name]) => !name.startsWith('agent-'))  // Skip agent files (sub-conversations)
 				.map(([name]) => name);
 
-			console.log(`[CLI] Found ${jsonlFiles.length} JSONL files`);
+			console.log(`[CLI] Found ${jsonlFiles.length} JSONL files (excluding agent files)`);
 
 			for (const filename of jsonlFiles) {
 				try {
@@ -2845,11 +2847,14 @@ class ClaudeChatProvider {
 
 
 	public async loadConversation(filename: string, source?: 'internal' | 'cli', cliPath?: string): Promise<void> {
+		console.log('[DEBUG] loadConversation called:', { filename, source, cliPath });
 		if (source === 'cli' && cliPath) {
 			// Load CLI conversation
+			console.log('[DEBUG] Loading CLI conversation');
 			await this._loadCLIConversation(cliPath);
 		} else {
 			// Load internal conversation
+			console.log('[DEBUG] Loading internal conversation (source or cliPath missing)');
 			await this._loadConversationHistory(filename);
 		}
 	}
