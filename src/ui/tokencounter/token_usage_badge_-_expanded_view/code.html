@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Token Usage Badge - Expanded View</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Noto+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#FFA344",
+              "background-light": "#f8f7f5",
+              "background-dark": "#23190f",
+              "panel-bg": "#0f0f0f",
+              "panel-border": "#FFA344",
+              "text-main": "#fafafa",
+              "text-muted": "#8b8b94",
+              "separator": "#222225",
+            },
+            fontFamily: {
+              "display": ["Space Grotesk", "sans-serif"],
+              "mono": ["Space Mono", "monospace"],
+            },
+            borderRadius: {
+              "DEFAULT": "0.125rem", 
+              "lg": "0.25rem", 
+              "xl": "0.5rem", 
+              "full": "0.75rem"
+            },
+            boxShadow: {
+              "panel": "0 4px 16px rgba(0,0,0,0.4)",
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: "Space Grotesk", "Noto Sans", sans-serif;
+        }
+        .mono-value {
+            font-family: "Space Mono", monospace;
+        }
+    </style>
+</head>
+<body class="relative flex min-h-screen w-full flex-col bg-background-light dark:bg-zinc-900 justify-center items-center p-8">
+<!-- Design Container -->
+<div class="relative w-full max-w-[320px]">
+<!-- Mock Badge (Context for the popup) -->
+<div class="mb-2 flex justify-end">
+<button class="flex items-center gap-2 bg-[#2b2d31] hover:bg-[#35373b] text-[#cccccc] px-3 py-1 rounded text-xs font-mono border border-transparent hover:border-[#454545] transition-colors">
+<span class="material-symbols-outlined text-[14px] text-primary">token</span>
+<span>8.3k tokens</span>
+</button>
+</div>
+<!-- POPUP COMPONENT START -->
+<div class="w-full bg-panel-bg border border-panel-border shadow-panel p-3">
+<!-- SECTION 1: Current Conversation Usage -->
+<div class="flex flex-col gap-2">
+<h3 class="text-text-muted text-[11px] font-normal uppercase tracking-[0.5px]">Current Conversation</h3>
+<div class="flex flex-col gap-1">
+<div class="flex justify-between items-center text-[13px]">
+<span class="text-text-main font-normal">Prompt tokens:</span>
+<span class="mono-value text-primary font-normal">8,192</span>
+</div>
+<div class="flex justify-between items-center text-[13px]">
+<span class="text-text-main font-normal">Completion tokens:</span>
+<span class="mono-value text-primary font-normal">128</span>
+</div>
+<div class="flex justify-between items-center text-[13px] mt-1">
+<span class="text-text-main font-medium">Total:</span>
+<span class="mono-value text-primary font-medium">8,320</span>
+</div>
+</div>
+</div>
+<!-- Separator -->
+<div class="h-px w-full bg-separator my-3"></div>
+<!-- SECTION 2: Pricing -->
+<div class="flex flex-col gap-2">
+<h3 class="text-text-muted text-[11px] font-normal uppercase tracking-[0.5px]">Pricing</h3>
+<div class="flex flex-col gap-1">
+<div class="flex justify-between items-center text-[13px]">
+<span class="text-text-main font-normal">Prompt cost:</span>
+<span class="mono-value text-text-muted font-normal">$0.008</span>
+</div>
+<div class="flex justify-between items-center text-[13px]">
+<span class="text-text-main font-normal">Completion cost:</span>
+<span class="mono-value text-text-muted font-normal">$0.0002</span>
+</div>
+<div class="flex justify-between items-center text-[13px] mt-1">
+<span class="text-text-main font-medium">Total cost:</span>
+<span class="mono-value text-text-main font-medium">$0.0082</span>
+</div>
+</div>
+</div>
+<!-- Separator -->
+<div class="h-px w-full bg-separator my-3"></div>
+<!-- FOOTER -->
+<div>
+<a class="block text-[12px] text-primary hover:text-text-main transition-colors duration-200" href="#">
+                    Manage token settings
+                </a>
+</div>
+</div>
+<!-- POPUP COMPONENT END -->
+</div>
+</body></html>

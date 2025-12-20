@@ -29,7 +29,7 @@ const ToolUseContentSchema = z.object({
   type: z.literal('tool_use'),
   id: z.string().optional(),
   name: z.string(),
-  input: z.record(z.unknown()).optional()
+  input: z.record(z.string(), z.unknown()).optional()
 });
 
 /** Tool result content block */
@@ -700,10 +700,10 @@ export class ConversationManager {
 
     // Extract session info
     if ('sessionId' in entry && entry.sessionId) {
-      sessionId = entry.sessionId;
+      sessionId = String(entry.sessionId);
     }
     if ('timestamp' in entry && entry.timestamp) {
-      startTime = entry.timestamp;
+      startTime = String(entry.timestamp);
     }
 
     // Handle user messages

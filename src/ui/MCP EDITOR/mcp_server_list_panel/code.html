@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MCP Server List Panel</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ffa142",
+              "background-light": "#f8f7f5",
+              "background-dark": "#0f0f0f", /* Customized to match user request */
+              "panel-bg": "#0f0f0f",
+              "card-bg": "#171717",
+              "card-border": "#222225",
+              "text-main": "#fafafa",
+              "text-muted": "#8b8b94",
+              "icon-muted": "#52525b",
+            },
+            fontFamily: {
+              "display": ["Space Grotesk", "sans-serif"]
+            },
+            borderRadius: {
+                "DEFAULT": "0.25rem", 
+                "lg": "0.5rem", 
+                "xl": "0.75rem", 
+                "full": "9999px"
+            },
+          },
+        },
+      }
+    </script>
+<style>
+        /* Custom scrollbar to match VS Code aesthetic */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f0f0f; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2b2d31; 
+            border-radius: 5px;
+            border: 2px solid #0f0f0f;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3f4148; 
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display antialiased h-screen w-full flex justify-center items-start overflow-hidden">
+<!-- Panel Container: Mimicking a sidebar width -->
+<div class="w-full max-w-[400px] h-full flex flex-col border-r border-[#222225] bg-panel-bg">
+<!-- Header -->
+<div class="flex items-center justify-between px-4 py-3 min-h-[48px] border-b border-[#222225] shrink-0">
+<h1 class="text-text-main text-[16px] font-bold tracking-wide">MCP Servers</h1>
+<button class="flex items-center gap-1.5 bg-primary hover:bg-[#ffb05e] text-[#0f0f0f] text-xs font-bold py-1.5 px-3 rounded-lg transition-colors duration-200">
+<span class="material-symbols-outlined text-[14px] font-bold">add</span>
+<span>Add</span>
+</button>
+</div>
+<!-- Scrollable Server List -->
+<div class="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+<!-- Active Server Card -->
+<div class="group relative flex flex-col gap-3 p-3 bg-card-bg border border-card-border rounded-lg hover:border-[#333333] transition-all duration-200">
+<div class="flex items-center justify-between gap-2">
+<!-- Left: Status & Name -->
+<div class="flex items-center gap-3 min-w-0">
+<div class="shrink-0 size-2 rounded-full bg-[#22c55e] shadow-[0_0_4px_rgba(34,197,94,0.4)]"></div>
+<span class="text-text-main text-sm font-bold truncate">Filesystem Server</span>
+</div>
+<!-- Right: Badge -->
+<div class="shrink-0 px-2 py-0.5 rounded-full bg-[#222225] border border-[#2a2a2e]">
+<span class="text-[10px] font-medium text-text-muted uppercase tracking-wider">stdio</span>
+</div>
+</div>
+<!-- Hover Actions Row (Visible on hover or can be persistent depending on preference, here persistent for clarity but styled subtly) -->
+<div class="flex items-center justify-between pt-2 border-t border-[#222225]/50 mt-1">
+<div class="text-[11px] text-text-muted">Running</div>
+<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+<button class="size-7 flex items-center justify-center rounded hover:bg-[#2a2a2e] text-icon-muted hover:text-text-main transition-colors" title="Edit Configuration">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="size-7 flex items-center justify-center rounded hover:bg-[#2a2a2e] text-[#22c55e] transition-colors" title="Disable Server">
+<span class="material-symbols-outlined text-[18px]">toggle_on</span>
+</button>
+<button class="size-7 flex items-center justify-center rounded hover:bg-[#2a2a2e] text-icon-muted hover:text-[#FF7369] transition-colors" title="Delete Server">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Disabled Server Card -->
+<div class="group relative flex flex-col gap-3 p-3 bg-card-bg border border-card-border rounded-lg hover:border-[#333333] transition-all duration-200 opacity-60 hover:opacity-100">
+<div class="flex items-center justify-between gap-2">
+<!-- Left: Status & Name -->
+<div class="flex items-center gap-3 min-w-0">
+<div class="shrink-0 size-2 rounded-full bg-[#52525b]"></div>
+<span class="text-text-main text-sm font-bold truncate">Postgres Database</span>
+</div>
+<!-- Right: Badge -->
+<div class="shrink-0 px-2 py-0.5 rounded-full bg-[#222225] border border-[#2a2a2e]">
+<span class="text-[10px] font-medium text-text-muted uppercase tracking-wider">sse</span>
+</div>
+</div>
+<!-- Hover Actions Row -->
+<div class="flex items-center justify-between pt-2 border-t border-[#222225]/50 mt-1">
+<div class="text-[11px] text-text-muted">Disabled</div>
+<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+<button class="size-7 flex items-center justify-center rounded hover:bg-[#2a2a2e] text-icon-muted hover:text-text-main transition-colors" title="Edit Configuration">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="size-7 flex items-center justify-center rounded hover:bg-[#2a2a2e] text-icon-muted hover:text-text-main transition-colors" title="Enable Server">
+<span class="material-symbols-outlined text-[18px]">toggle_off</span>
+</button>
+<button class="size-7 flex items-center justify-center rounded hover:bg-[#2a2a2e] text-icon-muted hover:text-[#FF7369] transition-colors" title="Delete Server">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Another Active Server Example -->
+<div class="group relative flex flex-col gap-3 p-3 bg-card-bg border border-card-border rounded-lg hover:border-[#333333] transition-all duration-200">
+<div class="flex items-center justify-between gap-2">
+<div class="flex items-center gap-3 min-w-0">
+<div class="shrink-0 size-2 rounded-full bg-[#22c55e] shadow-[0_0_4px_rgba(34,197,94,0.4)]"></div>
+<span class="text-text-main text-sm font-bold truncate">OpenAI Client</span>
+</div>
+<div class="shrink-0 px-2 py-0.5 rounded-full bg-[#222225] border border-[#2a2a2e]">
+<span class="text-[10px] font-medium text-text-muted uppercase tracking-wider">http</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-[#222225]/50 mt-1">
+<div class="text-[11px] text-text-muted">Running</div>
+<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+<button class="size-7 flex items-center justify-center rounded hover:bg-[#2a2a2e] text-icon-muted hover:text-text-main transition-colors">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="size-7 flex items-center justify-center rounded hover:bg-[#2a2a2e] text-[#22c55e] transition-colors">
+<span class="material-symbols-outlined text-[18px]">toggle_on</span>
+</button>
+<button class="size-7 flex items-center justify-center rounded hover:bg-[#2a2a2e] text-icon-muted hover:text-[#FF7369] transition-colors">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Another Disabled Example -->
+<div class="group relative flex flex-col gap-3 p-3 bg-card-bg border border-card-border rounded-lg hover:border-[#333333] transition-all duration-200 opacity-60 hover:opacity-100">
+<div class="flex items-center justify-between gap-2">
+<div class="flex items-center gap-3 min-w-0">
+<div class="shrink-0 size-2 rounded-full bg-[#52525b]"></div>
+<span class="text-text-main text-sm font-bold truncate">Local Dev Tools</span>
+</div>
+<div class="shrink-0 px-2 py-0.5 rounded-full bg-[#222225] border border-[#2a2a2e]">
+<span class="text-[10px] font-medium text-text-muted uppercase tracking-wider">stdio</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-[#222225]/50 mt-1">
+<div class="text-[11px] text-text-muted">Disabled</div>
+<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+<button class="size-7 flex items-center justify-center rounded hover:bg-[#2a2a2e] text-icon-muted hover:text-text-main transition-colors">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="size-7 flex items-center justify-center rounded hover:bg-[#2a2a2e] text-icon-muted hover:text-text-main transition-colors">
+<span class="material-symbols-outlined text-[18px]">toggle_off</span>
+</button>
+<button class="size-7 flex items-center justify-center rounded hover:bg-[#2a2a2e] text-icon-muted hover:text-[#FF7369] transition-colors">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer / Info area (Optional filler for design completeness) -->
+<div class="mt-auto px-4 py-3 border-t border-[#222225]">
+<div class="flex items-center gap-2 text-text-muted text-xs">
+<span class="material-symbols-outlined text-[14px]">info</span>
+<span>MCP Protocol v1.0.2</span>
+</div>
+</div>
+</div>
+</body></html>

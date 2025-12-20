@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MCP Server Editor</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "bg-main": "#0f0f0f",
+                        "bg-input": "#171717",
+                        "bg-element": "#222225",
+                        "border-subtle": "#222225",
+                        "border-dashed": "#333333",
+                        "primary": "#FFA344",
+                        "destructive": "#FF7369",
+                        "text-main": "#fafafa",
+                        "text-muted": "#8b8b94",
+                        "text-label": "#52525b",
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"],
+                    },
+                    boxShadow: {
+                        "glow": "0 0 0 1px #FFA344, 0 0 4px rgba(255, 163, 68, 0.2)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar to match VS Code dark theme */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f0f0f; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2b2d31; 
+            border-radius: 5px;
+            border: 2px solid #0f0f0f;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #36393f; 
+        }
+        
+        .material-symbols-outlined {
+          font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24
+        }
+    </style>
+</head>
+<body class="bg-bg-main text-text-main h-screen overflow-hidden flex flex-col font-sans antialiased selection:bg-primary/30 selection:text-primary">
+<!-- Header -->
+<header class="h-[48px] min-h-[48px] px-4 flex items-center justify-between border-b border-transparent shrink-0">
+<div class="flex items-center gap-3">
+<button class="text-text-muted hover:text-white transition-colors flex items-center justify-center rounded hover:bg-white/5 p-1 -ml-1">
+<span class="material-symbols-outlined text-[20px]">arrow_back</span>
+</button>
+<h1 class="text-[15px] font-medium text-text-main tracking-tight">Edit Server</h1>
+</div>
+<button class="text-destructive hover:bg-destructive/10 p-1.5 rounded transition-colors flex items-center justify-center group" title="Delete Server">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</header>
+<!-- Main Form Content -->
+<main class="flex-1 overflow-y-auto px-4 py-2 custom-scrollbar">
+<div class="flex flex-col gap-6 max-w-2xl mx-auto pb-6">
+<!-- Section: Server Name -->
+<section class="flex flex-col gap-2">
+<label class="text-[11px] font-semibold text-text-label uppercase tracking-wider">Server Name</label>
+<input class="w-full bg-bg-input border border-border-subtle rounded-lg px-3 h-[36px] text-sm text-text-main placeholder:text-text-label focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all" placeholder="my-server" type="text" value="weather-server"/>
+</section>
+<!-- Section: Type Selector -->
+<section class="flex flex-col gap-2">
+<label class="text-[11px] font-semibold text-text-label uppercase tracking-wider">Type</label>
+<div class="flex bg-bg-element p-1 rounded-lg">
+<button class="flex-1 py-1.5 text-xs font-medium rounded bg-primary text-bg-main shadow-sm transition-all text-center">
+                        stdio
+                    </button>
+<button class="flex-1 py-1.5 text-xs font-medium rounded text-text-muted hover:text-text-main transition-all text-center">
+                        sse
+                    </button>
+</div>
+</section>
+<!-- Section: Command -->
+<section class="flex flex-col gap-2">
+<label class="text-[11px] font-semibold text-text-label uppercase tracking-wider">Command</label>
+<input class="w-full bg-bg-input border border-border-subtle rounded-lg px-3 h-[36px] text-sm font-mono text-text-main placeholder:text-text-label focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all" placeholder="npx" type="text" value="python3"/>
+</section>
+<!-- Section: Arguments -->
+<section class="flex flex-col gap-2">
+<label class="text-[11px] font-semibold text-text-label uppercase tracking-wider">Arguments</label>
+<div class="flex flex-wrap gap-[6px]">
+<!-- Chip 1 -->
+<div class="group flex items-center gap-1.5 pl-3 pr-2 py-1.5 bg-bg-element rounded-full border border-transparent hover:border-border-subtle/50 transition-colors">
+<span class="text-xs text-text-muted font-mono">-u</span>
+<button class="flex items-center justify-center size-4 rounded-full text-text-muted hover:bg-destructive hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</div>
+<!-- Chip 2 -->
+<div class="group flex items-center gap-1.5 pl-3 pr-2 py-1.5 bg-bg-element rounded-full border border-transparent hover:border-border-subtle/50 transition-colors">
+<span class="text-xs text-text-muted font-mono">main.py</span>
+<button class="flex items-center justify-center size-4 rounded-full text-text-muted hover:bg-destructive hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</div>
+<!-- Chip 3 -->
+<div class="group flex items-center gap-1.5 pl-3 pr-2 py-1.5 bg-bg-element rounded-full border border-transparent hover:border-border-subtle/50 transition-colors">
+<span class="text-xs text-text-muted font-mono">--verbose</span>
+<button class="flex items-center justify-center size-4 rounded-full text-text-muted hover:bg-destructive hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</div>
+<!-- Add Button -->
+<button class="flex items-center gap-1 px-3 py-1.5 border border-dashed border-border-dashed rounded-full text-xs text-text-muted hover:text-primary hover:border-primary/50 transition-colors">
+<span class="material-symbols-outlined text-[14px]">add</span>
+                        Add
+                    </button>
+</div>
+</section>
+<!-- Section: Environment Variables -->
+<section class="flex flex-col gap-2">
+<label class="text-[11px] font-semibold text-text-label uppercase tracking-wider">Environment Variables</label>
+<div class="flex flex-col gap-2">
+<!-- Env Var Row 1 -->
+<div class="flex gap-2 items-center group">
+<input class="w-[120px] bg-bg-input border border-border-subtle rounded px-2.5 h-[32px] text-xs font-mono text-primary placeholder:text-text-label/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all" placeholder="KEY" type="text" value="API_KEY"/>
+<input class="flex-1 min-w-0 bg-bg-input border border-border-subtle rounded px-2.5 h-[32px] text-xs text-text-muted placeholder:text-text-label/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all" placeholder="value" type="password" value="sk-xxxxxxxxxxxxx"/>
+<button class="opacity-0 group-hover:opacity-100 size-8 flex items-center justify-center text-text-muted hover:text-destructive transition-all">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+<!-- Env Var Row 2 -->
+<div class="flex gap-2 items-center group">
+<input class="w-[120px] bg-bg-input border border-border-subtle rounded px-2.5 h-[32px] text-xs font-mono text-primary placeholder:text-text-label/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all" placeholder="KEY" type="text" value="DEBUG_MODE"/>
+<input class="flex-1 min-w-0 bg-bg-input border border-border-subtle rounded px-2.5 h-[32px] text-xs text-text-muted placeholder:text-text-label/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all" placeholder="value" type="text" value="true"/>
+<button class="opacity-0 group-hover:opacity-100 size-8 flex items-center justify-center text-text-muted hover:text-destructive transition-all">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</div>
+<button class="flex items-center gap-1.5 text-xs text-primary mt-1 hover:brightness-110 transition-all self-start">
+<span class="material-symbols-outlined text-[14px]">add</span>
+                    Add Variable
+                </button>
+</section>
+</div>
+</main>
+<!-- Footer -->
+<footer class="h-[60px] min-h-[60px] bg-bg-main border-t border-border-subtle flex items-center justify-between px-6 shrink-0 z-10">
+<button class="text-sm font-medium text-text-muted hover:text-text-main transition-colors px-2 py-1">
+            Cancel
+        </button>
+<button class="bg-primary text-bg-main text-sm font-semibold px-4 h-[32px] rounded hover:brightness-110 active:scale-95 transition-all shadow-md shadow-primary/10">
+            Save Changes
+        </button>
+</footer>
+</body></html>

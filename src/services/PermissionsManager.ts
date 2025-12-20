@@ -270,7 +270,7 @@ export class PermissionsManager {
    * - Exact match
    * - Simple wildcards (e.g., "npm install *")
    * - Glob patterns via minimatch (e.g., "git {add,commit} *")
-   * - Regex patterns prefixed with / (e.g., "/^npm (install|i) .*/")
+   * - Regex patterns prefixed with / (e.g., "/^npm (install|i) /" )
    */
   private _matchesPattern(command: string, pattern: string): boolean {
     // Exact match

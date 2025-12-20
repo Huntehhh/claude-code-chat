@@ -246,6 +246,7 @@
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",
+    "@types/minimatch": "^5.1.2",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@types/react": "^18.3.27",
@@ -269,10 +270,12 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.462.0",
     "markdown-to-jsx": "^9.4.2",
+    "minimatch": "^10.1.1",
     "prism-react-renderer": "^2.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwind-merge": "^2.6.0",
+    "zod": "^4.2.1",
     "zustand": "^5.0.9"
   }
 }

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Token Usage Badge - Streaming State</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Noto+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ffa142",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#23190f",
+                        "custom-dark": "#0f0f0f", // Specific background requested
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom styles for precise request requirements */
+        .streaming-badge {
+            border: 1px solid rgba(255, 163, 68, 0.45);
+            box-shadow: 0 0 8px rgba(255, 163, 68, 0.2);
+        }
+        
+        .streaming-text {
+            color: #FFA344;
+        }
+
+        .streaming-icon {
+            transform: scale(1.05);
+            color: #FFA344;
+        }
+
+        .streaming-chevron {
+            color: #FFA344;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body class="bg-custom-dark min-h-screen w-full flex flex-col items-center justify-center font-display antialiased selection:bg-primary/30 selection:text-primary">
+<!-- Isolated Component Presentation Area -->
+<div class="flex items-center gap-3">
+<!-- Token Usage Badge (Streaming State) -->
+<!-- 24px height (h-6), pill shaped, bordered -->
+<div class="streaming-badge relative flex h-6 cursor-pointer select-none items-center gap-1.5 rounded-full bg-transparent pl-2 pr-1.5 transition-all duration-300">
+<!-- Token Icon: 14px visual size, scaled 105% -->
+<div class="streaming-icon flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;">
+                    token
+                </span>
+</div>
+<!-- Token Count: 15.6k -->
+<span class="streaming-text text-xs font-medium leading-none tracking-wide">
+                15.6k
+            </span>
+<!-- Chevron Down: 8px visual size -->
+<div class="streaming-chevron flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px]" style="font-size: 14px; font-variation-settings: 'wght' 400;">
+                    keyboard_arrow_down
+                </span>
+</div>
+</div>
+<!-- Send Button -->
+<!-- 32px height/width (h-8 w-8), Circular, Primary Color -->
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-[#FFA344] text-custom-dark shadow-md transition-transform active:scale-95 hover:brightness-110">
+<span class="material-symbols-outlined text-white" style="font-size: 18px; font-variation-settings: 'wght' 600;">
+                arrow_upward
+            </span>
+</button>
+</div>
+</body></html>
