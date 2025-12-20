@@ -5,9 +5,17 @@
  * Includes heartbeat monitoring for zombie detection and graceful shutdown.
  */
 
-import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as util from 'util';
+import { Mutex } from 'async-mutex';
+
+// Import types from centralized type definitions
+import type { ProcessConfig, ProcessManagerCallbacks, HeartbeatConfig } from '../types/process';
+import { DEFAULT_HEARTBEAT_CONFIG } from '../types/process';
+
+// Re-export types for backward compatibility
+export type { ProcessConfig, ProcessManagerCallbacks, HeartbeatConfig };
+export { DEFAULT_HEARTBEAT_CONFIG };
 
 const exec = util.promisify(cp.exec);
 
@@ -26,40 +34,66 @@ function isValidShellPath(pathStr: string): boolean {
   return !dangerousChars.test(pathStr);
 }
 
-export interface ProcessConfig {
-  cwd: string;
-  args: string[];
-  wslEnabled: boolean;
-  wslDistro: string;
-  nodePath: string;
-  claudePath: string;
+// =============================================================================
+// WSL Path Utilities
+// =============================================================================
+
+/**
+ * Check if a path is already a WSL/Unix path
+ */
+function isWSLPath(path: string): boolean {
+  return path.startsWith('/');
 }
 
-export interface ProcessManagerCallbacks {
-  onStdout: (data: string) => void;
-  onStderr: (data: string) => void;
-  onClose: (code: number | null, errorOutput: string) => void;
-  onError: (error: Error) => void;
-  /** Called when process becomes unresponsive (optional) */
-  onUnresponsive?: () => void;
+/**
+ * Check if a path is a UNC path (network share)
+ */
+function isUNCPath(path: string): boolean {
+  return path.startsWith('\\\\') || path.startsWith('//');
 }
 
-/** Heartbeat configuration */
-interface HeartbeatConfig {
-  /** Interval between heartbeat checks in ms (default: 30000) */
-  intervalMs: number;
-  /** Timeout to consider process unresponsive in ms (default: 5000) */
-  timeoutMs: number;
-}
+/**
+ * Convert a Windows path to WSL path format
+ * Handles edge cases: UNC paths, already-converted paths, special characters
+ */
+function convertToWSLPath(windowsPath: string): string {
+  // Already a WSL/Unix path - don't double-convert
+  if (isWSLPath(windowsPath)) {
+    return windowsPath;
+  }
 
-const DEFAULT_HEARTBEAT_CONFIG: HeartbeatConfig = {
-  intervalMs: 30000,
-  timeoutMs: 5000
-};
+  // UNC paths are not supported in WSL mount
+  if (isUNCPath(windowsPath)) {
+    console.warn('UNC paths not fully supported in WSL:', windowsPath);
+    // Try to handle \\wsl$\distro\... paths specially
+    if (windowsPath.toLowerCase().startsWith('\\\\wsl$\\') || windowsPath.toLowerCase().startsWith('//wsl$/')) {
+      // Extract the path after the distro name
+      const match = windowsPath.match(/^[\\\/]{2}wsl\$[\\\/]([^\\\/]+)[\\\/](.*)$/i);
+      if (match) {
+        return '/' + match[2].replace(/\\/g, '/');
+      }
+    }
+    return windowsPath;
+  }
+
+  // Standard Windows path (e.g., C:\Users\...)
+  const driveMatch = windowsPath.match(/^([a-zA-Z]):/);
+  if (driveMatch) {
+    const drive = driveMatch[1].toLowerCase();
+    const rest = windowsPath.slice(2).replace(/\\/g, '/');
+    return `/mnt/${drive}${rest}`;
+  }
+
+  // Relative path or other format - normalize separators
+  return windowsPath.replace(/\\/g, '/');
+}
 
 export class ProcessManager {
   private _currentProcess: cp.ChildProcess | undefined;
   private _abortController: AbortController | undefined;
+
+  // Mutex for process operations to prevent race conditions
+  private _operationMutex = new Mutex();
   private _isWslProcess: boolean = false;
   private _wslDistro: string = 'Ubuntu';
   private _callbacks: ProcessManagerCallbacks;
@@ -78,32 +112,75 @@ export class ProcessManager {
 
   /**
    * Spawn a new Claude process
+   * Protected by mutex to prevent race conditions with concurrent spawn/kill
    */
   spawn(config: ProcessConfig): cp.ChildProcess {
-    // Create new AbortController for this process
-    this._abortController = new AbortController();
-    this._errorOutput = '';
-    this._lastActivityTime = Date.now();
+    // Synchronous wrapper - actual spawn is synchronous
+    // Mutex is acquired/released synchronously to protect the critical section
+    const release = this._operationMutex.acquire();
 
-    let claudeProcess: cp.ChildProcess;
+    try {
+      // Create new AbortController for this process
+      this._abortController = new AbortController();
+      this._errorOutput = '';
+      this._lastActivityTime = Date.now();
 
-    if (config.wslEnabled) {
-      claudeProcess = this._spawnWSL(config);
-    } else {
-      claudeProcess = this._spawnNative(config);
+      let claudeProcess: cp.ChildProcess;
+
+      if (config.wslEnabled) {
+        claudeProcess = this._spawnWSL(config);
+      } else {
+        claudeProcess = this._spawnNative(config);
+      }
+
+      this._currentProcess = claudeProcess;
+      this._setupEventHandlers(claudeProcess);
+      this._startHeartbeat(claudeProcess);
+
+      return claudeProcess;
+    } finally {
+      // Release mutex after spawn completes (async release is fine here)
+      release.then(r => r());
     }
+  }
 
-    this._currentProcess = claudeProcess;
-    this._setupEventHandlers(claudeProcess);
-    this._startHeartbeat(claudeProcess);
+  /**
+   * Spawn a new Claude process (async version with proper mutex handling)
+   * Use this when you need to ensure spawn completes before proceeding
+   */
+  async spawnAsync(config: ProcessConfig): Promise<cp.ChildProcess> {
+    const release = await this._operationMutex.acquire();
 
-    return claudeProcess;
+    try {
+      // Create new AbortController for this process
+      this._abortController = new AbortController();
+      this._errorOutput = '';
+      this._lastActivityTime = Date.now();
+
+      let claudeProcess: cp.ChildProcess;
+
+      if (config.wslEnabled) {
+        claudeProcess = this._spawnWSL(config);
+      } else {
+        claudeProcess = this._spawnNative(config);
+      }
+
+      this._currentProcess = claudeProcess;
+      this._setupEventHandlers(claudeProcess);
+      this._startHeartbeat(claudeProcess);
+
+      return claudeProcess;
+    } finally {
+      release();
+    }
   }
 
   private _spawnWSL(config: ProcessConfig): cp.ChildProcess {
     const { cwd, args, wslDistro, nodePath, claudePath } = config;
 
-    console.log('Using WSL configuration:', { wslDistro, nodePath, claudePath });
+    // Convert Windows cwd to WSL path format
+    const wslCwd = convertToWSLPath(cwd);
+    console.log('Using WSL configuration:', { wslDistro, nodePath, claudePath, cwd, wslCwd });
 
     // Validate paths to prevent command injection
     if (!isValidShellPath(nodePath)) {
@@ -117,8 +194,9 @@ export class ProcessManager {
     }
 
     // Build command with properly escaped arguments
+    // Include cd to wslCwd since Windows cwd may not work inside WSL
     const escapedArgs = args.map(arg => shellEscape(arg)).join(' ');
-    const wslCommand = `${shellEscape(nodePath)} --no-warnings --enable-source-maps ${shellEscape(claudePath)} ${escapedArgs}`;
+    const wslCommand = `cd ${shellEscape(wslCwd)} && ${shellEscape(nodePath)} --no-warnings --enable-source-maps ${shellEscape(claudePath)} ${escapedArgs}`;
 
     // Track WSL state for proper process termination
     this._isWslProcess = true;
@@ -127,7 +205,7 @@ export class ProcessManager {
     return cp.spawn('wsl', ['-d', wslDistro, 'bash', '-ic', wslCommand], {
       signal: this._abortController!.signal,
       detached: process.platform !== 'win32',
-      cwd: cwd,
+      cwd: cwd, // Keep original cwd for Windows-side process
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
         ...process.env,
@@ -292,24 +370,29 @@ export class ProcessManager {
   /**
    * Kill the Claude process and all its children
    * Uses graceful shutdown sequence: stdin → SIGTERM → SIGKILL
+   * Protected by mutex to prevent race conditions with concurrent spawn/kill
    */
   async kill(): Promise<void> {
-    const processToKill = this._currentProcess;
-    const pid = processToKill?.pid;
+    // Acquire mutex with timeout to prevent deadlock
+    const release = await this._operationMutex.acquire();
 
-    // Stop monitoring immediately
-    this._stopHeartbeat();
+    try {
+      const processToKill = this._currentProcess;
+      const pid = processToKill?.pid;
 
-    // 1. Abort via controller (clean API)
-    this._abortController?.abort();
-    this._abortController = undefined;
+      // Stop monitoring immediately
+      this._stopHeartbeat();
 
-    // 2. Clear reference immediately
-    this._currentProcess = undefined;
+      // 1. Abort via controller (clean API)
+      this._abortController?.abort();
+      this._abortController = undefined;
 
-    if (!pid) {
-      return;
-    }
+      // 2. Clear reference immediately
+      this._currentProcess = undefined;
+
+      if (!pid) {
+        return;
+      }
 
     console.log(`Terminating Claude process group (PID: ${pid})...`);
 
@@ -349,6 +432,9 @@ export class ProcessManager {
     }
 
     console.log('Claude process group terminated');
+    } finally {
+      release();
+    }
   }
 
   /**
