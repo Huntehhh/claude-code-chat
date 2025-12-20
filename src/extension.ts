@@ -72,6 +72,8 @@ interface ConversationData {
 	};
 	messages: Array<{ timestamp: string, messageType: string, data: any }>;
 	filename: string;
+	/** Custom chat name (user-defined) */
+	chatName?: string;
 }
 
 interface ProcessConfig {
@@ -188,7 +190,8 @@ class ClaudeChatProvider {
 		firstUserMessage: string,
 		lastUserMessage: string,
 		source?: 'internal' | 'cli',  // Track conversation source
-		cliPath?: string  // Full path for CLI conversations
+		cliPath?: string,  // Full path for CLI conversations
+		chatName?: string  // Custom chat name (user-defined)
 	}> = [];
 	private _cliProjectsPath: string | undefined;  // Path to ~/.claude/projects/
 	private _cliParsedMessages: Array<{ type: string; data: any }> = [];  // Parsed CLI messages for pagination
@@ -321,6 +324,7 @@ class ClaudeChatProvider {
 		const panelState = this._activePanelId ? this._panels.get(this._activePanelId) : null;
 		if (panelState?.panel) {
 			panelState.panel.title = this._chatName;
+			panelState.chatName = this._chatName;
 		}
 
 		// Also update legacy panel if exists
@@ -333,6 +337,9 @@ class ClaudeChatProvider {
 			type: 'chatNameUpdated',
 			data: { name: this._chatName }
 		});
+
+		// Save the conversation to persist the new name
+		this._saveCurrentConversation();
 
 		// Refresh conversation list so history shows new name
 		this._sendConversationList();
@@ -2849,7 +2856,8 @@ class ClaudeChatProvider {
 					output: this._totalTokensOutput
 				},
 				messages: this._currentConversation,
-				filename
+				filename,
+				chatName: this._chatName !== 'Claude Code Chat' ? this._chatName : undefined
 			};
 
 			const filePath = path.join(this._conversationsPath, filename);
@@ -3430,7 +3438,8 @@ class ClaudeChatProvider {
 			messageCount: conversationData.messageCount,
 			totalCost: conversationData.totalCost,
 			firstUserMessage: firstUserMessage.substring(0, 100), // Truncate for storage
-			lastUserMessage: lastUserMessage.substring(0, 100)
+			lastUserMessage: lastUserMessage.substring(0, 100),
+			chatName: conversationData.chatName
 		};
 
 		// Remove any existing entry for this session (in case of updates)
@@ -3530,6 +3539,20 @@ class ClaudeChatProvider {
 			this._totalCost = conversationData.totalCost || 0;
 			this._totalTokensInput = conversationData.totalTokens?.input || 0;
 			this._totalTokensOutput = conversationData.totalTokens?.output || 0;
+
+			// Load chat name if it was saved
+			if (conversationData.chatName) {
+				this._chatName = conversationData.chatName;
+				// Update panel title
+				if (this._panel) {
+					this._panel.title = this._chatName;
+				}
+				// Notify webview
+				this._postMessage({
+					type: 'chatNameUpdated',
+					data: { name: this._chatName }
+				});
+			}
 
 			// Clear UI messages first, then send all messages to recreate the conversation
 			setTimeout(() => {
