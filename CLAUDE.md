@@ -29,6 +29,12 @@ npx vsce package --allow-missing-repository  # Package VSIX
 code --install-extension claude-code-chat-1.1.0.vsix --force
 ```
 
+## Build Rules
+
+- **JSDoc**: Never write `*/` inside comments (even in quoted strings) - breaks parser
+- **Zod v4**: Use `z.record(z.string(), valueSchema)` not `z.record(valueSchema)`
+- **Always**: Run `npm run compile` after editing `.ts` files
+
 ---
 
 ## Writing Rules
