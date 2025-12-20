@@ -190,6 +190,8 @@ export class ConversationManager {
   private _conversationStartTime: string | undefined;
   private _callbacks: ConversationManagerCallbacks;
   private _context: vscode.ExtensionContext;
+  private _indexSaveInProgress: boolean = false;
+  private _indexSavePending: boolean = false;
 
   constructor(
     context: vscode.ExtensionContext,
@@ -198,12 +200,12 @@ export class ConversationManager {
     this._context = context;
     this._callbacks = callbacks;
 
-    // Load conversation index from workspace state
-    this._conversationIndex = context.workspaceState.get('claude.conversationIndex', []);
+    // Load conversation index - will be populated in initialize()
+    this._conversationIndex = [];
   }
 
   /**
-   * Initialize conversations storage directory
+   * Initialize conversations storage directory and load index
    */
   async initialize(): Promise<void> {
     try {
@@ -222,9 +224,236 @@ export class ConversationManager {
         await vscode.workspace.fs.createDirectory(vscode.Uri.file(this._conversationsPath));
         console.log(`Created conversations directory: ${this._conversationsPath}`);
       }
+
+      // Load conversation index with recovery
+      await this._loadConversationIndex();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       console.error('Failed to initialize conversations:', message);
+    }
+  }
+
+  // ==========================================================================
+  // Index Persistence with Atomic Writes
+  // ==========================================================================
+
+  /**
+   * Load conversation index from disk with recovery fallbacks
+   */
+  private async _loadConversationIndex(): Promise<void> {
+    if (!this._conversationsPath) {
+      // Fall back to workspace state
+      this._conversationIndex = this._context.workspaceState.get('claude.conversationIndex', []);
+      return;
+    }
+
+    const indexPath = path.join(this._conversationsPath, 'index.json');
+    const backupPath = path.join(this._conversationsPath, 'index.backup.json');
+
+    // Try loading from primary index
+    try {
+      const content = await vscode.workspace.fs.readFile(vscode.Uri.file(indexPath));
+      const parsed = JSON.parse(new TextDecoder().decode(content));
+
+      if (Array.isArray(parsed) && this._validateIndexEntries(parsed)) {
+        this._conversationIndex = parsed;
+        console.log(`Loaded conversation index: ${parsed.length} entries`);
+        return;
+      }
+    } catch {
+      console.log('Primary index not found or corrupted, trying backup...');
+    }
+
+    // Try loading from backup
+    try {
+      const content = await vscode.workspace.fs.readFile(vscode.Uri.file(backupPath));
+      const parsed = JSON.parse(new TextDecoder().decode(content));
+
+      if (Array.isArray(parsed) && this._validateIndexEntries(parsed)) {
+        this._conversationIndex = parsed;
+        console.log(`Recovered from backup index: ${parsed.length} entries`);
+        // Restore primary from backup
+        await this._atomicWriteFile(indexPath, JSON.stringify(parsed, null, 2));
+        return;
+      }
+    } catch {
+      console.log('Backup index not found or corrupted, trying workspace state...');
+    }
+
+    // Try workspace state as last resort
+    const workspaceIndex = this._context.workspaceState.get<ConversationIndexEntry[]>('claude.conversationIndex', []);
+    if (workspaceIndex.length > 0) {
+      this._conversationIndex = workspaceIndex;
+      console.log(`Recovered from workspace state: ${workspaceIndex.length} entries`);
+      // Persist to disk
+      await this._saveConversationIndex();
+      return;
+    }
+
+    // Rebuild from conversation files
+    console.log('No valid index found, rebuilding from files...');
+    await this._rebuildConversationIndex();
+  }
+
+  /**
+   * Validate that index entries have required fields
+   */
+  private _validateIndexEntries(entries: unknown[]): entries is ConversationIndexEntry[] {
+    return entries.every(entry =>
+      typeof entry === 'object' &&
+      entry !== null &&
+      'filename' in entry &&
+      'startTime' in entry &&
+      typeof (entry as ConversationIndexEntry).filename === 'string'
+    );
+  }
+
+  /**
+   * Save conversation index with atomic write (temp file + rename)
+   */
+  private async _saveConversationIndex(): Promise<void> {
+    if (!this._conversationsPath) {
+      // Fall back to workspace state only
+      await this._context.workspaceState.update('claude.conversationIndex', this._conversationIndex);
+      return;
+    }
+
+    // Prevent concurrent saves - queue if already saving
+    if (this._indexSaveInProgress) {
+      this._indexSavePending = true;
+      return;
+    }
+
+    this._indexSaveInProgress = true;
+
+    try {
+      const indexPath = path.join(this._conversationsPath, 'index.json');
+      const backupPath = path.join(this._conversationsPath, 'index.backup.json');
+
+      // Create backup of current index before writing
+      try {
+        await vscode.workspace.fs.copy(
+          vscode.Uri.file(indexPath),
+          vscode.Uri.file(backupPath),
+          { overwrite: true }
+        );
+      } catch {
+        // No existing index to backup - that's fine
+      }
+
+      // Atomic write: temp file + rename
+      const content = JSON.stringify(this._conversationIndex, null, 2);
+      await this._atomicWriteFile(indexPath, content);
+
+      // Also update workspace state as additional backup
+      await this._context.workspaceState.update('claude.conversationIndex', this._conversationIndex);
+
+      console.log(`Saved conversation index: ${this._conversationIndex.length} entries`);
+    } catch (error) {
+      console.error('Failed to save conversation index:', error);
+    } finally {
+      this._indexSaveInProgress = false;
+
+      // Process pending save if queued
+      if (this._indexSavePending) {
+        this._indexSavePending = false;
+        await this._saveConversationIndex();
+      }
+    }
+  }
+
+  /**
+   * Atomic file write using temp file + rename
+   * This ensures the file is never in a partial/corrupted state
+   */
+  private async _atomicWriteFile(filePath: string, content: string): Promise<void> {
+    const tempPath = filePath + '.tmp.' + Date.now();
+
+    try {
+      // Write to temp file
+      await vscode.workspace.fs.writeFile(
+        vscode.Uri.file(tempPath),
+        new TextEncoder().encode(content)
+      );
+
+      // Atomic rename (on most file systems)
+      await vscode.workspace.fs.rename(
+        vscode.Uri.file(tempPath),
+        vscode.Uri.file(filePath),
+        { overwrite: true }
+      );
+    } catch (error) {
+      // Clean up temp file on failure
+      try {
+        await vscode.workspace.fs.delete(vscode.Uri.file(tempPath));
+      } catch {
+        // Temp file may not exist
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Rebuild conversation index from conversation files on disk
+   * Used when index is corrupted or missing
+   */
+  private async _rebuildConversationIndex(): Promise<void> {
+    if (!this._conversationsPath) return;
+
+    console.log('Rebuilding conversation index from files...');
+    const newIndex: ConversationIndexEntry[] = [];
+
+    try {
+      const files = await vscode.workspace.fs.readDirectory(
+        vscode.Uri.file(this._conversationsPath)
+      );
+
+      for (const [filename, fileType] of files) {
+        if (fileType !== vscode.FileType.File || !filename.endsWith('.json')) {
+          continue;
+        }
+        if (filename === 'index.json' || filename.endsWith('.backup.json') || filename.endsWith('.tmp')) {
+          continue;
+        }
+
+        try {
+          const filePath = path.join(this._conversationsPath, filename);
+          const content = await vscode.workspace.fs.readFile(vscode.Uri.file(filePath));
+          const data = JSON.parse(new TextDecoder().decode(content));
+
+          const messages = data.messages || [];
+          const userMessages = messages.filter((m: ConversationMessage) => m.messageType === 'userInput');
+
+          newIndex.push({
+            filename,
+            sessionId: data.sessionId,
+            startTime: data.startTime || '',
+            endTime: data.endTime,
+            messageCount: data.messageCount || messages.length,
+            totalCost: data.totalCost,
+            firstUserMessage: userMessages[0] ? String(userMessages[0].data).substring(0, 100) : 'No message',
+            lastUserMessage: userMessages.length > 0
+              ? String(userMessages[userMessages.length - 1].data).substring(0, 100)
+              : undefined
+          });
+        } catch (e) {
+          console.warn(`Failed to parse conversation file: ${filename}`, e);
+        }
+      }
+
+      // Sort by start time (most recent first)
+      newIndex.sort((a, b) =>
+        new Date(b.startTime || 0).getTime() - new Date(a.startTime || 0).getTime()
+      );
+
+      // Keep only last 50
+      this._conversationIndex = newIndex.slice(0, 50);
+      await this._saveConversationIndex();
+
+      console.log(`Rebuilt conversation index: ${this._conversationIndex.length} entries`);
+    } catch (error) {
+      console.error('Failed to rebuild conversation index:', error);
+      this._conversationIndex = [];
     }
   }
 
@@ -303,8 +532,8 @@ export class ConversationManager {
       const content = new TextEncoder().encode(JSON.stringify(conversationData, null, 2));
       await vscode.workspace.fs.writeFile(vscode.Uri.file(filePath), content);
 
-      // Update conversation index
-      this._updateConversationIndex(filename, conversationData);
+      // Update conversation index with atomic write
+      await this._updateConversationIndex(filename, conversationData);
 
       console.log(`Saved conversation: ${filename}`, this._conversationsPath);
       this._callbacks.onConversationSaved(filename);
@@ -790,7 +1019,7 @@ export class ConversationManager {
     });
   }
 
-  private _updateConversationIndex(
+  private async _updateConversationIndex(
     filename: string,
     conversationData: ConversationData & {
       sessionId?: string;
@@ -799,7 +1028,7 @@ export class ConversationManager {
       totalCost?: number;
       filename?: string;
     }
-  ): void {
+  ): Promise<void> {
     const messages = conversationData.messages || [];
     const userMessages = messages.filter(m => m.messageType === 'userInput');
     const firstUserMessage = userMessages.length > 0 ? String(userMessages[0].data) : 'No user message';
@@ -827,7 +1056,21 @@ export class ConversationManager {
       this._conversationIndex = this._conversationIndex.slice(0, 50);
     }
 
-    // Save to workspace state
-    this._context.workspaceState.update('claude.conversationIndex', this._conversationIndex);
+    // Save with atomic write + backup
+    await this._saveConversationIndex();
+  }
+
+  /**
+   * Force rebuild of conversation index (public method for manual recovery)
+   */
+  async rebuildIndex(): Promise<void> {
+    await this._rebuildConversationIndex();
+  }
+
+  /**
+   * Get the current conversation index
+   */
+  getConversationIndex(): ConversationIndexEntry[] {
+    return [...this._conversationIndex];
   }
 }
