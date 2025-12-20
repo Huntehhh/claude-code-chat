@@ -33,82 +33,60 @@ code --install-extension claude-code-chat-1.1.0.vsix --force
 
 ## Writing Rules
 
-Whenever a user asks for "high-level documentation" Markdown Document, you shall always attempt to write with brevity, be succinct, and economical with your word choice; But still very detail-oriented and specific. Use visual diagrams to describe the problem from a high level when necessary,  And always keep it around 50 to 100 lines unless told otherwise. . 
+Whenever a user asks for "high-level documentation" Markdown Document, you shall always attempt to write with brevity, be succinct, and economical with your word choice; But still very detail-oriented and specific. Use visual diagrams to describe the problem from a high level when necessary,  And always keep it around 50 to 100 lines unless told otherwise.
 
 ## Git Rules
 
-### Worktree Workflow
+### Sparse Checkout Workflow
 
-**NEVER work directly on `main`.** Always create a worktree first. This isolates your work so other Claude instances' merge states don't affect you.
+**NEVER work directly on `main`.** Create a sparse worktree with ONLY the files you need.
 
 **At session start:**
-1. Check if already in a worktree: `git worktree list`
-2. If on `main`, create a worktree using the helper script:
+1. Ask user which files/folders you'll be working on
+2. Create sparse worktree:
 ```bash
-./scripts/wt add <feature>      # Creates .worktrees/<feature> on feature/<feature>
-cd .worktrees/<feature>
+./scripts/wt add <name> <file1> [file2...]
+cd .worktrees/<name>
 ```
-3. Rebase to get fresh code before any edits:
-```bash
-git fetch origin && git rebase origin/main
-```
-4. If uncommitted changes exist, ask user to commit them first, or commit only YOUR files before making edits.
-
-**Helper commands:** `wt add <name>` | `wt rm <name>` | `wt list`
-
-**Location:** Always inside `.worktrees/` folder within the project.
-
-**Branch discipline:**
-
-- NEVER edit files while on `main` — create worktree first
-- Never push directly to `main`
-- Commit only to current worktree's branch
-- After ~5 turns or completing a feature, ask: *"Ready to merge this to main?"*
-
-**Before merging:**
-1. Sync with latest main:
+3. Rebase to get latest:
 ```bash
 git fetch origin && git rebase origin/main
 ```
-2. After rebase, check what was auto-merged:
-```bash
-git diff HEAD@{1} --name-only
-```
-If files you edited were also changed by others, review them for lost code.
 
-3. Check what files you're about to change vs main:
+**Examples:**
 ```bash
-git diff main --name-only
+wt add ui-work src/ui.ts src/ui-styles.ts
+wt add backend src/extension.ts src/utils.ts
+wt add docs docs/ CLAUDE.md
 ```
-If you see files YOU didn't edit, **STOP** — another Claude may have changed them. Ask user before proceeding.
 
-**Merging to main:**
+**Why sparse checkout:** You literally cannot touch files outside your checkout. When you merge, only YOUR files are in the diff. No accidental overwrites of other Claudes' work.
+
+**Helper commands:**
+- `wt add <name> <files...>` — Create sparse worktree
+- `wt rm <name>` — Remove worktree and branch
+- `wt list` — List all worktrees
+- `wt files` — Show files in current sparse checkout
+
+### Merge Process
+
+1. Rebase to get latest versions of your files:
+```bash
+git fetch origin && git rebase origin/main
+```
+2. Go to main and merge:
 ```bash
 cd <main-repo>
-git merge <feature-branch>
+git merge feature/<name>
 ```
-
-**After merging:** Cleanup immediately
+3. Cleanup immediately:
 ```bash
-./scripts/wt rm <feature>
+./scripts/wt rm <name>
 ```
 
 **Conflict handling:**
-
 - If conflict is obvious (whitespace, import order): resolve automatically
 - If ANY uncertainty: stop and ask user before resolving
-- Show conflict context and propose resolution options
-
-### Commit Discipline
-
-**ONLY commit files YOU edited.** Never use `git add .` — it stages files you didn't touch.
-```bash
-# WRONG - stages everything including files you didn't edit
-git add .
-
-# RIGHT - only stage your specific files
-git add src/extension.ts src/ui.ts
-```
 
 ### Commit Format
 
@@ -124,10 +102,9 @@ Example: `feat: add dark mode toggle to settings`
 ### Auto-Commit Triggers
 
 Commit when:
-
 - Every ~5 chat turns during active development
-- User says "save", "backup", "checkpoint", or executes /checkpoint
-- Before risky operations (checkout, major refactor)
+- User says "save", "backup", "checkpoint"
+- Before risky operations
 - After completing any feature or fix
 
 ### Session End
