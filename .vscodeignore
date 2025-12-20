@@ -14,8 +14,6 @@ tsconfig.webview.json
 backup
 .claude
 claude-code-chat-permissions-mcp/**
-node_modules/**
-!node_modules/zod/**
 mcp-permissions.js
 build/**
 tailwind.config.js
