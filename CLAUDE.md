@@ -52,6 +52,11 @@ cd .worktrees/<feature>
 ```bash
 git fetch origin && git rebase origin/main
 ```
+4. If uncommitted changes exist, commit them BEFORE making any edits:
+```bash
+git add . && git commit -m "chore: save uncommitted changes before edits"
+```
+This protects user's work — if Claude breaks something, `git reset HEAD~1` undoes only Claude's changes.
 
 **Helper commands:** `wt add <name>` | `wt rm <name>` | `wt list`
 
