@@ -41,6 +41,8 @@ export interface SettingsModalProps {
   onCompactMcpCallsChange?: (enabled: boolean) => void;
   showTodoList?: boolean;
   onShowTodoListChange?: (enabled: boolean) => void;
+  // MCP
+  onManageMcpServers?: () => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -70,6 +72,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onCompactMcpCallsChange,
   showTodoList = true,
   onShowTodoListChange,
+  onManageMcpServers,
 }) => {
   return (
     <Modal open={open} onClose={onClose} title="Settings" maxWidth="md">
@@ -197,6 +200,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               onCheckedChange={onYoloModeChange}
             />
           </div>
+        </div>
+
+        {/* Section: MCP Servers */}
+        <div className="flex flex-col gap-3">
+          <h3 className="text-xs font-medium text-[#8b8b94] uppercase tracking-[0.5px]">
+            MCP Servers
+          </h3>
+          <Button
+            variant="secondary"
+            className="w-full justify-start gap-2 h-9"
+            onClick={onManageMcpServers}
+          >
+            <Icon name="dns" className="!text-[16px]" />
+            Manage MCP Servers
+          </Button>
         </div>
 
         {/* Section: Display */}

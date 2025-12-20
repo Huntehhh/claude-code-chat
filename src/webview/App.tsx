@@ -16,7 +16,7 @@ import { TodoList } from './components/molecules/todo-list';
 // Modal Components
 import { SettingsModal } from './components/organisms/settings-modal';
 import { HistoryPanel, type Conversation } from './components/organisms/history-panel';
-import { McpServersModal, type McpServer as McpServerModal } from './components/organisms/mcp-servers-modal';
+import { McpManagerPanel, type McpServer as McpServerPanel } from './components/organisms/mcp-manager-panel';
 import { ModelSelectorModal, type ModelOption } from './components/organisms/model-selector-modal';
 import { SlashCommandsModal, type CliCommand, type Snippet } from './components/organisms/slash-commands-modal';
 import { InstallModal, type InstallState } from './components/molecules/install-modal';
@@ -119,10 +119,11 @@ export default function App() {
     setInputValue(draftMessage);
   }, [draftMessage]);
 
-  // Request ready state on mount
+  // Request ready state and load initial data on mount
   useEffect(() => {
     requestReady();
-  }, [requestReady]);
+    loadMCPServers();
+  }, [requestReady, loadMCPServers]);
 
   // ==========================================================================
   // Input Handlers
@@ -222,6 +223,11 @@ export default function App() {
     updateSettingsBackend({ showTodoList: enabled });
   }, [setShowTodoList, updateSettingsBackend]);
 
+  const handleManageMcpServers = useCallback(() => {
+    closeModal(); // Close settings modal
+    openModal('mcpServers'); // Open MCP panel
+  }, [closeModal, openModal]);
+
   // ==========================================================================
   // History Panel Handlers
   // ==========================================================================
@@ -275,36 +281,39 @@ export default function App() {
     selectedModel.toLowerCase().includes('sonnet') ? 'sonnet' : 'default';
 
   // ==========================================================================
-  // MCP Servers Modal Handlers
+  // MCP Servers Panel Handlers
   // ==========================================================================
 
-  const handleToggleMcpServer = useCallback((id: string, enabled: boolean) => {
+  const handleToggleMcpServer = useCallback((id: string) => {
     // TODO: Update server enabled state via backend
-    console.log('Toggle MCP server:', id, enabled);
+    console.log('Toggle MCP server:', id);
   }, []);
 
-  const handleRemoveMcpServer = useCallback((id: string) => {
+  const handleDeleteMcpServer = useCallback((id: string) => {
     deleteMCPServer(id);
   }, [deleteMCPServer]);
 
-  const handleAddMcpServer = useCallback((server: Omit<McpServerModal, 'id' | 'enabled'>) => {
+  const handleSaveMcpServer = useCallback((server: Partial<McpServerPanel>) => {
+    if (!server.name) return;
     saveMCPServer(server.name, {
-      type: server.type,
+      type: server.type || 'stdio',
       command: server.command,
-      args: server.args?.split(' '),
+      args: server.args,
       url: server.url,
+      env: server.env,
     });
   }, [saveMCPServer]);
 
-  // Convert store MCP servers to modal format
-  const modalMcpServers: McpServerModal[] = mcpServers.map((s) => ({
+  // Convert store MCP servers to panel format
+  const panelMcpServers: McpServerPanel[] = mcpServers.map((s) => ({
     id: s.id,
     name: s.name,
-    type: s.type as 'http' | 'sse' | 'stdio',
-    enabled: s.enabled,
+    type: (s.type || 'stdio') as 'http' | 'sse' | 'stdio',
+    status: s.enabled ? 'running' as const : 'disabled' as const,
     url: s.url,
     command: s.command,
-    args: s.args?.join(' '),
+    args: s.args,
+    env: s.env,
   }));
 
   // ==========================================================================
@@ -430,6 +439,7 @@ export default function App() {
         onCompactMcpCallsChange={handleCompactMcpCallsChange}
         showTodoList={showTodoList}
         onShowTodoListChange={handleShowTodoListChange}
+        onManageMcpServers={handleManageMcpServers}
       />
 
       {/* History Panel */}
@@ -444,14 +454,14 @@ export default function App() {
         onSearchChange={setHistorySearchTerm}
       />
 
-      {/* MCP Servers Modal */}
-      <McpServersModal
+      {/* MCP Servers Panel */}
+      <McpManagerPanel
         open={activeModal === 'mcpServers'}
         onClose={closeModal}
-        servers={modalMcpServers}
-        onToggleServer={handleToggleMcpServer}
-        onRemoveServer={handleRemoveMcpServer}
-        onAddServer={handleAddMcpServer}
+        servers={panelMcpServers}
+        onSave={handleSaveMcpServer}
+        onDelete={handleDeleteMcpServer}
+        onToggle={handleToggleMcpServer}
       />
 
       {/* Model Selector Modal */}
