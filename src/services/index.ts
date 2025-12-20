@@ -16,3 +16,6 @@ export { MessageDebouncer, type DebouncedMessage, type MessageSender } from './M
 export { MemoryMonitor, getMemoryMonitor, resetMemoryMonitor, type MemoryStats, type MemoryMonitorConfig, type MemoryAlertLevel } from './MemoryMonitor';
 export { StreamBuffer, LineBuffer, createStreamBuffer, createLineBuffer, type ParsedJSON } from './StreamBuffer';
 export { McpService, getMcpService, resetMcpService, type MCPServerConfig, type McpServiceCallbacks } from './McpService';
+export { GitService, type GitServiceConfig, type CommitInfo } from './GitService';
+export { SessionManager, type Session } from './SessionManager';
+export { MetricsService, type Metrics } from './MetricsService';

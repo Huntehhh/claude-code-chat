@@ -126,7 +126,10 @@ const HistoryPanel = React.forwardRef<HTMLDivElement, HistoryPanelProps>(
                   preview={conversation.preview}
                   checkpoints={conversation.checkpoints}
                   isActive={conversation.id === activeConversationId}
-                  onSelect={() => onSelectConversation?.(conversation)}
+                  onSelect={() => {
+                    console.log('[HistoryPanel] onSelect called for:', conversation.id, conversation.title, conversation.source);
+                    onSelectConversation?.(conversation);
+                  }}
                   onRestoreCheckpoint={(checkpoint) =>
                     onRestoreCheckpoint?.(conversation, checkpoint)
                   }

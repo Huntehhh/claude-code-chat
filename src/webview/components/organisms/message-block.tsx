@@ -149,13 +149,10 @@ const MessageBlock = React.forwardRef<HTMLDivElement, MessageBlockProps>(
     return (
       <div
         ref={ref}
-        className={cn('flex gap-3 animate-fade-in', className)}
+        className={cn('flex gap-2 animate-fade-in ml-2', className)}
         {...props}
       >
-        {/* Accent bar */}
-        <div className="shrink-0 w-[2px] self-stretch bg-[#FFA344] rounded-full my-1 ml-0.5" />
-
-        {/* Content */}
+        {/* Content - no accent bar, just the dot */}
         <div className="flex flex-col gap-2 pt-0.5 w-full">
           <div className="flex gap-2">
             <span className="text-[#FFA344] leading-relaxed select-none shrink-0">•</span>

@@ -3,9 +3,10 @@ import * as cp from 'child_process';
 import * as util from 'util';
 import * as path from 'path';
 import getHtml from './ui-react';
-import { MessageRouter, getMemoryMonitor } from './services';
+import { MessageRouter, getMemoryMonitor, GitService } from './services';
 
 const exec = util.promisify(cp.exec);
+const execFile = util.promisify(cp.execFile);
 
 // Storage for diff content (used by DiffContentProvider)
 const diffContentStore = new Map<string, string>();
@@ -167,6 +168,7 @@ class ClaudeChatProvider {
 	private _accountInfoFetchedThisSession: boolean = false;  // Track if we fetched account info this session
 	private _currentSessionId: string | undefined;
 	private _backupRepoPath: string | undefined;
+	private _gitService: GitService | undefined;
 	private _commits: Array<{ id: string, sha: string, message: string, timestamp: string }> = [];
 	private _currentTodos: Array<{ content: string; status: string; activeForm?: string }> = [];
 	private _conversationsPath: string | undefined;
@@ -2913,6 +2915,19 @@ class ClaudeChatProvider {
 
 		try {
 			const fileUri = vscode.Uri.file(filePath);
+
+			// SECURITY: Add file size validation to prevent memory exhaustion
+			const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB limit
+			const stats = await vscode.workspace.fs.stat(fileUri);
+
+			if (stats.size > MAX_FILE_SIZE) {
+				const sizeMB = (stats.size / 1024 / 1024).toFixed(1);
+				const errorMsg = `Conversation file too large (${sizeMB}MB). Maximum allowed size is 100MB.`;
+				console.error(errorMsg);
+				this._postMessage({ type: 'error', data: errorMsg });
+				return;
+			}
+
 			const content = await vscode.workspace.fs.readFile(fileUri);
 			const text = new TextDecoder().decode(content);
 			const lines = text.trim().split('\n').filter(l => l.trim());
@@ -3382,29 +3397,62 @@ class ClaudeChatProvider {
 		}
 	}
 
+	/**
+	 * Validate WSL distribution name to prevent command injection
+	 * Only allows alphanumeric characters, hyphens, and underscores
+	 */
+	private _validateWSLDistro(distro: string): boolean {
+		return /^[a-zA-Z0-9_-]+$/.test(distro);
+	}
+
 	private async _killProcessGroup(pid: number, signal: string = 'SIGTERM'): Promise<void> {
 		if (this._isWslProcess) {
 			// WSL: Kill processes inside WSL using pkill
 			// The Windows PID won't work inside WSL, so we kill by name
 			try {
+				// Validate distro name to prevent command injection
+				if (!this._validateWSLDistro(this._wslDistro)) {
+					console.error('Invalid WSL distribution name:', this._wslDistro);
+					throw new Error('Invalid WSL distribution name');
+				}
+
 				// Kill all node/claude processes started by this session inside WSL
 				const killSignal = signal === 'SIGKILL' ? '-9' : '-15';
-				await exec(`wsl -d ${this._wslDistro} pkill ${killSignal} -f "claude"`);
-			} catch {
+
+				// Use execFile with array arguments to prevent shell injection
+				try {
+					await execFile('wsl', [
+						'-d', this._wslDistro,
+						'pkill', killSignal, '-f', 'claude'
+					]);
+				} catch (wslError) {
+					console.error('WSL process kill failed:', wslError);
+				}
+			} catch (error) {
 				// Process may already be dead or pkill not available
+				console.error('Failed to kill WSL process:', error);
 			}
+
 			// Also kill the Windows-side wsl process
 			try {
-				await exec(`taskkill /pid ${pid} /t /f`);
-			} catch {
+				if (!Number.isInteger(pid) || pid <= 0) {
+					throw new Error('Invalid process ID');
+				}
+				await execFile('taskkill', ['/pid', pid.toString(), '/t', '/f']);
+			} catch (error) {
 				// Process may already be dead
+				console.error('Failed to kill Windows WSL process:', error);
 			}
 		} else if (process.platform === 'win32') {
 			// Windows: Use taskkill with /T flag for tree kill
 			try {
-				await exec(`taskkill /pid ${pid} /t /f`);
-			} catch {
+				if (!Number.isInteger(pid) || pid <= 0) {
+					throw new Error('Invalid process ID');
+				}
+				await execFile('taskkill', ['/pid', pid.toString(), '/t', '/f']);
+			} catch (error) {
 				// Process may already be dead
+				console.error('Failed to kill Windows process:', error);
 			}
 		} else {
 			// Unix: Kill process group with negative PID

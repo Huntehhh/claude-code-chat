@@ -19,6 +19,7 @@ export interface Message {
   // Tool use additional data
   toolInput?: Record<string, unknown>;
   rawInput?: Record<string, unknown>;
+  toolUseId?: string; // For matching tool-use with tool-result
   // For permission requests
   permissionSuggestions?: string[];
   decisionReason?: string;

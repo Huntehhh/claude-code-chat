@@ -120,6 +120,9 @@ const MessageList = React.forwardRef<HTMLDivElement, MessageListProps>(
     // Debounced scroll position save (500ms delay to avoid excessive saves)
     const debouncedSaveScroll = useDebounce(saveScrollPosition, 500);
 
+    // Debounced store update (100ms to reduce re-renders while scrolling)
+    const debouncedSetScrollPosition = useDebounce(setScrollPosition, 100);
+
     // Track scroll height before loading more messages (for prepend position preservation)
     React.useEffect(() => {
       if (isLoadingMore && !wasLoadingMoreRef.current) {
@@ -137,7 +140,7 @@ const MessageList = React.forwardRef<HTMLDivElement, MessageListProps>(
       const container = containerRef.current;
       if (container && !isRestoringScroll.current) {
         const position = container.scrollTop;
-        setScrollPosition(position);
+        debouncedSetScrollPosition(position); // Debounced to reduce re-renders
         debouncedSaveScroll(position);
 
         // Infinite scroll: Load more when near top (within 100px)
@@ -146,7 +149,7 @@ const MessageList = React.forwardRef<HTMLDivElement, MessageListProps>(
           loadMoreMessages();
         }
       }
-    }, [setScrollPosition, debouncedSaveScroll, hasMoreMessages, isLoadingMore, loadMoreMessages]);
+    }, [debouncedSetScrollPosition, debouncedSaveScroll, hasMoreMessages, isLoadingMore, loadMoreMessages]);
 
     // Restore scroll position when messages are loaded and scrollPosition changes
     React.useEffect(() => {
@@ -334,19 +337,76 @@ const MessageList = React.forwardRef<HTMLDivElement, MessageListProps>(
               }
             }
 
-            return (
-              <ToolUseBlock
-                key={`tool-${idx}-${msg.timestamp}`}
-                toolName={msg.toolName || 'Unknown Tool'}
-                input={msg.toolInput || msg.rawInput}
-                output={msg.type === 'tool-result' ? msg.content : undefined}
-                isError={msg.isError}
-                filePath={msg.filePath}
-                oldContent={msg.oldContent}
-                newContent={msg.newContent}
-                onOpenFile={openFile}
-              />
-            );
+            // For tool-use, find matching tool-result to merge IN and OUT
+            if (msg.type === 'tool-use') {
+              // Look for matching tool-result by toolUseId or by position (next tool-result with same toolName)
+              let matchingResult: Message | undefined;
+
+              if (msg.toolUseId) {
+                // Match by toolUseId
+                matchingResult = messages.find(
+                  (m, i) => i > idx && m.type === 'tool-result' && m.toolUseId === msg.toolUseId
+                );
+              }
+
+              // Fallback: match by toolName if next message is a tool-result with same name
+              if (!matchingResult) {
+                const nextMsg = messages[idx + 1];
+                if (nextMsg?.type === 'tool-result' && nextMsg.toolName === msg.toolName) {
+                  matchingResult = nextMsg;
+                }
+              }
+
+              return (
+                <ToolUseBlock
+                  key={`tool-${idx}-${msg.timestamp}`}
+                  toolName={msg.toolName || 'Unknown Tool'}
+                  input={msg.toolInput || msg.rawInput}
+                  output={matchingResult?.content}
+                  isError={matchingResult?.isError}
+                  filePath={msg.filePath}
+                  oldContent={msg.oldContent}
+                  newContent={matchingResult?.newContent || msg.newContent}
+                  onOpenFile={openFile}
+                />
+              );
+            }
+
+            // For tool-result, skip if it was already merged with a tool-use
+            if (msg.type === 'tool-result') {
+              // Check if this result was merged with a previous tool-use
+              const prevMsg = messages[idx - 1];
+              if (prevMsg?.type === 'tool-use') {
+                // Check if matched by toolUseId or toolName
+                if ((msg.toolUseId && prevMsg.toolUseId === msg.toolUseId) ||
+                    (!msg.toolUseId && prevMsg.toolName === msg.toolName)) {
+                  // Already merged - skip rendering
+                  return null;
+                }
+              }
+
+              // Also check if matched by toolUseId to earlier tool-use
+              if (msg.toolUseId) {
+                const matchingUse = messages.find(
+                  (m, i) => i < idx && m.type === 'tool-use' && m.toolUseId === msg.toolUseId
+                );
+                if (matchingUse) {
+                  // Already merged - skip rendering
+                  return null;
+                }
+              }
+
+              // Standalone result (rare) - render with toolName
+              return (
+                <ToolUseBlock
+                  key={`tool-${idx}-${msg.timestamp}`}
+                  toolName={msg.toolName || 'Unknown Tool'}
+                  output={msg.content}
+                  isError={msg.isError}
+                  onOpenFile={openFile}
+                />
+              );
+            }
           }
 
           // Regular messages

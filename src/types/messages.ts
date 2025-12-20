@@ -361,6 +361,7 @@ export interface ConversationListItem {
   lastUserMessage: string;
   source: 'internal' | 'cli';
   cliPath?: string;
+  chatName?: string; // Custom name set by user
 }
 
 export interface MCPServerConfig {
@@ -397,6 +398,34 @@ export interface ConversationMessage {
 export interface ConversationData {
   startTime: string;
   messages: ConversationMessage[];
+}
+
+// =============================================================================
+// Type Definitions for Internal State Management
+// =============================================================================
+
+export interface ToolSuggestion {
+  id: string;
+  text: string;
+  score?: number;
+  category?: 'completion' | 'correction' | 'optimization';
+}
+
+export interface PendingPermissionRequest {
+  requestId: string;
+  toolName: string;
+  input: Record<string, unknown>;
+  suggestions?: ToolSuggestion[];
+  toolUseId: string;
+}
+
+export interface ProcessConfig {
+  cwd?: string;
+  args?: string[];
+  wslEnabled?: boolean;
+  wslDistro?: string;
+  nodePath?: string;
+  claudePath?: string;
 }
 
 // =============================================================================

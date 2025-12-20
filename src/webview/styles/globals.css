@@ -173,25 +173,17 @@
   text-decoration: underline;
 }
 
-/* Inline code: amber-tinted background and border */
+/* Inline code: just orange text, no background/border */
 .inline-code {
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
   font-size: 0.875em;
-  padding: 0.125em 0.375em;
-  background-color: rgba(255, 163, 68, 0.1);
-  border: 1px solid rgba(255, 163, 68, 0.25);
-  border-radius: 3px;
   color: #FFA344;
 }
 
-/* File reference pills (amber) */
+/* File reference pills (amber) - just orange text, no background */
 .file-pill {
   display: inline-flex;
   align-items: center;
-  padding: 0.125em 0.5em;
-  background-color: rgba(255, 163, 68, 0.15);
-  border: 1px solid rgba(255, 163, 68, 0.3);
-  border-radius: 9999px; /* Full rounded for pills */
   color: #FFA344;
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
   font-size: 0.875em;

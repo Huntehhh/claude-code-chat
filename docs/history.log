@@ -1,0 +1,130 @@
+console.ts:139 [Extension Host] Claude Code Chat command executed! (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+dom.ts:144 [Violation] Added non-passive event listener to a scroll-blocking 'wheel' event. Consider marking event handler as 'passive' to make the page more responsive. See https://www.chromestatus.com/feature/5745543795965952
+tUi @ dom.ts:144
+J @ dom.ts:165
+fc @ multiEditorTabsControl.ts:411
+bb @ multiEditorTabsControl.ts:191
+Vte @ editorTabsControl.ts:148
+Wte @ multiEditorTabsControl.ts:156
+o @ instantiationService.ts:162
+createInstance @ instantiationService.ts:128
+u @ editorTitleControl.ts:75
+bQe @ editorTitleControl.ts:56
+o @ instantiationService.ts:162
+createInstance @ instantiationService.ts:128
+NF @ editorGroupView.ts:215
+o @ instantiationService.ts:162
+createInstance @ instantiationService.ts:128
+createNew @ editorGroupView.ts:67
+$b @ editorPart.ts:643
+addGroup @ editorPart.ts:583
+addGroup @ editorParts.ts:662
+r @ mainThreadWebviewPanels.ts:234
+$createWebviewPanel @ mainThreadWebviewPanels.ts:157
+S @ rpcProtocol.ts:458
+Q @ rpcProtocol.ts:443
+M @ rpcProtocol.ts:373
+L @ rpcProtocol.ts:299
+(anonymous) @ rpcProtocol.ts:161
+C @ event.ts:1202
+fire @ event.ts:1233
+fire @ ipc.net.ts:652
+l.onmessage @ localProcessExtensionHost.ts:383
+webviewElement.ts:409 Unrecognized feature: 'local-network-access'.
+gb @ webviewElement.ts:409
+M$e @ webviewElement.ts:188
+PTt @ webviewElement.ts:60
+o @ instantiationService.ts:162
+createInstance @ instantiationService.ts:128
+createWebviewElement @ webviewService.ts:13
+P @ overlayWebview.ts:225
+claim @ overlayWebview.ts:136
+claim @ webviewEditorInput.ts:160
+hb @ webviewEditor.ts:172
+setInput @ webviewEditor.ts:163
+await in setInput
+S @ editorPanes.ts:464
+L @ editorPanes.ts:259
+openEditor @ editorPanes.ts:136
+(anonymous) @ editorGroupView.ts:1260
+Lb @ editorGroupView.ts:1284
+Kb @ editorGroupView.ts:1242
+openEditor @ editorGroupView.ts:1146
+openEditor @ editorService.ts:582
+openWebview @ webviewWorkbenchService.ts:283
+$createWebviewPanel @ mainThreadWebviewPanels.ts:166
+S @ rpcProtocol.ts:458
+Q @ rpcProtocol.ts:443
+M @ rpcProtocol.ts:373
+L @ rpcProtocol.ts:299
+(anonymous) @ rpcProtocol.ts:161
+C @ event.ts:1202
+fire @ event.ts:1233
+fire @ ipc.net.ts:652
+l.onmessage @ localProcessExtensionHost.ts:383
+webviewElement.ts:489 An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
+mountTo @ webviewElement.ts:489
+P @ overlayWebview.ts:250
+claim @ overlayWebview.ts:136
+claim @ webviewEditorInput.ts:160
+hb @ webviewEditor.ts:172
+setInput @ webviewEditor.ts:163
+await in setInput
+S @ editorPanes.ts:464
+L @ editorPanes.ts:259
+openEditor @ editorPanes.ts:136
+(anonymous) @ editorGroupView.ts:1260
+Lb @ editorGroupView.ts:1284
+Kb @ editorGroupView.ts:1242
+openEditor @ editorGroupView.ts:1146
+openEditor @ editorService.ts:582
+openWebview @ webviewWorkbenchService.ts:283
+$createWebviewPanel @ mainThreadWebviewPanels.ts:166
+S @ rpcProtocol.ts:458
+Q @ rpcProtocol.ts:443
+M @ rpcProtocol.ts:373
+L @ rpcProtocol.ts:299
+(anonymous) @ rpcProtocol.ts:161
+C @ event.ts:1202
+fire @ event.ts:1233
+fire @ ipc.net.ts:652
+l.onmessage @ localProcessExtensionHost.ts:383
+console.ts:139 [Extension Host] _loadConversationHistory (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] filePath c:\Users\casil\AppData\Roaming\Code\User\workspaceStorage\94d3556ed026c1998225a0e4367900a1\AndrePimenta.claude-code-chat\conversations\2025-12-18_18-33_test.json (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Created new panel: panel-1766271013567-1. Total panels: 1 (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] webviewInFocus: false (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Loaded conversation history: 2025-12-18_18-33_test.json (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+index.html?id=79012456-7a29-4600-ad41-639a80124d67&parentId=6&origin=6cf64c96-2af4-4d0e-9eca-f0a485f64fe3&swVersion=4&extensionId=AndrePimenta.claude-code-chat&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app:1060 Unrecognized feature: 'local-network-access'.
+(anonymous) @ index.html?id=79012456-7a29-4600-ad41-639a80124d67&parentId=6&origin=6cf64c96-2af4-4d0e-9eca-f0a485f64fe3&swVersion=4&extensionId=AndrePimenta.claude-code-chat&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app:1060
+await in (anonymous)
+HostMessaging.channel.port1.onmessage @ index.html?id=79012456-7a29-4600-ad41-639a80124d67&parentId=6&origin=6cf64c96-2af4-4d0e-9eca-f0a485f64fe3&swVersion=4&extensionId=AndrePimenta.claude-code-chat&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app:342
+index.html?id=79012456-7a29-4600-ad41-639a80124d67&parentId=6&origin=6cf64c96-2af4-4d0e-9eca-f0a485f64fe3&swVersion=4&extensionId=AndrePimenta.claude-code-chat&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app:1086 [Violation] Avoid using document.write(). https://developers.google.com/web/updates/2016/08/removing-document-write
+(anonymous) @ index.html?id=79012456-7a29-4600-ad41-639a80124d67&parentId=6&origin=6cf64c96-2af4-4d0e-9eca-f0a485f64fe3&swVersion=4&extensionId=AndrePimenta.claude-code-chat&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app:1086
+setTimeout
+onFrameLoaded @ index.html?id=79012456-7a29-4600-ad41-639a80124d67&parentId=6&origin=6cf64c96-2af4-4d0e-9eca-f0a485f64fe3&swVersion=4&extensionId=AndrePimenta.claude-code-chat&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app:1084
+(anonymous) @ index.html?id=79012456-7a29-4600-ad41-639a80124d67&parentId=6&origin=6cf64c96-2af4-4d0e-9eca-f0a485f64fe3&swVersion=4&extensionId=AndrePimenta.claude-code-chat&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app:1116
+index.html?id=79012456-7a29-4600-ad41-639a80124d67&parentId=6&origin=6cf64c96-2af4-4d0e-9eca-f0a485…:1 Loading the script 'https://cloud.umami.is/script.js' violates the following Content Security Policy directive: "script-src 'nonce-9qfniR1k5h85Nz5t8qiF4WPdG3YnnVFh'". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+console.ts:139 [Extension Host] [ChatName] Checking if should send update: _chatName="Claude Code Chat" (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] [ChatName] NOT sending - either null or default name (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+index.js:127 [Think] Opening thinking intensity modal, current intensity: think-hard
+index.js:127 [ThinkingIntensity] Confirmed level: 0 → think
+index.js:127 [Think] Confirmed intensity: think
+console.ts:139 [Extension Host] [Settings] Updating thinkingIntensity -> thinking.intensity = think (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] [Settings] Update initiated (async): {thinkingIntensity: 'think'} (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] [Settings] Successfully updated thinking.intensity = think (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+index.js:8 [Settings] Confirmed persisted: thinking.intensity = think
+index.js:127 [Think] Opening thinking intensity modal, current intensity: think
+index.js:127 [ThinkingIntensity] Confirmed level: 0 → think
+index.js:127 [Think] Confirmed intensity: think
+console.ts:139 [Extension Host] [Settings] Updating thinkingIntensity -> thinking.intensity = think (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] [Settings] Update initiated (async): {thinkingIntensity: 'think'} (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] [Settings] Successfully updated thinking.intensity = think (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+index.js:8 [Settings] Confirmed persisted: thinking.intensity = think
+index.js:127 [Think] Opening thinking intensity modal, current intensity: think
+index.js:127 [ThinkingIntensity] Confirmed level: 1 → think-hard
+index.js:127 [Think] Confirmed intensity: think-hard
+console.ts:139 [Extension Host] [Settings] Updating thinkingIntensity -> thinking.intensity = think-hard (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] [Settings] Update initiated (async): {thinkingIntensity: 'think-hard'} (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] [Settings] Successfully updated thinking.intensity = think-hard (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+index.js:8 [Settings] Confirmed persisted: thinking.intensity = think-hard
+index.js:127 [Think] Opening thinking intensity modal, current intensity: think-hard

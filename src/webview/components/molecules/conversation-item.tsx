@@ -74,7 +74,13 @@ const ConversationItem = React.forwardRef<HTMLDivElement, ConversationItemProps>
         {/* Main Conversation Row */}
         <div
           className="group/item relative px-3 py-3 hover:bg-[#171717] cursor-pointer transition-colors border-t border-[#222225]/30 first:border-t-0"
-          onClick={onSelect}
+          onClick={(e) => {
+            // Use alert to ensure we see the click
+            alert('CLICK: ' + title + ' source: ' + source);
+            console.log('[ConvItem] CLICK on:', title, 'source:', source);
+            e.stopPropagation();
+            onSelect?.();
+          }}
         >
           {/* Title */}
           <div className="flex justify-between items-start mb-1.5">

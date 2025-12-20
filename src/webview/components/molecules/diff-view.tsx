@@ -24,17 +24,17 @@ export interface DiffViewProps extends React.HTMLAttributes<HTMLDivElement> {
   onOpenFile?: (filePath: string) => void;
 }
 
-// GitHub/VS Code diff colors (official)
+// VS Code/Claude Code diff colors - more muted/pastel
 const DIFF_COLORS = {
   add: {
-    bg: 'rgba(35, 134, 54, 0.15)',      // Subtle green background
-    bgStrong: 'rgba(35, 134, 54, 0.30)', // Line number background
-    text: '#7ee787',                     // Muted green text
+    bg: 'rgba(35, 134, 54, 0.12)',       // Very subtle green background
+    bgStrong: 'rgba(35, 134, 54, 0.20)', // Line number background
+    text: '#89d185',                      // Muted pastel green (like VS Code)
   },
   remove: {
-    bg: 'rgba(248, 81, 73, 0.10)',       // Subtle red background
-    bgStrong: 'rgba(248, 81, 73, 0.25)', // Line number background
-    text: '#ffa198',                     // Muted coral/salmon text
+    bg: 'rgba(218, 54, 51, 0.10)',        // Very subtle red background
+    bgStrong: 'rgba(218, 54, 51, 0.18)', // Line number background
+    text: '#d9a0a0',                      // Muted pastel red/salmon
   },
 };
 
@@ -52,25 +52,25 @@ const DiffView = React.forwardRef<HTMLDivElement, DiffViewProps>(
     ...props
   }, ref) => {
     const [isExpanded, setIsExpanded] = React.useState(false);
+    const [isHovered, setIsHovered] = React.useState(false);
 
     const shouldTruncate = lines.length > maxPreviewLines;
     const displayLines = shouldTruncate && !isExpanded
       ? lines.slice(0, maxPreviewLines)
       : lines;
-    const hiddenCount = lines.length - maxPreviewLines;
 
     return (
       <div
         ref={ref}
         className={cn(
-          'border border-[#333] rounded-sm bg-[#161b22] w-full',
+          'border border-[#333] rounded-sm bg-[#161b22] w-full overflow-hidden',
           className
         )}
         {...props}
       >
         {/* Header - compact like official */}
         <div className="flex items-center justify-between px-3 py-1.5 bg-[#161b22] border-b border-[#333]">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 overflow-hidden">
             <Icon name="edit" size="xs" className="text-[#666] shrink-0" />
             <button
               type="button"
@@ -86,15 +86,23 @@ const DiffView = React.forwardRef<HTMLDivElement, DiffViewProps>(
           </div>
         </div>
 
-        {/* Diff content */}
-        <div className="font-mono text-[11px] leading-[1.4]">
+        {/* Diff content - clickable to expand when truncated */}
+        <div
+          className={cn(
+            'font-mono text-[11px] leading-[1.4] relative overflow-hidden',
+            shouldTruncate && !isExpanded && 'cursor-pointer'
+          )}
+          onClick={shouldTruncate && !isExpanded ? () => setIsExpanded(true) : undefined}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
           {lines.length === 0 && (
             <div className="px-3 py-2 text-[#666]">No changes</div>
           )}
           {displayLines.map((line, index) => (
             <div
               key={index}
-              className="flex"
+              className="flex overflow-hidden"
               style={{
                 backgroundColor: line.type === 'add'
                   ? DIFF_COLORS.add.bg
@@ -130,9 +138,9 @@ const DiffView = React.forwardRef<HTMLDivElement, DiffViewProps>(
                 {line.type === 'add' && '+'}
                 {line.type === 'remove' && '-'}
               </div>
-              {/* Content */}
+              {/* Content - with overflow hidden */}
               <div
-                className="pl-1 pr-2 py-px whitespace-pre select-text flex-1"
+                className="pl-1 pr-2 py-px whitespace-pre select-text flex-1 overflow-hidden text-ellipsis"
                 style={{
                   color: line.type === 'add'
                     ? DIFF_COLORS.add.text
@@ -146,21 +154,36 @@ const DiffView = React.forwardRef<HTMLDivElement, DiffViewProps>(
             </div>
           ))}
 
-          {/* Expand/collapse button */}
-          {shouldTruncate && (
-            <button
-              type="button"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="w-full py-1.5 text-[10px] text-[#58a6ff] hover:text-[#79c0ff] bg-[#161b22] border-t border-[#333] cursor-pointer"
-            >
-              {isExpanded ? '▲ Show less' : `▼ Show ${hiddenCount} more lines`}
-            </button>
+          {/* Hover vignette/gradient overlay when truncated and not expanded */}
+          {shouldTruncate && !isExpanded && (
+            <div
+              className="absolute bottom-0 left-0 right-0 h-12 pointer-events-none transition-opacity duration-150"
+              style={{
+                background: 'linear-gradient(to top, rgba(22, 27, 34, 0.95), rgba(22, 27, 34, 0))',
+                opacity: isHovered ? 0.9 : 0.7,
+              }}
+            />
           )}
         </div>
+
+        {/* Collapse button when expanded */}
+        {shouldTruncate && isExpanded && (
+          <button
+            type="button"
+            onClick={() => setIsExpanded(false)}
+            className="w-full py-1 text-[10px] text-[#58a6ff] hover:text-[#79c0ff] bg-[#161b22] border-t border-[#333] cursor-pointer"
+          >
+            ▲ Collapse
+          </button>
+        )}
       </div>
     );
   }
 );
 DiffView.displayName = 'DiffView';
 
-export { DiffView };
+// Memoize to prevent re-renders when props haven't changed
+const MemoizedDiffView = React.memo(DiffView);
+MemoizedDiffView.displayName = 'DiffView';
+
+export { MemoizedDiffView as DiffView };

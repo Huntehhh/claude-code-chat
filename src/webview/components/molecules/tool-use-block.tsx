@@ -357,4 +357,8 @@ const ToolUseBlock = React.forwardRef<HTMLDivElement, ToolUseBlockProps>(
 
 ToolUseBlock.displayName = 'ToolUseBlock';
 
-export { ToolUseBlock };
+// Memoize to prevent re-renders when props haven't changed
+const MemoizedToolUseBlock = React.memo(ToolUseBlock);
+MemoizedToolUseBlock.displayName = 'ToolUseBlock';
+
+export { MemoizedToolUseBlock as ToolUseBlock };
