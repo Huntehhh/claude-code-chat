@@ -236,10 +236,9 @@ class ClaudeChatProvider {
 		// Load conversation index from workspace state
 		this._conversationIndex = this._context.workspaceState.get('claude.conversationIndex', []);
 
-		// Rebuild index from files if empty (e.g., after extension reinstall)
-		if (this._conversationIndex.length === 0) {
-			this._rebuildConversationIndex();
-		}
+		// Always rebuild index from files to ensure fresh data (includes chatName, etc.)
+		// This ensures any schema changes are picked up from the JSON files
+		this._rebuildConversationIndex();
 
 		// Load saved model preference
 		this._selectedModel = this._context.workspaceState.get('claude.selectedModel', 'default');
@@ -339,12 +338,13 @@ class ClaudeChatProvider {
 		});
 
 		// Save the conversation to persist the new name
+		console.log(`[ChatName] Saving conversation with chatName: ${this._chatName}, sessionId: ${this._currentSessionId}, msgCount: ${this._currentConversation.length}`);
 		this._saveCurrentConversation();
 
 		// Refresh conversation list so history shows new name
 		this._sendConversationList();
 
-		console.log(`[Extension] Chat renamed to: ${this._chatName}`);
+		console.log(`[ChatName] Chat renamed to: ${this._chatName}`);
 	}
 
 	/**
@@ -1372,7 +1372,8 @@ class ClaudeChatProvider {
 									toolName: content.name,
 									fileContentBefore: fileContentBefore,
 									startLine: startLine,
-									startLines: startLines
+									startLines: startLines,
+									toolUseId: content.id
 								}
 							});
 						}
@@ -1968,8 +1969,8 @@ class ClaudeChatProvider {
 								}
 							}
 						} catch (e) {
-							// Log parsing errors for debugging (but don't stop scanning)
-							console.warn(`[CLI Scan] Failed to parse line in ${filename}:`, (line || '').substring(0, 100), e);
+							// Only log unexpected parse errors (not empty lines or common issues)
+							// Silently skip to avoid console spam
 						}
 					}
 
@@ -1987,7 +1988,7 @@ class ClaudeChatProvider {
 
 					// Skip files with no actual messages (snapshot-only files)
 					if (messageCount === 0) {
-						console.log(`[CLI Scan] Skipping ${filename}: no user/assistant messages (snapshot-only)`);
+						// Silently skip empty/snapshot files - don't spam console
 						continue;
 					}
 
@@ -2876,13 +2877,30 @@ class ClaudeChatProvider {
 
 	public async loadConversation(filename: string, source?: 'internal' | 'cli', cliPath?: string): Promise<void> {
 		console.log('[DEBUG] loadConversation called:', { filename, source, cliPath });
+
+		// Check if this CLI conversation has a matching internal conversation
+		// (internal conversations take precedence - they have custom names, etc.)
 		if (source === 'cli' && cliPath) {
-			// Load CLI conversation
-			console.log('[DEBUG] Loading CLI conversation');
+			// Extract sessionId from CLI filename (e.g., "46797d0c-b1cb-4ecc-8fd7-feeda78b7a0c.jsonl" -> "46797d0c-...")
+			const cliSessionId = filename.replace('.jsonl', '');
+			console.log('[DEBUG] CLI sessionId:', cliSessionId);
+			console.log('[DEBUG] _conversationIndex has', this._conversationIndex.length, 'entries');
+			console.log('[DEBUG] _conversationIndex sessionIds:', this._conversationIndex.map(c => c.sessionId));
+
+			// Check if we have an internal conversation with this sessionId
+			const internalConv = this._conversationIndex.find(c => c.sessionId === cliSessionId);
+			if (internalConv) {
+				console.log('[DEBUG] Found internal conversation with same sessionId, loading that instead:', internalConv.filename);
+				await this._loadConversationHistory(internalConv.filename);
+				return;
+			}
+
+			// No internal match, load CLI conversation
+			console.log('[DEBUG] No internal match found, loading CLI conversation');
 			await this._loadCLIConversation(cliPath);
 		} else {
 			// Load internal conversation
-			console.log('[DEBUG] Loading internal conversation (source or cliPath missing)');
+			console.log('[DEBUG] Loading internal conversation');
 			await this._loadConversationHistory(filename);
 		}
 	}
@@ -2968,9 +2986,35 @@ class ClaudeChatProvider {
 						if (typeof content === 'string') {
 							userContent = content;
 						} else if (Array.isArray(content)) {
+							// Extract text blocks for user message
 							const textBlocks = content.filter((c: any) => c.type !== 'tool_result');
 							if (textBlocks.length > 0) {
 								userContent = textBlocks.map((c: any) => c.text || '').join('\n').trim();
+							}
+
+							// Extract tool_result blocks (this is where MCP results live!)
+							for (const block of content) {
+								if (block.type === 'tool_result') {
+									let resultContent = block.content || 'Tool executed successfully';
+									// Handle array content (e.g., text blocks inside tool_result)
+									if (Array.isArray(resultContent)) {
+										resultContent = resultContent
+											.map((c: any) => c.text || (typeof c === 'string' ? c : JSON.stringify(c)))
+											.join('\n');
+									} else if (typeof resultContent !== 'string') {
+										resultContent = JSON.stringify(resultContent);
+									}
+
+									const isError = block.is_error === true;
+									messages.push({
+										type: 'toolResult',
+										data: {
+											toolName: block.tool_use_id || 'unknown',
+											result: resultContent,
+											isError: isError
+										}
+									});
+								}
 							}
 						}
 
@@ -3230,9 +3274,26 @@ class ClaudeChatProvider {
 			source: conv.source || 'internal' as const
 		}));
 
+		// Get set of internal sessionIds to filter out duplicate CLI conversations
+		const internalSessionIds = new Set(internalConversations.map(c => c.sessionId));
+		console.log('[ConvList] Internal sessionIds:', Array.from(internalSessionIds));
+
+		// Filter out CLI conversations that have the same sessionId as internal ones
+		// (internal conversations take precedence - they have custom names, etc.)
+		const duplicates = cliConversations.filter(cli => internalSessionIds.has(cli.sessionId));
+		console.log('[ConvList] Filtering out', duplicates.length, 'duplicate CLI conversations:',
+			duplicates.map(c => c.sessionId));
+
+		const filteredCliConversations = cliConversations.filter(
+			cli => !internalSessionIds.has(cli.sessionId)
+		);
+
 		// Merge and sort by start time (newest first)
-		const allConversations = [...internalConversations, ...cliConversations]
+		const allConversations = [...internalConversations, ...filteredCliConversations]
 			.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+
+		console.log('[ConvList] Sending', allConversations.length, 'conversations (',
+			internalConversations.length, 'internal +', filteredCliConversations.length, 'CLI)');
 
 		this._postMessage({
 			type: 'conversationList',
@@ -3465,6 +3526,9 @@ class ClaudeChatProvider {
 		if (!this._conversationsPath) { return; }
 
 		try {
+			// Clear existing index before rebuilding
+			this._conversationIndex = [];
+
 			const conversationsUri = vscode.Uri.file(this._conversationsPath);
 			const files = await vscode.workspace.fs.readDirectory(conversationsUri);
 
@@ -3492,9 +3556,11 @@ class ClaudeChatProvider {
 						messageCount: data.messageCount || 0,
 						totalCost: data.totalCost || 0,
 						firstUserMessage: typeof firstUserMessage === 'string' ? firstUserMessage : JSON.stringify(firstUserMessage),
-						lastUserMessage: typeof lastUserMessage === 'string' ? lastUserMessage : JSON.stringify(lastUserMessage)
+						lastUserMessage: typeof lastUserMessage === 'string' ? lastUserMessage : JSON.stringify(lastUserMessage),
+						chatName: data.chatName // Include custom chat name from JSON
 					};
 
+					console.log(`[Index Rebuild] File: ${filename}, chatName: ${data.chatName || 'undefined'}, firstMsg: ${indexEntry.firstUserMessage.substring(0, 30)}`);
 					this._conversationIndex.push(indexEntry);
 				} catch (e) {
 					console.error(`Failed to parse conversation file ${filename}:`, e);
@@ -3536,6 +3602,7 @@ class ClaudeChatProvider {
 			// Load conversation into current state
 			this._currentConversation = conversationData.messages || [];
 			this._conversationStartTime = conversationData.startTime;
+			this._currentSessionId = conversationData.sessionId; // Required for rename/save to work
 			this._totalCost = conversationData.totalCost || 0;
 			this._totalTokensInput = conversationData.totalTokens?.input || 0;
 			this._totalTokensOutput = conversationData.totalTokens?.output || 0;
@@ -3547,11 +3614,8 @@ class ClaudeChatProvider {
 				if (this._panel) {
 					this._panel.title = this._chatName;
 				}
-				// Notify webview
-				this._postMessage({
-					type: 'chatNameUpdated',
-					data: { name: this._chatName }
-				});
+				// NOTE: Don't send chatNameUpdated here - sessionCleared resets it.
+				// Send it AFTER messages are loaded (see below)
 			}
 
 			// Clear UI messages first, then send all messages to recreate the conversation
@@ -3632,6 +3696,18 @@ class ClaudeChatProvider {
 
 					// Send ready message after conversation is loaded
 					this._sendReadyMessage();
+
+					// Now send chat name (after sessionCleared has reset it)
+					console.log(`[ChatName] Checking if should send update: _chatName="${this._chatName}"`);
+					if (this._chatName && this._chatName !== 'Claude Code Chat') {
+						console.log(`[ChatName] Sending chatNameUpdated with name: ${this._chatName}`);
+						this._postMessage({
+							type: 'chatNameUpdated',
+							data: { name: this._chatName }
+						});
+					} else {
+						console.log(`[ChatName] NOT sending - either null or default name`);
+					}
 				}, 50);
 			}, 100); // Small delay to ensure webview is ready
 
@@ -3690,7 +3766,7 @@ class ClaudeChatProvider {
 		this._draftMessage = text || '';
 	}
 
-	private async _updateSettings(settings: { [key: string]: any }): Promise<void> {
+	private _updateSettings(settings: { [key: string]: any }): void {
 		const config = vscode.workspace.getConfiguration('claudeCodeChat');
 
 		// Map frontend keys to VS Code configuration keys
@@ -3704,27 +3780,34 @@ class ClaudeChatProvider {
 			'previewHeight': 'compact.previewHeight',
 			'showTodoList': 'display.showTodoList',
 			'yoloMode': 'permissions.yoloMode',
+			'thinkingIntensity': 'thinking.intensity',
 		};
 
-		try {
-			for (const [frontendKey, value] of Object.entries(settings)) {
-				// Map the key or use as-is if no mapping exists
-				const configKey = keyMap[frontendKey] || frontendKey;
+		// Fire off updates asynchronously without blocking (VS Code handles persistence in background)
+		for (const [frontendKey, value] of Object.entries(settings)) {
+			const configKey = keyMap[frontendKey] || frontendKey;
+			console.log(`[Settings] Updating ${frontendKey} -> ${configKey} = ${value}`);
 
-				if (configKey === 'permissions.yoloMode') {
-					// YOLO mode is workspace-specific
-					await config.update(configKey, value, vscode.ConfigurationTarget.Workspace);
-				} else {
-					// Other settings are global (user-wide)
-					await config.update(configKey, value, vscode.ConfigurationTarget.Global);
-				}
-			}
+			const target = configKey === 'permissions.yoloMode'
+				? vscode.ConfigurationTarget.Workspace
+				: vscode.ConfigurationTarget.Global;
 
-			console.log('Settings updated:', settings);
-		} catch (error) {
-			console.error('Failed to update settings:', error);
-			vscode.window.showErrorMessage('Failed to update settings');
+			// Fire off the update without awaiting - VS Code handles persistence in background
+			Promise.resolve(config.update(configKey, value, target))
+				.then(() => {
+					console.log(`[Settings] Successfully updated ${configKey} = ${value}`);
+					// Send confirmation to frontend so it knows the setting is persisted
+					this._postMessage({
+						type: 'settingUpdated',
+						data: { key: configKey, value }
+					});
+				})
+				.catch((error: any) => {
+					console.error(`[Settings] Failed to update ${configKey}:`, error);
+				});
 		}
+
+		console.log('[Settings] Update initiated (async):', settings);
 	}
 
 	private async _getClipboardText(): Promise<void> {

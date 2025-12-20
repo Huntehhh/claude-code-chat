@@ -22,6 +22,7 @@ import { SlashCommandsModal, type CliCommand, type Snippet } from './components/
 import { InstallModal, type InstallState } from './components/molecules/install-modal';
 import { ImageLightbox } from './components/molecules/image-lightbox';
 import { Toast } from './components/atoms/toast';
+import { ThinkingIntensityModal } from './components/organisms/thinking-intensity-modal';
 
 // =============================================================================
 // App Component
@@ -71,9 +72,11 @@ export default function App() {
   const {
     planMode,
     thinkingMode,
+    thinkingIntensity,
     showTodoList,
     togglePlanMode,
     toggleThinkingMode,
+    setThinkingIntensity,
     // WSL settings
     wslEnabled,
     wslDistribution,
@@ -179,6 +182,26 @@ export default function App() {
   }, [setChatName, renameChat]);
 
   // ==========================================================================
+  // Thinking Mode Handlers
+  // ==========================================================================
+
+  const handleOpenThinkingModal = useCallback(() => {
+    console.log('[Think] Opening thinking intensity modal, current intensity:', thinkingIntensity);
+    openModal('thinkingIntensity');
+  }, [openModal, thinkingIntensity]);
+
+  const handleConfirmThinkingIntensity = useCallback((intensity: typeof thinkingIntensity) => {
+    console.log('[Think] Confirmed intensity:', intensity);
+    setThinkingIntensity(intensity);
+    // Enable thinking mode when selecting an intensity
+    if (!thinkingMode) {
+      toggleThinkingMode();
+    }
+    // TODO: Send to backend
+    updateSettingsBackend({ thinkingIntensity: intensity });
+  }, [setThinkingIntensity, thinkingMode, toggleThinkingMode, updateSettingsBackend]);
+
+  // ==========================================================================
   // Settings Modal Handlers
   // ==========================================================================
 
@@ -239,11 +262,33 @@ export default function App() {
   // ==========================================================================
 
   const handleSelectConversation = useCallback((historyConv: { id: string; source: 'chat' | 'cli'; title?: string }) => {
-    // Find the original conversation data from the store
-    const original = conversations.find((c) => c.sessionId === historyConv.id);
+    console.log('[SelectConv] historyConv:', historyConv);
+    console.log('[SelectConv] Looking for sessionId:', historyConv.id, 'with source:', historyConv.source === 'chat' ? 'internal' : 'cli');
+
+    // Log all conversations with matching sessionId
+    const matching = conversations.filter((c) => c.sessionId === historyConv.id);
+    console.log('[SelectConv] Matching conversations:', matching.map(c => ({ sessionId: c.sessionId, source: c.source, filename: c.filename })));
+
+    // Find the original conversation data from the store for filename/source/cliPath
+    // IMPORTANT: Prefer matching source type first to handle sessionId collisions
+    // (internal conversations may share sessionId with CLI conversations they originated from)
+    let original = conversations.find((c) =>
+      c.sessionId === historyConv.id &&
+      (historyConv.source === 'chat' ? c.source === 'internal' : c.source === 'cli')
+    );
+
+    console.log('[SelectConv] Source-specific match found?', !!original);
+
+    // Fallback to any match if source-specific match not found
+    if (!original) {
+      original = conversations.find((c) => c.sessionId === historyConv.id);
+      console.log('[SelectConv] Using fallback match:', original ? { source: original.source, filename: original.filename } : 'none');
+    }
+
     if (original) {
-      // Set the chat name from the conversation title
-      const title = original.firstUserMessage || original.name || 'Claude Code Chat';
+      // Use the title from historyConv directly - it's what's displayed in the history panel
+      const title = historyConv.title || original.name || original.chatName || original.firstUserMessage || 'Claude Code Chat';
+      console.log('[SelectConv] Loading with source:', original.source, 'cliPath:', original.cliPath);
       setChatName(title);
       loadConversation(original.filename, original.source, original.cliPath);
     }
@@ -256,9 +301,10 @@ export default function App() {
   }, []);
 
   // Convert store conversations to HistoryPanel format
+  // c.name already has chatName || firstUserMessage from the message handler
   const historyConversations = conversations.map((c) => ({
     id: c.sessionId,
-    title: c.firstUserMessage || c.name || 'Untitled',
+    title: c.name || c.chatName || c.firstUserMessage || 'Untitled',
     source: c.source === 'cli' ? 'cli' as const : 'chat' as const,
     timestamp: c.startTime || c.lastModified || new Date().toISOString(),
     messageCount: c.messageCount || 0,
@@ -404,7 +450,7 @@ export default function App() {
         planMode={planMode}
         thinkMode={thinkingMode}
         onPlanModeChange={togglePlanMode}
-        onThinkModeChange={toggleThinkingMode}
+        onThinkModeChange={handleOpenThinkingModal}
         placeholder="Describe your code task..."
         inputTokens={totalTokensInput}
         outputTokens={totalTokensOutput}
@@ -517,6 +563,15 @@ export default function App() {
         alt={lightbox.imageAlt}
         open={lightbox.isOpen}
         onClose={closeLightbox}
+      />
+
+      {/* Thinking Intensity Modal */}
+      <ThinkingIntensityModal
+        key={`think-modal-${activeModal === 'thinkingIntensity'}`}
+        open={activeModal === 'thinkingIntensity'}
+        onClose={closeModal}
+        currentIntensity={thinkingIntensity}
+        onConfirm={handleConfirmThinkingIntensity}
       />
     </div>
   );

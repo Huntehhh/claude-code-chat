@@ -34,6 +34,7 @@ function convertRawToMessage(raw: { type: string; data: any }): Message | null {
         toolInput: d.rawInput,
         rawInput: d.rawInput,
         filePath: d.filePath,
+        toolUseId: d.toolUseId,
         timestamp,
       };
     }
@@ -44,6 +45,7 @@ function convertRawToMessage(raw: { type: string; data: any }): Message | null {
         content: d.result || d.content || '',
         toolName: d.toolName,
         isError: d.isError,
+        toolUseId: d.toolUseId,
         timestamp,
       };
     }
@@ -148,10 +150,16 @@ export function useVSCodeMessaging() {
           break;
         }
 
-        case 'sessionCleared':
+        case 'sessionCleared': {
+          // Only clear messages, don't reset chat name
+          // The backend will send chatNameUpdated with the correct name
+          clearMessages();
+          break;
+        }
+
         case 'newSession': {
           clearMessages();
-          setChatName('Claude Code Chat'); // Reset chat name on new session
+          setChatName('Claude Code Chat'); // Only reset chat name on NEW session
           break;
         }
 
@@ -252,6 +260,7 @@ export function useVSCodeMessaging() {
             rawInput?: Record<string, unknown>;
             filePath?: string;
             fileContentBefore?: string; // Backend sends fileContentBefore, not oldContent
+            toolUseId?: string;
           };
           addMessage({
             type: 'tool-use',
@@ -261,6 +270,7 @@ export function useVSCodeMessaging() {
             rawInput: data.rawInput, // Also store as rawInput for fallback
             filePath: data.filePath || (data.rawInput?.file_path as string),
             oldContent: data.fileContentBefore, // Map backend name to frontend name
+            toolUseId: data.toolUseId,
             timestamp: Date.now(),
           });
           break;
@@ -274,6 +284,7 @@ export function useVSCodeMessaging() {
             isError?: boolean;
             fileContentAfter?: string; // For Edit/Write tools
             hidden?: boolean;
+            toolUseId?: string;
           };
           // Skip hidden results (Read tool success, TodoWrite success)
           if (data.hidden) break;
@@ -283,6 +294,7 @@ export function useVSCodeMessaging() {
             toolName: data.toolName,
             isError: data.isError,
             newContent: data.fileContentAfter, // Map backend name to frontend name
+            toolUseId: data.toolUseId,
             timestamp: Date.now(),
           });
           break;
@@ -369,7 +381,7 @@ export function useVSCodeMessaging() {
             ...c,
             // Map fields for convenience
             id: c.sessionId,
-            name: c.firstUserMessage,
+            name: c.chatName || c.firstUserMessage, // Prefer custom name over first message
             lastModified: c.startTime,
             preview: c.lastUserMessage || '',
           })));
@@ -424,6 +436,29 @@ export function useVSCodeMessaging() {
         case 'settingsData': {
           const data = msg.data as Record<string, unknown>;
           updateSettings(data);
+          break;
+        }
+
+        case 'settingUpdated': {
+          // Backend confirms a setting has been persisted to disk
+          const data = msg.data as { key: string; value: unknown };
+          console.log(`[Settings] Confirmed persisted: ${data.key} = ${data.value}`);
+          // Update with confirmed values from backend
+          // Map backend config keys back to frontend keys for proper store updates
+          const configToFrontendKey: Record<string, string> = {
+            'thinking.intensity': 'thinkingIntensity',
+            'wsl.enabled': 'wslEnabled',
+            'wsl.distro': 'wslDistribution',
+            'wsl.nodePath': 'nodePath',
+            'wsl.claudePath': 'claudePath',
+            'permissions.yoloMode': 'yoloMode',
+            'compact.toolOutput': 'compactToolOutput',
+            'compact.mcpCalls': 'compactMcpCalls',
+            'compact.previewHeight': 'previewHeight',
+            'display.showTodoList': 'showTodoList',
+          };
+          const frontendKey = configToFrontendKey[data.key] || data.key;
+          updateSettings({ [frontendKey]: data.value });
           break;
         }
 
@@ -646,7 +681,9 @@ export function useVSCodeMessaging() {
 
         case 'chatNameUpdated': {
           const data = msg.data as { name: string };
+          console.log('[ChatName] Received chatNameUpdated:', data);
           if (data?.name) {
+            console.log('[ChatName] Setting chat name to:', data.name);
             setChatName(data.name);
           }
           break;
@@ -750,6 +787,8 @@ export const useVSCodeSender = () => {
   // =========================================================================
 
   const loadConversation = useCallback((filename: string, source?: 'internal' | 'cli', cliPath?: string) => {
+    console.log('[loadConversation] Called with:', { filename, source, cliPath });
+    console.log('[loadConversation] Stack trace:', new Error().stack);
     vscode.postMessage({ type: 'loadConversation', filename, source, cliPath });
   }, []);
 
