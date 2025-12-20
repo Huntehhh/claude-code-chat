@@ -2,10 +2,16 @@
  * PermissionsManager - Handles tool permission management
  *
  * Manages permission requests, approvals, and local permission storage.
+ * Includes:
+ * - Minimatch glob pattern support for flexible command matching
+ * - Hardcoded deny list for dangerous commands
+ * - Audit logging for permission decisions
  */
 
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
+import { minimatch } from 'minimatch';
 
 export interface PermissionRequest {
   requestId: string;
@@ -24,10 +30,87 @@ export interface PermissionsManagerCallbacks {
   onPermissionRequest: (requestId: string, toolName: string, input: Record<string, unknown>, pattern?: string, suggestions?: unknown[], decisionReason?: string, blockedPath?: string) => void;
 }
 
+/** Audit log entry for permission decisions */
+export interface AuditEntry {
+  timestamp: string;
+  action: 'approved' | 'denied' | 'auto-approved' | 'blocked';
+  toolName: string;
+  command?: string;
+  pattern?: string;
+  reason?: string;
+}
+
+/**
+ * Dangerous command patterns that should NEVER be auto-approved.
+ * These will always trigger a permission prompt, even if broader patterns are allowed.
+ */
+const BLOCKED_COMMAND_PATTERNS: readonly string[] = [
+  // Destructive file operations
+  'rm -rf /',
+  'rm -rf ~',
+  'rm -rf *',
+  'rm -rf .',
+  'sudo rm -rf',
+  'sudo rm -r /',
+
+  // Privilege escalation
+  'sudo su',
+  'sudo bash',
+  'sudo sh',
+  'sudo -i',
+  'sudo -s',
+
+  // System destruction
+  'mkfs',
+  'mkfs.*',
+  'dd if=*of=/dev/*',
+  'dd of=/dev/sda',
+  'dd of=/dev/nvme',
+  '> /dev/sda',
+  '> /dev/nvme',
+
+  // Fork bombs and resource exhaustion
+  ':(){:|:&};:',
+  ':(){ :|:& };:',
+
+  // Dangerous permission changes
+  'chmod 777 /',
+  'chmod -R 777 /',
+  'chown -R * /',
+
+  // Remote code execution
+  'curl * | bash',
+  'curl * | sh',
+  'wget * | bash',
+  'wget * | sh',
+  'curl -s * | bash',
+  'wget -q * | bash',
+
+  // History/log manipulation (potential cover-up)
+  'history -c',
+  'rm ~/.bash_history',
+  'rm -rf /var/log',
+
+  // Network attacks
+  ':(){ :|:& };:',
+  'fork bomb',
+] as const;
+
+/**
+ * Additional patterns that are blocked but may have legitimate uses.
+ * These generate warnings but can be overridden with explicit permission.
+ */
+const WARNED_COMMAND_PATTERNS: readonly string[] = [
+  'sudo *',           // Any sudo command (warn but allow if explicitly approved)
+  'chmod 777 *',      // World-writable permissions
+  'rm -rf *',         // Recursive force delete (context-dependent)
+] as const;
+
 export class PermissionsManager {
   private _context: vscode.ExtensionContext;
   private _callbacks: PermissionsManagerCallbacks;
   private _pendingRequests: Map<string, PermissionRequest> = new Map();
+  private _auditLogPath: string | undefined;
 
   constructor(
     context: vscode.ExtensionContext,
@@ -35,6 +118,75 @@ export class PermissionsManager {
   ) {
     this._context = context;
     this._callbacks = callbacks;
+    this._initializeAuditLog();
+  }
+
+  /**
+   * Initialize audit log path
+   */
+  private async _initializeAuditLog(): Promise<void> {
+    try {
+      const storagePath = this._context.storageUri?.fsPath;
+      if (!storagePath) return;
+
+      const permissionsDir = path.join(storagePath, 'permissions');
+      try {
+        await vscode.workspace.fs.stat(vscode.Uri.file(permissionsDir));
+      } catch {
+        await vscode.workspace.fs.createDirectory(vscode.Uri.file(permissionsDir));
+      }
+
+      this._auditLogPath = path.join(permissionsDir, 'audit.jsonl');
+    } catch (error) {
+      console.error('Failed to initialize audit log:', error);
+    }
+  }
+
+  /**
+   * Check if a command is in the blocked list
+   * @returns Object with blocked status and reason
+   */
+  isCommandBlocked(command: string): { blocked: boolean; reason?: string } {
+    // Normalize: trim, lowercase, and collapse multiple spaces to prevent bypass
+    const normalizedCommand = command.trim().toLowerCase().replace(/\s+/g, ' ');
+
+    for (const pattern of BLOCKED_COMMAND_PATTERNS) {
+      // Check for exact match or pattern match
+      if (normalizedCommand === pattern.toLowerCase()) {
+        return { blocked: true, reason: `Matches blocked pattern: ${pattern}` };
+      }
+
+      // Check if command contains the dangerous pattern
+      if (pattern.includes('*')) {
+        // Convert simple glob to regex for contains check
+        const regexPattern = pattern
+          .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+          .replace(/\*/g, '.*');
+        const regex = new RegExp(regexPattern, 'i');
+        if (regex.test(normalizedCommand)) {
+          return { blocked: true, reason: `Matches blocked pattern: ${pattern}` };
+        }
+      } else if (normalizedCommand.includes(pattern.toLowerCase())) {
+        return { blocked: true, reason: `Contains blocked command: ${pattern}` };
+      }
+    }
+
+    return { blocked: false };
+  }
+
+  /**
+   * Check if a command triggers a warning (but is not fully blocked)
+   */
+  isCommandWarned(command: string): { warned: boolean; reason?: string } {
+    const normalizedCommand = command.trim();
+
+    for (const pattern of WARNED_COMMAND_PATTERNS) {
+      if (this._matchesPattern(normalizedCommand, pattern)) {
+        return { warned: true, reason: `Potentially dangerous: matches ${pattern}` };
+      }
+    }
+
+    return { warned: false };
   }
 
   /**
@@ -42,6 +194,24 @@ export class PermissionsManager {
    */
   async isToolPreApproved(toolName: string, input: Record<string, unknown>): Promise<boolean> {
     try {
+      // First, check blocked list for Bash commands
+      if (toolName === 'Bash' && input.command) {
+        const command = (input.command as string).trim();
+        const { blocked, reason } = this.isCommandBlocked(command);
+
+        if (blocked) {
+          console.warn(`Blocked dangerous command: ${command} - ${reason}`);
+          await this._logAuditEntry({
+            timestamp: new Date().toISOString(),
+            action: 'blocked',
+            toolName,
+            command,
+            reason
+          });
+          return false; // Force permission prompt
+        }
+      }
+
       const storagePath = this._context.storageUri?.fsPath;
       if (!storagePath) return false;
 
@@ -59,6 +229,13 @@ export class PermissionsManager {
 
       if (toolPermission === true) {
         // Tool is fully approved (all commands/inputs)
+        await this._logAuditEntry({
+          timestamp: new Date().toISOString(),
+          action: 'auto-approved',
+          toolName,
+          command: toolName === 'Bash' ? (input.command as string) : undefined,
+          reason: 'Tool fully approved'
+        });
         return true;
       }
 
@@ -67,6 +244,14 @@ export class PermissionsManager {
         const command = (input.command as string).trim();
         for (const pattern of toolPermission) {
           if (this._matchesPattern(command, pattern)) {
+            await this._logAuditEntry({
+              timestamp: new Date().toISOString(),
+              action: 'auto-approved',
+              toolName,
+              command,
+              pattern,
+              reason: `Matches pattern: ${pattern}`
+            });
             return true;
           }
         }
@@ -80,18 +265,102 @@ export class PermissionsManager {
   }
 
   /**
-   * Check if a command matches a permission pattern (supports * wildcard)
+   * Check if a command matches a permission pattern
+   * Supports:
+   * - Exact match
+   * - Simple wildcards (e.g., "npm install *")
+   * - Glob patterns via minimatch (e.g., "git {add,commit} *")
+   * - Regex patterns prefixed with / (e.g., "/^npm (install|i) .*/")
    */
   private _matchesPattern(command: string, pattern: string): boolean {
+    // Exact match
     if (pattern === command) return true;
 
-    // Handle wildcard patterns like "npm install *"
+    // Simple wildcard at end (backwards compatible)
     if (pattern.endsWith(' *')) {
       const prefix = pattern.slice(0, -1); // Remove the *
-      return command.startsWith(prefix);
+      if (command.startsWith(prefix)) return true;
+    }
+
+    // Regex pattern (prefixed with /)
+    if (pattern.startsWith('/') && pattern.endsWith('/')) {
+      try {
+        const regexStr = pattern.slice(1, -1);
+        const regex = new RegExp(regexStr);
+        if (regex.test(command)) return true;
+      } catch {
+        // Invalid regex, skip
+        console.warn(`Invalid regex pattern: ${pattern}`);
+      }
+    }
+
+    // Minimatch glob pattern
+    try {
+      if (minimatch(command, pattern, { nocase: true })) {
+        return true;
+      }
+    } catch {
+      // minimatch failed, continue
     }
 
     return false;
+  }
+
+  /**
+   * Log a permission decision to the audit log
+   * Uses fs.appendFile for O(1) atomic appends instead of read-modify-write
+   */
+  private async _logAuditEntry(entry: AuditEntry): Promise<void> {
+    if (!this._auditLogPath) return;
+
+    try {
+      const line = JSON.stringify(entry) + '\n';
+      // Use fs.appendFile for efficient O(1) append without reading entire file
+      await fs.promises.appendFile(this._auditLogPath, line, 'utf8');
+    } catch (error) {
+      console.error('Failed to write audit log:', error);
+    }
+  }
+
+  /**
+   * Read existing audit log content
+   * Uses fs.promises for consistency with appendFile
+   */
+  private async _readAuditLog(): Promise<string> {
+    if (!this._auditLogPath) return '';
+
+    try {
+      return await fs.promises.readFile(this._auditLogPath, 'utf8');
+    } catch {
+      return ''; // File doesn't exist yet
+    }
+  }
+
+  /**
+   * Get recent audit log entries
+   */
+  async getRecentAuditEntries(limit: number = 50): Promise<AuditEntry[]> {
+    try {
+      const content = await this._readAuditLog();
+      if (!content.trim()) return [];
+
+      const lines = content.trim().split('\n');
+      const entries: AuditEntry[] = [];
+
+      // Parse from end (most recent first)
+      for (let i = lines.length - 1; i >= 0 && entries.length < limit; i--) {
+        try {
+          const entry = JSON.parse(lines[i]) as AuditEntry;
+          entries.push(entry);
+        } catch {
+          // Skip malformed lines
+        }
+      }
+
+      return entries;
+    } catch {
+      return [];
+    }
   }
 
   /**
@@ -125,6 +394,25 @@ export class PermissionsManager {
       this._callbacks.onPermissionStatusUpdate(id, 'cancelled');
     }
     this._pendingRequests.clear();
+  }
+
+  /**
+   * Log a manual permission decision (approved/denied by user)
+   */
+  async logPermissionDecision(
+    toolName: string,
+    approved: boolean,
+    input: Record<string, unknown>,
+    pattern?: string
+  ): Promise<void> {
+    await this._logAuditEntry({
+      timestamp: new Date().toISOString(),
+      action: approved ? 'approved' : 'denied',
+      toolName,
+      command: toolName === 'Bash' ? (input.command as string) : undefined,
+      pattern,
+      reason: approved ? 'User approved' : 'User denied'
+    });
   }
 
   /**
@@ -429,5 +717,19 @@ export class PermissionsManager {
         }
       };
     }
+  }
+
+  /**
+   * Get the list of blocked command patterns (for UI display)
+   */
+  getBlockedPatterns(): readonly string[] {
+    return BLOCKED_COMMAND_PATTERNS;
+  }
+
+  /**
+   * Get the list of warned command patterns (for UI display)
+   */
+  getWarnedPatterns(): readonly string[] {
+    return WARNED_COMMAND_PATTERNS;
   }
 }

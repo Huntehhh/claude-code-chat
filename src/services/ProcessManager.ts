@@ -2,6 +2,7 @@
  * ProcessManager - Handles Claude process lifecycle and I/O
  *
  * Manages spawning, communication, and termination of the Claude CLI process.
+ * Includes heartbeat monitoring for zombie detection and graceful shutdown.
  */
 
 import * as vscode from 'vscode';
@@ -39,7 +40,22 @@ export interface ProcessManagerCallbacks {
   onStderr: (data: string) => void;
   onClose: (code: number | null, errorOutput: string) => void;
   onError: (error: Error) => void;
+  /** Called when process becomes unresponsive (optional) */
+  onUnresponsive?: () => void;
 }
+
+/** Heartbeat configuration */
+interface HeartbeatConfig {
+  /** Interval between heartbeat checks in ms (default: 30000) */
+  intervalMs: number;
+  /** Timeout to consider process unresponsive in ms (default: 5000) */
+  timeoutMs: number;
+}
+
+const DEFAULT_HEARTBEAT_CONFIG: HeartbeatConfig = {
+  intervalMs: 30000,
+  timeoutMs: 5000
+};
 
 export class ProcessManager {
   private _currentProcess: cp.ChildProcess | undefined;
@@ -49,8 +65,15 @@ export class ProcessManager {
   private _callbacks: ProcessManagerCallbacks;
   private _errorOutput: string = '';
 
-  constructor(callbacks: ProcessManagerCallbacks) {
+  // Heartbeat monitoring
+  private _heartbeatInterval: NodeJS.Timeout | undefined;
+  private _heartbeatTimeout: NodeJS.Timeout | undefined;
+  private _lastActivityTime: number = 0;
+  private _heartbeatConfig: HeartbeatConfig;
+
+  constructor(callbacks: ProcessManagerCallbacks, heartbeatConfig?: Partial<HeartbeatConfig>) {
     this._callbacks = callbacks;
+    this._heartbeatConfig = { ...DEFAULT_HEARTBEAT_CONFIG, ...heartbeatConfig };
   }
 
   /**
@@ -60,6 +83,7 @@ export class ProcessManager {
     // Create new AbortController for this process
     this._abortController = new AbortController();
     this._errorOutput = '';
+    this._lastActivityTime = Date.now();
 
     let claudeProcess: cp.ChildProcess;
 
@@ -71,6 +95,7 @@ export class ProcessManager {
 
     this._currentProcess = claudeProcess;
     this._setupEventHandlers(claudeProcess);
+    this._startHeartbeat(claudeProcess);
 
     return claudeProcess;
   }
@@ -133,12 +158,14 @@ export class ProcessManager {
   private _setupEventHandlers(claudeProcess: cp.ChildProcess): void {
     if (claudeProcess.stdout) {
       claudeProcess.stdout.on('data', (data) => {
+        this._recordActivity();
         this._callbacks.onStdout(data.toString());
       });
     }
 
     if (claudeProcess.stderr) {
       claudeProcess.stderr.on('data', (data) => {
+        this._recordActivity();
         const str = data.toString();
         this._errorOutput += str;
         this._callbacks.onStderr(str);
@@ -148,6 +175,8 @@ export class ProcessManager {
     claudeProcess.on('close', (code) => {
       console.log('Claude process closed with code:', code);
       console.log('Claude stderr output:', this._errorOutput);
+
+      this._stopHeartbeat();
 
       if (!this._currentProcess) {
         return;
@@ -160,6 +189,8 @@ export class ProcessManager {
     claudeProcess.on('error', (error) => {
       console.log('Claude process error:', error.message);
 
+      this._stopHeartbeat();
+
       if (!this._currentProcess) {
         return;
       }
@@ -170,10 +201,80 @@ export class ProcessManager {
   }
 
   /**
+   * Record activity timestamp (used by heartbeat monitoring)
+   */
+  private _recordActivity(): void {
+    this._lastActivityTime = Date.now();
+  }
+
+  /**
+   * Start heartbeat monitoring for the process
+   */
+  private _startHeartbeat(claudeProcess: cp.ChildProcess): void {
+    this._stopHeartbeat(); // Clear any existing heartbeat
+
+    this._heartbeatInterval = setInterval(() => {
+      if (!this.isRunning()) {
+        this._stopHeartbeat();
+        return;
+      }
+
+      // Check if we've received any activity recently
+      const timeSinceActivity = Date.now() - this._lastActivityTime;
+
+      // If there's been recent activity, process is healthy
+      if (timeSinceActivity < this._heartbeatConfig.intervalMs) {
+        return;
+      }
+
+      // No recent activity - start timeout for unresponsive check
+      // We'll consider the process unresponsive if no activity after timeout
+      console.log('No recent process activity, starting unresponsive check...');
+
+      // Clear any existing timeout to prevent stacking
+      if (this._heartbeatTimeout) {
+        clearTimeout(this._heartbeatTimeout);
+        this._heartbeatTimeout = undefined;
+      }
+
+      this._heartbeatTimeout = setTimeout(async () => {
+        // Double-check: if still no activity, consider unresponsive
+        const currentTimeSinceActivity = Date.now() - this._lastActivityTime;
+
+        if (currentTimeSinceActivity > this._heartbeatConfig.intervalMs + this._heartbeatConfig.timeoutMs) {
+          console.warn('Process appears unresponsive, triggering recovery...');
+
+          // Notify callback if provided
+          this._callbacks.onUnresponsive?.();
+
+          // Kill and let the callback handler decide whether to restart
+          await this.kill();
+          this._callbacks.onError(new Error('Process became unresponsive (no activity for extended period)'));
+        }
+      }, this._heartbeatConfig.timeoutMs);
+    }, this._heartbeatConfig.intervalMs);
+  }
+
+  /**
+   * Stop heartbeat monitoring
+   */
+  private _stopHeartbeat(): void {
+    if (this._heartbeatInterval) {
+      clearInterval(this._heartbeatInterval);
+      this._heartbeatInterval = undefined;
+    }
+    if (this._heartbeatTimeout) {
+      clearTimeout(this._heartbeatTimeout);
+      this._heartbeatTimeout = undefined;
+    }
+  }
+
+  /**
    * Write data to the process stdin
    */
   write(data: string): boolean {
     if (this._currentProcess?.stdin && !this._currentProcess.stdin.destroyed) {
+      this._recordActivity(); // Writing is also activity
       return this._currentProcess.stdin.write(data);
     }
     return false;
@@ -190,10 +291,14 @@ export class ProcessManager {
 
   /**
    * Kill the Claude process and all its children
+   * Uses graceful shutdown sequence: stdin → SIGTERM → SIGKILL
    */
   async kill(): Promise<void> {
     const processToKill = this._currentProcess;
     const pid = processToKill?.pid;
+
+    // Stop monitoring immediately
+    this._stopHeartbeat();
 
     // 1. Abort via controller (clean API)
     this._abortController?.abort();
@@ -208,31 +313,67 @@ export class ProcessManager {
 
     console.log(`Terminating Claude process group (PID: ${pid})...`);
 
-    // 3. Kill process group (handles children)
+    // 3. Try graceful shutdown via stdin first
+    if (processToKill?.stdin && !processToKill.stdin.destroyed) {
+      try {
+        console.log('Attempting graceful shutdown via stdin...');
+        processToKill.stdin.write(JSON.stringify({ type: 'shutdown' }) + '\n');
+        processToKill.stdin.end();
+
+        // Wait briefly for graceful exit
+        const gracefulExit = await this._waitForExit(processToKill, 500);
+        if (gracefulExit) {
+          console.log('Process exited gracefully via stdin signal');
+          return;
+        }
+      } catch {
+        // stdin write failed, continue with signals
+      }
+    }
+
+    // 4. SIGTERM - polite termination request
+    console.log('Sending SIGTERM...');
     await this._killProcessGroup(pid, 'SIGTERM');
 
-    // 4. Wait for process to exit, with timeout
-    const exitPromise = new Promise<void>((resolve) => {
-      if (processToKill?.killed) {
-        resolve();
-        return;
-      }
-      processToKill?.once('exit', () => resolve());
-    });
+    // Wait for process to exit with timeout
+    const sigTermExit = await this._waitForExit(processToKill, 2000);
+    if (sigTermExit) {
+      console.log('Process exited via SIGTERM');
+      return;
+    }
 
-    const timeoutPromise = new Promise<void>((resolve) => {
-      setTimeout(() => resolve(), 2000);
-    });
-
-    await Promise.race([exitPromise, timeoutPromise]);
-
-    // 5. Force kill if still running
+    // 5. SIGKILL as last resort
     if (processToKill && !processToKill.killed) {
-      console.log(`Force killing Claude process group (PID: ${pid})...`);
+      console.log(`Force killing Claude process group (PID: ${pid}) with SIGKILL...`);
       await this._killProcessGroup(pid, 'SIGKILL');
     }
 
     console.log('Claude process group terminated');
+  }
+
+  /**
+   * Wait for process to exit with timeout
+   * @returns true if process exited, false if timeout
+   */
+  private async _waitForExit(process: cp.ChildProcess, timeoutMs: number): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      if (process.killed || process.exitCode !== null) {
+        resolve(true);
+        return;
+      }
+
+      const timeout = setTimeout(() => {
+        process.off('exit', onExit);
+        resolve(false);
+      }, timeoutMs);
+
+      const onExit = () => {
+        clearTimeout(timeout);
+        resolve(true);
+      };
+
+      process.once('exit', onExit);
+    });
   }
 
   private async _killProcessGroup(pid: number, signal: string = 'SIGTERM'): Promise<void> {
@@ -293,5 +434,19 @@ export class ProcessManager {
    */
   getWSLDistro(): string {
     return this._wslDistro;
+  }
+
+  /**
+   * Get time since last activity in ms
+   */
+  getTimeSinceLastActivity(): number {
+    return Date.now() - this._lastActivityTime;
+  }
+
+  /**
+   * Manually trigger activity recording (useful for external events)
+   */
+  recordExternalActivity(): void {
+    this._recordActivity();
   }
 }
