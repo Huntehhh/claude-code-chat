@@ -231,6 +231,12 @@ export class ProcessManager {
       // We'll consider the process unresponsive if no activity after timeout
       console.log('No recent process activity, starting unresponsive check...');
 
+      // Clear any existing timeout to prevent stacking
+      if (this._heartbeatTimeout) {
+        clearTimeout(this._heartbeatTimeout);
+        this._heartbeatTimeout = undefined;
+      }
+
       this._heartbeatTimeout = setTimeout(async () => {
         // Double-check: if still no activity, consider unresponsive
         const currentTimeSinceActivity = Date.now() - this._lastActivityTime;

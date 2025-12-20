@@ -660,10 +660,12 @@ export class ConversationManager {
       });
 
       rl.on('error', (error) => {
+        fileStream.destroy(); // Ensure handle is released
         reject(error);
       });
 
       fileStream.on('error', (error) => {
+        fileStream.destroy(); // Ensure handle is released
         reject(error);
       });
     });
@@ -1014,6 +1016,12 @@ export class ConversationManager {
       });
 
       rl.on('error', () => {
+        fileStream.destroy(); // Ensure handle is released
+        resolve(null);
+      });
+
+      fileStream.on('error', () => {
+        fileStream.destroy(); // Ensure handle is released
         resolve(null);
       });
     });

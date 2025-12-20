@@ -10,6 +10,7 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
 import { minimatch } from 'minimatch';
 
 export interface PermissionRequest {
@@ -146,7 +147,8 @@ export class PermissionsManager {
    * @returns Object with blocked status and reason
    */
   isCommandBlocked(command: string): { blocked: boolean; reason?: string } {
-    const normalizedCommand = command.trim().toLowerCase();
+    // Normalize: trim, lowercase, and collapse multiple spaces to prevent bypass
+    const normalizedCommand = command.trim().toLowerCase().replace(/\s+/g, ' ');
 
     for (const pattern of BLOCKED_COMMAND_PATTERNS) {
       // Check for exact match or pattern match
@@ -306,19 +308,15 @@ export class PermissionsManager {
 
   /**
    * Log a permission decision to the audit log
+   * Uses fs.appendFile for O(1) atomic appends instead of read-modify-write
    */
   private async _logAuditEntry(entry: AuditEntry): Promise<void> {
     if (!this._auditLogPath) return;
 
     try {
       const line = JSON.stringify(entry) + '\n';
-      const existingContent = await this._readAuditLog();
-      const newContent = existingContent + line;
-
-      await vscode.workspace.fs.writeFile(
-        vscode.Uri.file(this._auditLogPath),
-        new TextEncoder().encode(newContent)
-      );
+      // Use fs.appendFile for efficient O(1) append without reading entire file
+      await fs.promises.appendFile(this._auditLogPath, line, 'utf8');
     } catch (error) {
       console.error('Failed to write audit log:', error);
     }
@@ -326,13 +324,13 @@ export class PermissionsManager {
 
   /**
    * Read existing audit log content
+   * Uses fs.promises for consistency with appendFile
    */
   private async _readAuditLog(): Promise<string> {
     if (!this._auditLogPath) return '';
 
     try {
-      const content = await vscode.workspace.fs.readFile(vscode.Uri.file(this._auditLogPath));
-      return new TextDecoder().decode(content);
+      return await fs.promises.readFile(this._auditLogPath, 'utf8');
     } catch {
       return ''; // File doesn't exist yet
     }
