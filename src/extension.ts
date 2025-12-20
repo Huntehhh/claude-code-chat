@@ -717,6 +717,9 @@ class ClaudeChatProvider {
 		const webview = this._getActiveWebview();
 		if (webview) {
 			webview.postMessage(message);
+		} else {
+			// No valid webview found - log this for debugging
+			console.error('[_postMessage] No valid webview found for message:', message.type);
 		}
 	}
 
@@ -1919,8 +1922,9 @@ class ClaudeChatProvider {
 									startTime = obj.timestamp;
 								}
 							}
-						} catch {
-							// Skip invalid JSON lines
+						} catch (e) {
+							// Log parsing errors for debugging (but don't stop scanning)
+							console.warn(`[CLI Scan] Failed to parse line in ${filename}:`, (line || '').substring(0, 100), e);
 						}
 					}
 
@@ -2843,14 +2847,21 @@ class ClaudeChatProvider {
 			const text = new TextDecoder().decode(content);
 			const lines = text.trim().split('\n').filter(l => l.trim());
 
+			console.log(`[CLI Load] Processing ${lines.length} lines from ${filePath}`);
+
 			// Clear UI first
 			this._postMessage({ type: 'sessionCleared' });
 
-			// Parse JSONL and send messages
+			// Parse JSONL and send messages (200ms delay to allow UI to clear)
 			setTimeout(() => {
+				let postedCount = 0;
+				let parsedCount = 0;
+				let errorCount = 0;
+
 				for (const line of lines) {
 					try {
 						const obj = JSON.parse(line);
+						parsedCount++;
 
 						// Convert CLI message types to our format
 						switch (obj.type) {
@@ -2878,6 +2889,7 @@ class ClaudeChatProvider {
 											type: 'userInput',
 											data: userContent
 										});
+										postedCount++;
 									}
 								}
 								break;
@@ -2890,6 +2902,7 @@ class ClaudeChatProvider {
 												type: 'output',
 												data: block.text
 											});
+											postedCount++;
 										} else if (block.type === 'tool_use') {
 											// Format tool info for display
 											const input = block.input || {};
@@ -2930,6 +2943,7 @@ class ClaudeChatProvider {
 													toolUseId: block.id
 												}
 											});
+											postedCount++;
 										}
 									}
 								}
@@ -2944,6 +2958,7 @@ class ClaudeChatProvider {
 											result: typeof obj.result === 'string' ? obj.result : JSON.stringify(obj.result)
 										}
 									});
+									postedCount++;
 								}
 								break;
 
@@ -2954,17 +2969,23 @@ class ClaudeChatProvider {
 										type: 'system',
 										data: `Session: ${obj.summary}`
 									});
+									postedCount++;
 								}
 								break;
 						}
-					} catch {
-						// Skip invalid JSON lines
+					} catch (e) {
+						// Log parsing errors for debugging
+						errorCount++;
+						console.error(`[CLI Load] Failed to parse line ${parsedCount}:`, (line || '').substring(0, 200), e);
 					}
 				}
 
+				// Log summary of loading
+				console.log(`[CLI Load] Complete: ${parsedCount} parsed, ${postedCount} posted, ${errorCount} errors`);
+
 				// Scroll to bottom after loading
 				this._postMessage({ type: 'scrollToBottom' });
-			}, 100);
+			}, 200);
 
 		} catch (error: any) {
 			console.error('Failed to load CLI conversation:', error.message);
