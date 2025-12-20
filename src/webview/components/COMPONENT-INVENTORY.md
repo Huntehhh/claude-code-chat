@@ -83,6 +83,14 @@ fontFamily: {
 **File:** `ui/separator.tsx`
 **shadcn:** Use existing
 
+### 12. TokenDisplay
+**File:** `ui/token-display.tsx`
+**Custom:** Yes (popover with token usage stats)
+**CVA Variants:**
+- `state`: idle, streaming
+**Sub-components:** TokenRow, TokenSection
+**Props:** `inputTokens`, `outputTokens`, `totalCost`, `isStreaming`, `formatTokens`, `onSettingsClick`
+
 ---
 
 ## MOLECULES (`molecules/`)
