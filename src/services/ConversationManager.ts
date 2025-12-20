@@ -61,7 +61,7 @@ const ContentArraySchema = z.array(
   ])
 );
 
-/** User message schema */
+/** User message schema - passthrough allows extra fields like parentUuid, isSidechain, thinkingMetadata, etc. */
 const UserMessageSchema = z.object({
   type: z.enum(['user', 'human']),
   timestamp: z.string().optional(),
@@ -70,12 +70,12 @@ const UserMessageSchema = z.object({
   message: z.object({
     role: z.literal('user').optional(),
     content: z.union([z.string(), ContentArraySchema])
-  }).optional(),
+  }).passthrough().optional(),
   content: z.union([z.string(), ContentArraySchema]).optional(),
   text: z.string().optional()
-});
+}).passthrough();
 
-/** Assistant message schema */
+/** Assistant message schema - passthrough allows extra fields */
 const AssistantMessageSchema = z.object({
   type: z.literal('assistant'),
   timestamp: z.string().optional(),
@@ -87,26 +87,26 @@ const AssistantMessageSchema = z.object({
     content: z.union([z.string(), ContentArraySchema]),
     model: z.string().optional(),
     stop_reason: z.string().optional()
-  }).optional(),
+  }).passthrough().optional(),
   content: z.union([z.string(), ContentArraySchema]).optional()
-});
+}).passthrough();
 
-/** Tool result entry schema */
+/** Tool result entry schema - passthrough allows extra fields */
 const ToolResultEntrySchema = z.object({
   type: z.literal('tool_result'),
   timestamp: z.string().optional(),
   tool_use_id: z.string().optional(),
   content: z.union([z.string(), z.array(z.unknown())]).optional(),
   is_error: z.boolean().optional()
-});
+}).passthrough();
 
-/** Queue operation schema (for queued messages) */
+/** Queue operation schema (for queued messages) - passthrough allows extra fields */
 const QueueOperationSchema = z.object({
   type: z.literal('queue-operation'),
   operation: z.string(),
   content: z.string().optional(),
   timestamp: z.string().optional()
-});
+}).passthrough();
 
 /** System/init message schema */
 const SystemMessageSchema = z.object({
