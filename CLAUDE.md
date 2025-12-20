@@ -37,6 +37,8 @@ Whenever a user asks for "high-level documentation" Markdown Document, you shall
 
 ## Git Rules
 
+**Local only.** Never push to remote unless user explicitly asks.
+
 ### Sparse Checkout Workflow
 
 **NEVER work directly on `main`.** Create a sparse worktree with ONLY the files you need.
