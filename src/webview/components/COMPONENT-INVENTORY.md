@@ -89,7 +89,7 @@ fontFamily: {
 **CVA Variants:**
 - `state`: idle, streaming
 **Sub-components:** TokenRow, TokenSection
-**Props:** `inputTokens`, `outputTokens`, `totalCost`, `isStreaming`, `formatTokens`, `onSettingsClick`
+**Props:** `inputTokens`, `outputTokens`, `totalCost`, `isStreaming`, `onSettingsClick`
 
 ---
 

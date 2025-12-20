@@ -23,11 +23,9 @@ export interface ChatInputProps extends React.HTMLAttributes<HTMLDivElement> {
   status?: 'ready' | 'processing' | 'error';
   contextUsage?: number;
   placeholder?: string;
-  /** Total input tokens for display */
+  /** Token display data */
   inputTokens?: number;
-  /** Total output tokens for display */
   outputTokens?: number;
-  /** Total cost in USD for display */
   totalCost?: number;
 }
 

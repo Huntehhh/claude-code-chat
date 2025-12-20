@@ -11,10 +11,12 @@ Generate well-structured prompts for Google Stitch to create high-fidelity UI de
 
 Google Stitch is an AI-powered UI design tool (Gemini 2.5) that generates responsive interfaces from natural language. This skill helps craft effective prompts that produce consistent, high-quality results.
 
-**Default Mode:** High-fidelity for detailed, polished designs.
-*Use Experimental mode when available. If it requires an image, upload a placeholder or use Standard.*
+**Default Output:** Detailed, structured prompts with specific measurements, hex colors, and component specs. Follow the examples in [references/examples.md](references/examples.md).
 
-**Alternative:** Standard mode (fast) for quick Figma exports or wireframes.
+**Stitch UI Modes:**
+- *Experimental* — Recommended when available (best quality)
+- *High-fidelity* — Use if Experimental requires image upload
+- *Standard* — Fast mode for quick wireframes or Figma exports
 
 ## Workflow
 
@@ -38,7 +40,7 @@ Every Stitch prompt follows this pattern:
 5. STATES       → Interactions and behaviors (optional but recommended)
 ```
 
-**Target length:** 500-700 characters. Dense and specific, not verbose.
+**Target length:** 800-1500 characters for full screens. Use structured bullets with specs, not prose paragraphs. Favor density over verbosity.
 
 ### 3. Refine with Follow-up Prompts
 
@@ -50,32 +52,46 @@ For changes after initial generation:
 
 ## Output Format
 
-Present prompts in a code block with clear structure:
+**Multi-screen prompts:** Stitch can generate 2 screens per prompt. Use clear header labels to delineate each screen. This is faster than one-screen-per-prompt.
 
 ```
-[Platform] [page type] for [context/app name].
+Generate two screens for [app name]:
+
+=== SCREEN 1: [Name] ===
+
+[Context and purpose]
 
 LAYOUT:
-- [Component 1]: [specs]
-- [Component 2]: [specs]
-- [Component 3]: [specs]
+- [Component specs...]
 
 STYLE:
-- Background: [hex color]
-- Accents: [hex colors]
-- Typography: [font style]
-- Theme: [mood adjectives]
+- [Color/typography specs...]
 
-STATES (optional):
-- [Interaction behaviors]
+STATES:
+- [State variations if needed]
+
+=== SCREEN 2: [Name] ===
+
+[Context and purpose]
+
+LAYOUT:
+- [Component specs...]
+
+STYLE:
+- [Same theme or variations...]
+
+STATES:
+- [State variations if needed]
 ```
 
-Output the prompt in a code block. Minimize conversational preamble.
+**Single screen or modal with states:** One screen can show multiple states side-by-side (e.g., Install modal → Installing → Complete).
+
+Output prompts in a code block. Minimize conversational preamble.
 
 ## Golden Rules
 
 1. **Be specific and incremental** — Generic prompts → generic results
-2. **One major change per prompt** — Multiple changes break layouts
+2. **One major change per refinement** — When editing existing screens, one change at a time (initial generation can have 2 screens)
 3. **Use UI/UX terminology** — "CTA button", "hero section", "card layout"
 4. **NO ASCII DIAGRAMS** — Stitch reads them as literal text. Use prose descriptions.
 
@@ -94,15 +110,20 @@ See [references/best-practices.md](references/best-practices.md) for detailed ru
 
 ## Build Order Pattern
 
-For complex apps, generate screens in sequence:
+For complex apps, generate screens in batches of 2 per prompt:
 
-1. **Foundation** — Complete app layout (header, main area, input, status)
-2. **Content** — Messages, cards, data displays
-3. **Controls** — Inputs, toggles, dropdowns, buttons
-4. **Modals** — Settings, dialogs, overlays
-5. **States** — Loading, error, empty states
-6. **Polish** — Micro-interactions, animations, final refinements
+| Prompt | Screens |
+|--------|---------|
+| 1 | Foundation layout + Main content area |
+| 2 | Input controls + Status elements |
+| 3 | Settings modal + Model selector modal |
+| 4 | History panel + Slash commands modal |
+| 5 | Install modal (with states) + Think intensity dialog |
+| 6 | Loading states + Error states |
 
-Each prompt builds on the previous. Generate one screen at a time.
+**Tips:**
+- Group related screens in same prompt (e.g., two modals, or a screen + its states)
+- One screen can show multiple states side-by-side (Install → Installing → Complete)
+- Each prompt builds on previous. Verify output before next batch.
 
-**For multi-screen build orders (>3 screens):** Use the Task tool to generate the full sequence in a separate file `stitch-build-order.md` rather than outputting all prompts to the main chat.
+**For large build orders (>6 prompts):** Use the Task tool to generate the full sequence in a separate file `stitch-build-order.md`.

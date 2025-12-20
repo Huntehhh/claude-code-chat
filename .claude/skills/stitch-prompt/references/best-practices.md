@@ -40,12 +40,13 @@ Standard vocabulary yields better results than generic descriptions.
 
 | Length | Risk Level | Use Case |
 |--------|------------|----------|
-| < 500 chars | ✅ Safe | Single component refinement |
-| 500-700 chars | ✅ Optimal | Full screen, dense details |
-| 700-2000 chars | ⚠️ Caution | Complex screen with many components |
-| > 2000 chars | ❌ Risky | Will likely omit content |
+| < 500 chars | ✅ Safe | Single component or refinement |
+| 500-800 chars | ✅ Good | Simple screen or targeted update |
+| 800-1500 chars | ✅ Optimal | Full screen with multiple components |
+| 1500-2500 chars | ⚠️ Caution | Complex screen, may need splitting |
+| > 2500 chars | ❌ Risky | Will likely omit content |
 
-**Principle:** Favor density over verbosity. 600 specific characters beats 2000 vague ones.
+**Principle:** Use structured bullets with specs, not prose paragraphs. 1000 specific characters in bullet format beats 2000 vague prose.
 
 ---
 

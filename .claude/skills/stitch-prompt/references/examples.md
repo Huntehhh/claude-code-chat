@@ -8,6 +8,7 @@ Real-world prompt patterns demonstrating the 5-part structure.
 - [Example 3: Input Controls](#example-3-input-controls)
 - [Example 4: Modal Design](#example-4-modal-design)
 - [Example 5: Refinement Prompt](#example-5-refinement-prompt)
+- [Example 6: Multi-Screen Prompt](#example-6-multi-screen-prompt-2-screens)
 - [Build Order Pattern](#build-order-pattern)
 
 ---
@@ -194,6 +195,61 @@ Keep all existing styling, colors, spacing.
 - State "DO NOT recreate"
 - Describe change precisely
 - Confirm what to preserve
+
+---
+
+## Example 6: Multi-Screen Prompt (2 screens)
+
+**Use case:** Generate two related screens in a single prompt.
+
+```
+Generate two modal dialogs for Claude Code Chat extension:
+
+=== SCREEN 1: Install Modal ===
+
+Modal dialog showing Claude Code installation flow with 3 states side-by-side.
+
+STYLE: VS Code dark theme, #0f0f0f background, #FFA344 accent.
+
+STATE 1 - "Install Claude Code":
+- Modal: 240px wide, #171717 bg, 1px #222225 border, sharp corners
+- Icon: download arrow, 24px, #FFA344
+- Title: "Install Claude Code" 14px #fafafa
+- Subtitle: "Required for this extension" 11px #8b8b94
+- Button: "Install Now" full-width, #FFA344 bg, #0f0f0f text
+- Link: "View documentation" 11px #52525b underline
+
+STATE 2 - "Installing":
+- Same modal shell
+- Icon: spinning loader ring, #FFA344
+- Title: "Installing..." 14px #fafafa
+- Subtitle: "This may take a minute" 11px #8b8b94
+
+STATE 3 - "Installation Complete":
+- Same modal shell
+- Icon: checkmark circle, #FFA344
+- Title: "Installation Complete" 14px #fafafa
+- Subtitle: "Start chatting" 11px #8b8b94
+
+=== SCREEN 2: Think Intensity Dialog ===
+
+Small modal for adjusting thinking depth slider.
+
+LAYOUT:
+- Modal: 280px wide, same dark styling as Screen 1
+- Header: "Thinking Depth" 13px #fafafa + X close button
+- Subtitle: "Higher = deeper reasoning, more tokens" 10px #52525b
+- Slider: horizontal track #222225, thumb #fafafa, 100% width
+- Labels below slider: "Think" | "Hard" | "Harder" | "Ultra" (10px #52525b)
+- "Harder" highlighted in #fafafa (selected state)
+- Button: "Confirm" full-width, #FFA344 bg
+```
+
+**Key patterns:**
+- Two screens clearly delineated with `=== SCREEN N ===` headers
+- Screen 1 shows multiple states of same component
+- Screen 2 is a separate modal with different purpose
+- Shared style reference ("same dark styling as Screen 1")
 
 ---
 
