@@ -789,7 +789,6 @@ export const useVSCodeSender = () => {
 
   const loadConversation = useCallback((filename: string, source?: 'internal' | 'cli', cliPath?: string) => {
     console.log('[loadConversation] Called with:', { filename, source, cliPath });
-    console.log('[loadConversation] Stack trace:', new Error().stack);
     vscode.postMessage({ type: 'loadConversation', filename, source, cliPath });
   }, []);
 
