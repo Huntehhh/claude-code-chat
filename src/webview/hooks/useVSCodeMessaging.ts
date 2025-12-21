@@ -210,7 +210,8 @@ export function useVSCodeMessaging() {
           break;
         }
 
-        case 'output': {
+        case 'output':
+        case 'response': {
           const content = typeof msg.data === 'string' ? msg.data : (msg.data as { content: string }).content;
           addMessage({ type: 'claude', content, timestamp: Date.now() });
           break;

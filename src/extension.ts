@@ -1659,51 +1659,22 @@ class ClaudeChatProvider {
 	private async _createBackupCommit(userMessage: string): Promise<void> {
 		try {
 			const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-			if (!workspaceFolder || !this._backupRepoPath) { return; }
+			if (!workspaceFolder || !this._backupRepoPath || !this._gitService) { return; }
 
-			const workspacePath = workspaceFolder.uri.fsPath;
 			const now = new Date();
 			const timestamp = now.toISOString().replace(/[:.]/g, '-');
 			const displayTimestamp = now.toISOString();
-			const commitMessage = `Before: ${userMessage.substring(0, 50)}${userMessage.length > 50 ? '...' : ''}`;
 
-			// Add all files using git-dir and work-tree (excludes .git automatically)
-			await exec(`git --git-dir="${this._backupRepoPath}" --work-tree="${workspacePath}" add -A`);
-
-			// Check if this is the first commit (no HEAD exists yet)
-			let isFirstCommit = false;
-			try {
-				await exec(`git --git-dir="${this._backupRepoPath}" rev-parse HEAD`);
-			} catch {
-				isFirstCommit = true;
-			}
-
-			// Check if there are changes to commit
-			const { stdout: status } = await exec(`git --git-dir="${this._backupRepoPath}" --work-tree="${workspacePath}" status --porcelain`);
-
-			// Always create a checkpoint, even if no files changed
-			let actualMessage;
-			if (isFirstCommit) {
-				actualMessage = `Initial backup: ${userMessage.substring(0, 50)}${userMessage.length > 50 ? '...' : ''}`;
-			} else if (status.trim()) {
-				actualMessage = commitMessage;
-			} else {
-				actualMessage = `Checkpoint (no changes): ${userMessage.substring(0, 50)}${userMessage.length > 50 ? '...' : ''}`;
-			}
-
-			// Create commit with --allow-empty to ensure checkpoint is always created
-			await exec(`git --git-dir="${this._backupRepoPath}" --work-tree="${workspacePath}" commit --allow-empty -m "${actualMessage}"`);
-			const { stdout: sha } = await exec(`git --git-dir="${this._backupRepoPath}" rev-parse HEAD`);
+			// Use GitService to create backup commit safely (no shell injection, no buffer issues)
+			const commitInfo = await this._gitService.createCommit(userMessage);
 
 			// Store commit info
-			const commitInfo = {
+			this._commits.push({
 				id: `commit-${timestamp}`,
-				sha: sha.trim(),
-				message: actualMessage,
+				sha: commitInfo.sha,
+				message: commitInfo.message,
 				timestamp: displayTimestamp
-			};
-
-			this._commits.push(commitInfo);
+			});
 
 			// Show restore option in UI and save to conversation
 			this._sendAndSaveMessage({
@@ -1711,7 +1682,7 @@ class ClaudeChatProvider {
 				data: commitInfo
 			});
 
-			console.log(`Created backup commit: ${commitInfo.sha.substring(0, 8)} - ${actualMessage}`);
+			console.log(`Created backup commit: ${commitInfo.sha.substring(0, 8)} - ${commitInfo.message}`);
 		} catch (error: any) {
 			console.error('Failed to create backup commit:', error.message);
 		}
@@ -1742,8 +1713,12 @@ class ClaudeChatProvider {
 				data: 'Restoring files from backup...'
 			});
 
-			// Restore files directly to workspace using git checkout
-			await exec(`git --git-dir="${this._backupRepoPath}" --work-tree="${workspacePath}" checkout ${commitSha} -- .`);
+			// Restore files using safe GitService
+			if (!this._gitService) {
+				throw new Error('Git service not initialized');
+			}
+
+			await this._gitService.restoreCommit(commitSha);
 
 			vscode.window.showInformationMessage(`Restored to commit: ${commit.message}`);
 

@@ -1,130 +1,145 @@
-console.ts:139 [Extension Host] Claude Code Chat command executed! (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
-dom.ts:144 [Violation] Added non-passive event listener to a scroll-blocking 'wheel' event. Consider marking event handler as 'passive' to make the page more responsive. See https://www.chromestatus.com/feature/5745543795965952
-tUi @ dom.ts:144
-J @ dom.ts:165
-fc @ multiEditorTabsControl.ts:411
-bb @ multiEditorTabsControl.ts:191
-Vte @ editorTabsControl.ts:148
-Wte @ multiEditorTabsControl.ts:156
-o @ instantiationService.ts:162
-createInstance @ instantiationService.ts:128
-u @ editorTitleControl.ts:75
-bQe @ editorTitleControl.ts:56
-o @ instantiationService.ts:162
-createInstance @ instantiationService.ts:128
-NF @ editorGroupView.ts:215
-o @ instantiationService.ts:162
-createInstance @ instantiationService.ts:128
-createNew @ editorGroupView.ts:67
-$b @ editorPart.ts:643
-addGroup @ editorPart.ts:583
-addGroup @ editorParts.ts:662
-r @ mainThreadWebviewPanels.ts:234
-$createWebviewPanel @ mainThreadWebviewPanels.ts:157
-S @ rpcProtocol.ts:458
-Q @ rpcProtocol.ts:443
-M @ rpcProtocol.ts:373
-L @ rpcProtocol.ts:299
-(anonymous) @ rpcProtocol.ts:161
-C @ event.ts:1202
-fire @ event.ts:1233
-fire @ ipc.net.ts:652
-l.onmessage @ localProcessExtensionHost.ts:383
-webviewElement.ts:409 Unrecognized feature: 'local-network-access'.
-gb @ webviewElement.ts:409
-M$e @ webviewElement.ts:188
-PTt @ webviewElement.ts:60
-o @ instantiationService.ts:162
-createInstance @ instantiationService.ts:128
-createWebviewElement @ webviewService.ts:13
-P @ overlayWebview.ts:225
-claim @ overlayWebview.ts:136
-claim @ webviewEditorInput.ts:160
-hb @ webviewEditor.ts:172
-setInput @ webviewEditor.ts:163
-await in setInput
-S @ editorPanes.ts:464
-L @ editorPanes.ts:259
-openEditor @ editorPanes.ts:136
-(anonymous) @ editorGroupView.ts:1260
-Lb @ editorGroupView.ts:1284
-Kb @ editorGroupView.ts:1242
-openEditor @ editorGroupView.ts:1146
-openEditor @ editorService.ts:582
-openWebview @ webviewWorkbenchService.ts:283
-$createWebviewPanel @ mainThreadWebviewPanels.ts:166
-S @ rpcProtocol.ts:458
-Q @ rpcProtocol.ts:443
-M @ rpcProtocol.ts:373
-L @ rpcProtocol.ts:299
-(anonymous) @ rpcProtocol.ts:161
-C @ event.ts:1202
-fire @ event.ts:1233
-fire @ ipc.net.ts:652
-l.onmessage @ localProcessExtensionHost.ts:383
-webviewElement.ts:489 An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
-mountTo @ webviewElement.ts:489
-P @ overlayWebview.ts:250
-claim @ overlayWebview.ts:136
-claim @ webviewEditorInput.ts:160
-hb @ webviewEditor.ts:172
-setInput @ webviewEditor.ts:163
-await in setInput
-S @ editorPanes.ts:464
-L @ editorPanes.ts:259
-openEditor @ editorPanes.ts:136
-(anonymous) @ editorGroupView.ts:1260
-Lb @ editorGroupView.ts:1284
-Kb @ editorGroupView.ts:1242
-openEditor @ editorGroupView.ts:1146
-openEditor @ editorService.ts:582
-openWebview @ webviewWorkbenchService.ts:283
-$createWebviewPanel @ mainThreadWebviewPanels.ts:166
-S @ rpcProtocol.ts:458
-Q @ rpcProtocol.ts:443
-M @ rpcProtocol.ts:373
-L @ rpcProtocol.ts:299
-(anonymous) @ rpcProtocol.ts:161
-C @ event.ts:1202
-fire @ event.ts:1233
-fire @ ipc.net.ts:652
-l.onmessage @ localProcessExtensionHost.ts:383
+console.ts:139 [Extension Host] [CLI] Workspace path: c:\HApps\job-automation -> folder: c--HApps-job-automation (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] [CLI] Looking for conversations in: C:\Users\casil\.claude\projects\c--HApps-job-automation (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] [CLI] Found 1845 files in project folder (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] [CLI] Found 606 JSONL files (excluding agent files) (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Found 267 CLI conversations (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] [ConvList] Internal sessionIds: (2) ['9db85dde-9057-4a6c-a626-34abf883544e', '2f61bf8c-4f86-42a2-b336-58df514f2f29'] (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] [ConvList] Filtering out 2 duplicate CLI conversations: (2) ['9db85dde-9057-4a6c-a626-34abf883544e', '2f61bf8c-4f86-42a2-b336-58df514f2f29'] (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] [ConvList] Sending 267 conversations ( 2 internal + 265 CLI) (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+index.js:127 Ignored call to 'alert()'. The document is sandboxed, and the 'allow-modals' keyword is not set.
+onClick @ index.js:127
+wy @ index.js:5
+ky @ index.js:5
+Sy @ index.js:5
+Sg @ index.js:5
+Xm @ index.js:5
+(anonymous) @ index.js:5
+Vd @ index.js:8
+bm @ index.js:5
+ou @ index.js:5
+vd @ index.js:5
+By @ index.js:5
+index.js:127 [ConvItem] CLICK on: [Request interrupted by user] source: chat
+index.js:127 [HistoryPanel] onSelect called for: 2f61bf8c-4f86-42a2-b336-58df514f2f29 [Request interrupted by user] chat
+index.js:127 [SelectConv] historyConv: {id: '2f61bf8c-4f86-42a2-b336-58df514f2f29', title: '[Request interrupted by user]', source: 'chat', timestamp: '2025-12-12T22:43:44.210Z', messageCount: 57, …}
+index.js:127 [SelectConv] Looking for sessionId: 2f61bf8c-4f86-42a2-b336-58df514f2f29 with source: internal
+index.js:127 [SelectConv] Matching conversations: [{…}]
+index.js:127 [SelectConv] Source-specific match found? true
+index.js:127 [SelectConv] Loading with source: internal cliPath: undefined
+index.js:8 [loadConversation] Called with: {filename: '2025-12-12_22-43_request-interrupted-by-user.json', source: 'internal', cliPath: undefined}
+index.js:8 [loadConversation] Stack trace: Error
+    at https://file+.vscode-resource.vscode-cdn.net/c%3A/HApps/claude-code-chat/out/webview/index.js:8:73657
+    at https://file+.vscode-resource.vscode-cdn.net/c%3A/HApps/claude-code-chat/out/webview/index.js:127:66058
+    at onSelect (https://file+.vscode-resource.vscode-cdn.net/c%3A/HApps/claude-code-chat/out/webview/index.js:127:30099)
+    at onClick (https://file+.vscode-resource.vscode-cdn.net/c%3A/HApps/claude-code-chat/out/webview/index.js:127:24774)
+    at Object.wy (https://file+.vscode-resource.vscode-cdn.net/c%3A/HApps/claude-code-chat/out/webview/index.js:5:9858)
+    at ky (https://file+.vscode-resource.vscode-cdn.net/c%3A/HApps/claude-code-chat/out/webview/index.js:5:10012)
+    at Sy (https://file+.vscode-resource.vscode-cdn.net/c%3A/HApps/claude-code-chat/out/webview/index.js:5:10069)
+    at Sg (https://file+.vscode-resource.vscode-cdn.net/c%3A/HApps/claude-code-chat/out/webview/index.js:5:31444)
+    at Xm (https://file+.vscode-resource.vscode-cdn.net/c%3A/HApps/claude-code-chat/out/webview/index.js:5:31861)
+    at https://file+.vscode-resource.vscode-cdn.net/c%3A/HApps/claude-code-chat/out/webview/index.js:5:36774
+console.ts:139 [Extension Host] [DEBUG] loadConversation message received: {"filename":"2025-12-12_22-43_request-interrupted-by-user.json","source":"internal"} (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] [DEBUG] loadConversation called: {filename: '2025-12-12_22-43_request-interrupted-by-user.json', source: 'internal'} (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] [DEBUG] Loading internal conversation (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
 console.ts:139 [Extension Host] _loadConversationHistory (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
-console.ts:139 [Extension Host] filePath c:\Users\casil\AppData\Roaming\Code\User\workspaceStorage\94d3556ed026c1998225a0e4367900a1\AndrePimenta.claude-code-chat\conversations\2025-12-18_18-33_test.json (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
-console.ts:139 [Extension Host] Created new panel: panel-1766271013567-1. Total panels: 1 (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
-console.ts:139 [Extension Host] webviewInFocus: false (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
-console.ts:139 [Extension Host] Loaded conversation history: 2025-12-18_18-33_test.json (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
-index.html?id=79012456-7a29-4600-ad41-639a80124d67&parentId=6&origin=6cf64c96-2af4-4d0e-9eca-f0a485f64fe3&swVersion=4&extensionId=AndrePimenta.claude-code-chat&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app:1060 Unrecognized feature: 'local-network-access'.
-(anonymous) @ index.html?id=79012456-7a29-4600-ad41-639a80124d67&parentId=6&origin=6cf64c96-2af4-4d0e-9eca-f0a485f64fe3&swVersion=4&extensionId=AndrePimenta.claude-code-chat&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app:1060
-await in (anonymous)
-HostMessaging.channel.port1.onmessage @ index.html?id=79012456-7a29-4600-ad41-639a80124d67&parentId=6&origin=6cf64c96-2af4-4d0e-9eca-f0a485f64fe3&swVersion=4&extensionId=AndrePimenta.claude-code-chat&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app:342
-index.html?id=79012456-7a29-4600-ad41-639a80124d67&parentId=6&origin=6cf64c96-2af4-4d0e-9eca-f0a485f64fe3&swVersion=4&extensionId=AndrePimenta.claude-code-chat&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app:1086 [Violation] Avoid using document.write(). https://developers.google.com/web/updates/2016/08/removing-document-write
-(anonymous) @ index.html?id=79012456-7a29-4600-ad41-639a80124d67&parentId=6&origin=6cf64c96-2af4-4d0e-9eca-f0a485f64fe3&swVersion=4&extensionId=AndrePimenta.claude-code-chat&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app:1086
-setTimeout
-onFrameLoaded @ index.html?id=79012456-7a29-4600-ad41-639a80124d67&parentId=6&origin=6cf64c96-2af4-4d0e-9eca-f0a485f64fe3&swVersion=4&extensionId=AndrePimenta.claude-code-chat&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app:1084
-(anonymous) @ index.html?id=79012456-7a29-4600-ad41-639a80124d67&parentId=6&origin=6cf64c96-2af4-4d0e-9eca-f0a485f64fe3&swVersion=4&extensionId=AndrePimenta.claude-code-chat&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app:1116
-index.html?id=79012456-7a29-4600-ad41-639a80124d67&parentId=6&origin=6cf64c96-2af4-4d0e-9eca-f0a485…:1 Loading the script 'https://cloud.umami.is/script.js' violates the following Content Security Policy directive: "script-src 'nonce-9qfniR1k5h85Nz5t8qiF4WPdG3YnnVFh'". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+console.ts:139 [Extension Host] filePath c:\Users\casil\AppData\Roaming\Code\User\workspaceStorage\94d3556ed026c1998225a0e4367900a1\AndrePimenta.claude-code-chat\conversations\2025-12-12_22-43_request-interrupted-by-user.json (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Loaded conversation history: 2025-12-12_22-43_request-interrupted-by-user.json (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+index.js:8 [VSCode Messaging] Unknown message type: response {type: 'response', data: "I'll read through all these files to get up to spe…. Let me start by reading everything in parallel."}
 console.ts:139 [Extension Host] [ChatName] Checking if should send update: _chatName="Claude Code Chat" (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
 console.ts:139 [Extension Host] [ChatName] NOT sending - either null or default name (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
-index.js:127 [Think] Opening thinking intensity modal, current intensity: think-hard
-index.js:127 [ThinkingIntensity] Confirmed level: 0 → think
-index.js:127 [Think] Confirmed intensity: think
-console.ts:139 [Extension Host] [Settings] Updating thinkingIntensity -> thinking.intensity = think (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
-console.ts:139 [Extension Host] [Settings] Update initiated (async): {thinkingIntensity: 'think'} (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
-console.ts:139 [Extension Host] [Settings] Successfully updated thinking.intensity = think (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
-index.js:8 [Settings] Confirmed persisted: thinking.intensity = think
-index.js:127 [Think] Opening thinking intensity modal, current intensity: think
-index.js:127 [ThinkingIntensity] Confirmed level: 0 → think
-index.js:127 [Think] Confirmed intensity: think
-console.ts:139 [Extension Host] [Settings] Updating thinkingIntensity -> thinking.intensity = think (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
-console.ts:139 [Extension Host] [Settings] Update initiated (async): {thinkingIntensity: 'think'} (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
-console.ts:139 [Extension Host] [Settings] Successfully updated thinking.intensity = think (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
-index.js:8 [Settings] Confirmed persisted: thinking.intensity = think
-index.js:127 [Think] Opening thinking intensity modal, current intensity: think
-index.js:127 [ThinkingIntensity] Confirmed level: 1 → think-hard
-index.js:127 [Think] Confirmed intensity: think-hard
-console.ts:139 [Extension Host] [Settings] Updating thinkingIntensity -> thinking.intensity = think-hard (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
-console.ts:139 [Extension Host] [Settings] Update initiated (async): {thinkingIntensity: 'think-hard'} (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
-console.ts:139 [Extension Host] [Settings] Successfully updated thinking.intensity = think-hard (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
-index.js:8 [Settings] Confirmed persisted: thinking.intensity = think-hard
-index.js:127 [Think] Opening thinking intensity modal, current intensity: think-hard
+index.js:8 [VSCode Messaging] Unknown message type: response {type: 'response', data: 'Let me also read the job descriptions and master job list to get the full picture.'}
+index.js:8 [VSCode Messaging] Unknown message type: response {type: 'response', data: 'Now I have the full picture. Let me give you my an…off if you want a second opinion.\n\nUsage: 12/100%'}
+index.js:8 [VSCode Messaging] Unknown message type: response {type: 'response', data: "I'll create a v3 that brings back your authentic v…the strategic positioning. Let me write this out."}
+index.js:8 [VSCode Messaging] Unknown message type: response {type: 'response', data: "Done. Here's what I changed in v3:\n\n## Key Differe…ion on the voice vs. ATS balance.\n\nUsage: 14/100%"}
+index.js:8 [VSCode Messaging] Unknown message type: response {type: 'response', data: 'This is actually perfect for your target roles - p…me add it in chronological order with your voice.'}
+index.js:8 [VSCode Messaging] Unknown message type: response {type: 'response', data: "Added Calloway's. Here's what I did:\n\n**Key change… I can change it back. Your call.\n\nUsage: 16/100%"}
+index.js:8 [VSCode Messaging] Unknown message type: response {type: 'response', data: 'Done. Changed back to "Nursery Manager."\n\nThe othe…n interviews better than they do.\n\nUsage: 17/100%'}
+index.js:8 [VSCode Messaging] Unknown message type: response {type: 'response', data: 'Got it. Makes sense - "Nursery Manager" at a retai…r changes you want to make first?\n\nUsage: 18/100%'}
+index.js:8 [VSCode Messaging] Unknown message type: response {type: 'response', data: "Good research. Here's my summary of ATS PDF requir…TS-standard section headers, then convert to PDF."}
+index.js:8 [VSCode Messaging] Unknown message type: response {type: 'response', data: "Now let me create an ATS-optimized version and con…'ll update the headers and create a clean format."}
+index.js:8 [VSCode Messaging] Unknown message type: response {type: 'response', data: 'Now let me check what tools are available for PDF conversion and create the PDF.'}
+index.js:8 [VSCode Messaging] Unknown message type: response {type: 'response', data: 'Pandoc is available. Let me check what PDF engines pandoc can use.'}
+index.js:8 [VSCode Messaging] Unknown message type: response {type: 'response', data: 'We have pandoc and LaTeX. Let me create an ATS-optimized PDF with proper fonts and margins.'}
+index.js:8 [VSCode Messaging] Unknown message type: response {type: 'response', data: "PDF created (53KB). Let me verify it's ATS-compliant by checking text extraction."}
+index.js:8 [VSCode Messaging] Unknown message type: response {type: 'response', data: "PDF created and verified. Here's the ATS complianc…r are you good with this version?\n\nUsage: 26/100%"}
+console.ts:139 [Extension Host] Saved conversation: 2025-12-12_22-43_request-interrupted-by-user.json c:\Users\casil\AppData\Roaming\Code\User\workspaceStorage\94d3556ed026c1998225a0e4367900a1\AndrePimenta.claude-code-chat\conversations (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+log.ts:460   ERR [Extension Host] Failed to create backup commit: stderr maxBuffer length exceeded
+error @ log.ts:460
+error @ log.ts:565
+error @ logService.ts:51
+Sks @ remoteConsoleUtil.ts:58
+$logExtensionHostMessage @ mainThreadConsole.ts:38
+S @ rpcProtocol.ts:458
+Q @ rpcProtocol.ts:443
+M @ rpcProtocol.ts:373
+L @ rpcProtocol.ts:299
+(anonymous) @ rpcProtocol.ts:161
+C @ event.ts:1202
+fire @ event.ts:1233
+fire @ ipc.net.ts:652
+l.onmessage @ localProcessExtensionHost.ts:383
+console.ts:139 [Extension Host] Failed to create backup commit: stderr maxBuffer length exceeded (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+yks @ console.ts:139
+$logExtensionHostMessage @ mainThreadConsole.ts:39
+S @ rpcProtocol.ts:458
+Q @ rpcProtocol.ts:443
+M @ rpcProtocol.ts:373
+L @ rpcProtocol.ts:299
+(anonymous) @ rpcProtocol.ts:161
+C @ event.ts:1202
+fire @ event.ts:1233
+fire @ ipc.net.ts:652
+l.onmessage @ localProcessExtensionHost.ts:383
+console.ts:139 [Extension Host] Resuming session: 2f61bf8c-4f86-42a2-b336-58df514f2f29 (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Claude command args: (11) ['--output-format', 'stream-json', '--input-format', 'stream-json', '--verbose', '--permission-prompt-tool', 'stdio', '--mcp-config', 'c:\\Users\\casil\\AppData\\Roaming\\Code\\User\\workspace…ndrePimenta.claude-code-chat\\mcp\\mcp-servers.json', '--resume', '2f61bf8c-4f86-42a2-b336-58df514f2f29']0: "--output-format"1: "stream-json"2: "--input-format"3: "stream-json"4: "--verbose"5: "--permission-prompt-tool"6: "stdio"7: "--mcp-config"8: "c:\\Users\\casil\\AppData\\Roaming\\Code\\User\\workspaceStorage\\94d3556ed026c1998225a0e4367900a1\\AndrePimenta.claude-code-chat\\mcp\\mcp-servers.json"9: "--resume"10: "2f61bf8c-4f86-42a2-b336-58df514f2f29"length: 11[[Prototype]]: Array(0) (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Using native Claude command (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Account info received: {subscriptionType: 'Claude Max', email: 'casillashunter@gmail.com'} (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] System initialized (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Saved conversation: 2025-12-12_22-43_request-interrupted-by-user.json c:\Users\casil\AppData\Roaming\Code\User\workspaceStorage\94d3556ed026c1998225a0e4367900a1\AndrePimenta.claude-code-chat\conversations (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Session ID found in result: {sessionId: '2f61bf8c-4f86-42a2-b336-58df514f2f29', isNewSession: false, sessionChanged: false, currentSessionId: '2f61bf8c-4f86-42a2-b336-58df514f2f29'} (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Result received: {cost: 0.17425100000000004, duration: 5229, turns: 1} (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Saved conversation: 2025-12-12_22-43_request-interrupted-by-user.json c:\Users\casil\AppData\Roaming\Code\User\workspaceStorage\94d3556ed026c1998225a0e4367900a1\AndrePimenta.claude-code-chat\conversations (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Saved conversation: 2025-12-12_22-43_request-interrupted-by-user.json c:\Users\casil\AppData\Roaming\Code\User\workspaceStorage\94d3556ed026c1998225a0e4367900a1\AndrePimenta.claude-code-chat\conversations (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Saved conversation: 2025-12-12_22-43_request-interrupted-by-user.json c:\Users\casil\AppData\Roaming\Code\User\workspaceStorage\94d3556ed026c1998225a0e4367900a1\AndrePimenta.claude-code-chat\conversations (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Claude process closed with code: 0 (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Claude stderr output:  (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Saved conversation: 2025-12-12_22-43_request-interrupted-by-user.json c:\Users\casil\AppData\Roaming\Code\User\workspaceStorage\94d3556ed026c1998225a0e4367900a1\AndrePimenta.claude-code-chat\conversations (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+log.ts:460   ERR [Extension Host] Failed to create backup commit: stderr maxBuffer length exceeded
+error @ log.ts:460
+error @ log.ts:565
+error @ logService.ts:51
+Sks @ remoteConsoleUtil.ts:58
+$logExtensionHostMessage @ mainThreadConsole.ts:38
+S @ rpcProtocol.ts:458
+Q @ rpcProtocol.ts:443
+M @ rpcProtocol.ts:373
+L @ rpcProtocol.ts:299
+(anonymous) @ rpcProtocol.ts:161
+C @ event.ts:1202
+fire @ event.ts:1233
+fire @ ipc.net.ts:652
+l.onmessage @ localProcessExtensionHost.ts:383
+console.ts:139 [Extension Host] Failed to create backup commit: stderr maxBuffer length exceeded (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+yks @ console.ts:139
+$logExtensionHostMessage @ mainThreadConsole.ts:39
+S @ rpcProtocol.ts:458
+Q @ rpcProtocol.ts:443
+M @ rpcProtocol.ts:373
+L @ rpcProtocol.ts:299
+(anonymous) @ rpcProtocol.ts:161
+C @ event.ts:1202
+fire @ event.ts:1233
+fire @ ipc.net.ts:652
+l.onmessage @ localProcessExtensionHost.ts:383
+console.ts:139 [Extension Host] Resuming session: 2f61bf8c-4f86-42a2-b336-58df514f2f29 (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Claude command args: (11) ['--output-format', 'stream-json', '--input-format', 'stream-json', '--verbose', '--permission-prompt-tool', 'stdio', '--mcp-config', 'c:\\Users\\casil\\AppData\\Roaming\\Code\\User\\workspace…ndrePimenta.claude-code-chat\\mcp\\mcp-servers.json', '--resume', '2f61bf8c-4f86-42a2-b336-58df514f2f29'] (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Using native Claude command (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] System initialized (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Saved conversation: 2025-12-12_22-43_request-interrupted-by-user.json c:\Users\casil\AppData\Roaming\Code\User\workspaceStorage\94d3556ed026c1998225a0e4367900a1\AndrePimenta.claude-code-chat\conversations (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Saved conversation: 2025-12-12_22-43_request-interrupted-by-user.json c:\Users\casil\AppData\Roaming\Code\User\workspaceStorage\94d3556ed026c1998225a0e4367900a1\AndrePimenta.claude-code-chat\conversations (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Saved conversation: 2025-12-12_22-43_request-interrupted-by-user.json c:\Users\casil\AppData\Roaming\Code\User\workspaceStorage\94d3556ed026c1998225a0e4367900a1\AndrePimenta.claude-code-chat\conversations (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Session ID found in result: {sessionId: '2f61bf8c-4f86-42a2-b336-58df514f2f29', isNewSession: false, sessionChanged: false, currentSessionId: '2f61bf8c-4f86-42a2-b336-58df514f2f29'} (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Result received: {cost: 0.016928600000000002, duration: 4855, turns: 1} (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Saved conversation: 2025-12-12_22-43_request-interrupted-by-user.json c:\Users\casil\AppData\Roaming\Code\User\workspaceStorage\94d3556ed026c1998225a0e4367900a1\AndrePimenta.claude-code-chat\conversations (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Claude process closed with code: 0 (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
+console.ts:139 [Extension Host] Claude stderr output:  (at console.<anonymous> (file:///c:/Users/casil/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:214:29517))
