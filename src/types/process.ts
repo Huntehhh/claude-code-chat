@@ -101,6 +101,28 @@ export interface ProcessSpawnOptions {
   selectedModel?: string;
 }
 
+/**
+ * High-level spawn options for Claude CLI
+ * Used by spawnWithOptions() for a cleaner API
+ */
+export interface ClaudeSpawnOptions {
+  /** Working directory */
+  cwd: string;
+  /** Session ID to resume (optional) */
+  sessionId?: string;
+  /** Model to use (optional) */
+  model?: string;
+  /** Enable yolo mode (skip permission checks) */
+  yoloMode?: boolean;
+  /** Enable plan mode */
+  planMode?: boolean;
+  /** WSL configuration */
+  wslEnabled?: boolean;
+  wslDistro?: string;
+  nodePath?: string;
+  claudePath?: string;
+}
+
 // =============================================================================
 // Type Guards
 // =============================================================================

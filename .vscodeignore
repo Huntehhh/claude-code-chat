@@ -21,3 +21,4 @@ postcss.config.js
 .mcp.json
 .specstory/**
 .worktrees/**
+opencode-cli/**

@@ -10,11 +10,12 @@ import * as util from 'util';
 import { Mutex } from 'async-mutex';
 
 // Import types from centralized type definitions
-import type { ProcessConfig, ProcessManagerCallbacks, HeartbeatConfig } from '../types/process';
+import type { ProcessConfig, ProcessManagerCallbacks, HeartbeatConfig, ClaudeSpawnOptions } from '../types/process';
 import { DEFAULT_HEARTBEAT_CONFIG } from '../types/process';
+import { buildClaudeArgs } from '../utils/claude-args';
 
 // Re-export types for backward compatibility
-export type { ProcessConfig, ProcessManagerCallbacks, HeartbeatConfig };
+export type { ProcessConfig, ProcessManagerCallbacks, HeartbeatConfig, ClaudeSpawnOptions };
 export { DEFAULT_HEARTBEAT_CONFIG };
 
 const exec = util.promisify(cp.exec);
@@ -173,6 +174,36 @@ export class ProcessManager {
     } finally {
       release();
     }
+  }
+
+  /**
+   * Spawn a Claude process using high-level options.
+   * This is a convenience method that builds the CLI arguments internally.
+   *
+   * @param options - High-level spawn options (cwd, sessionId, model, etc.)
+   * @returns The spawned child process
+   */
+  spawnWithOptions(options: ClaudeSpawnOptions): cp.ChildProcess {
+    // Build CLI arguments using centralized utility
+    const args = buildClaudeArgs({
+      sessionId: options.sessionId,
+      model: options.model,
+      yoloMode: options.yoloMode,
+      planMode: options.planMode,
+    });
+
+    // Create ProcessConfig from options
+    const config: ProcessConfig = {
+      cwd: options.cwd,
+      args,
+      wslEnabled: options.wslEnabled ?? false,
+      wslDistro: options.wslDistro ?? 'Ubuntu',
+      nodePath: options.nodePath ?? '/usr/bin/node',
+      claudePath: options.claudePath ?? '/usr/local/bin/claude',
+    };
+
+    // Use existing spawn method
+    return this.spawn(config);
   }
 
   private _spawnWSL(config: ProcessConfig): cp.ChildProcess {
