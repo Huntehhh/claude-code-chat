@@ -4,7 +4,13 @@ node_modules
 .vscode-test/
 *.vsix
 backup
-.worktrees/.mcp.json
+nul
+
+# Local configuration with secrets
+.mcp.json
+
+# Development folders (not part of extension)
+docs/
 opencode-cli/
 .worktrees/
-nul
+.serena/
